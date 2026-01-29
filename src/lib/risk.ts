@@ -563,3 +563,232 @@ export async function getCuratorRiskMetrics(curatorSlug: string): Promise<Curato
     c.curatorName.toLowerCase().replace(/\s+/g, '-') === curatorSlug
   ) || null;
 }
+
+// ============================================
+// Vault-Level Risk Metrics
+// ============================================
+
+export interface VaultRiskMetrics {
+  address: string;
+  name: string;
+  symbol: string;
+  curator: string;
+  chain: number;
+  tvlUsd: number;
+  apy: number;
+  // Risk metrics
+  riskScore: number;  // 0-100
+  riskLevel: RiskLevel;
+  // Market allocation details
+  markets: Array<{
+    uniqueKey: string;
+    loanAsset: string;
+    collateralAsset: string;
+    allocationUsd: number;
+    allocationPct: number;
+    lltv: number;  // Liquidation LTV (e.g., 0.86 = 86%)
+    utilization: number;  // Current utilization (e.g., 0.85 = 85%)
+    warnings: MarketWarning[];
+    hasRedWarning: boolean;
+    hasBadDebt: boolean;
+  }>;
+  // Aggregated risk indicators
+  maxUtilization: number;
+  avgLltv: number;
+  totalWarnings: number;
+  redWarningCount: number;
+  hasBadDebt: boolean;
+  criticalWarnings: string[];
+}
+
+// Fetch vault-level risk data from Morpho
+export async function getVaultRiskMetrics(): Promise<VaultRiskMetrics[]> {
+  const query = `
+    query GetVaultRisk {
+      vaults(first: 200, orderBy: TotalAssets, orderDirection: Desc) {
+        items {
+          address
+          name
+          symbol
+          chain { id }
+          state {
+            totalAssetsUsd
+            apy
+            curators { name }
+            allocation {
+              market {
+                uniqueKey
+                lltv
+                loanAsset { symbol }
+                collateralAsset { symbol }
+                warnings { type level }
+                state {
+                  utilization
+                  supplyAssetsUsd
+                  borrowAssetsUsd
+                }
+              }
+              supplyAssetsUsd
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await fetch(MORPHO_GRAPHQL_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query }),
+      next: { revalidate: 300 },
+    });
+
+    if (!response.ok) {
+      console.error('[Risk] Vault risk API error:', response.status);
+      return [];
+    }
+
+    const data = await response.json();
+    const vaults = data?.data?.vaults?.items || [];
+
+    const result: VaultRiskMetrics[] = [];
+
+    for (const vault of vaults) {
+      const tvlUsd = vault.state?.totalAssetsUsd || 0;
+      if (tvlUsd < 10000) continue; // Skip dust vaults
+
+      const curators = vault.state?.curators || [];
+      const curator = curators[0]?.name || 'Unknown';
+      const allocations = vault.state?.allocation || [];
+
+      // Process market allocations
+      const markets: VaultRiskMetrics['markets'] = [];
+      let maxUtilization = 0;
+      let weightedLltv = 0;
+      let totalAllocation = 0;
+      let totalWarnings = 0;
+      let redWarningCount = 0;
+      let hasBadDebt = false;
+      const criticalWarnings: string[] = [];
+
+      for (const alloc of allocations) {
+        const market = alloc.market;
+        if (!market) continue;
+
+        const allocationUsd = alloc.supplyAssetsUsd || 0;
+        if (allocationUsd < 100) continue; // Skip dust allocations
+
+        const lltv = parseFloat(market.lltv || '0') / 1e18;
+        const utilization = market.state?.utilization || 0;
+        const warnings = market.warnings || [];
+
+        const hasRedWarning = warnings.some((w: MarketWarning) => w.level === 'RED');
+        const marketHasBadDebt = warnings.some((w: MarketWarning) =>
+          w.type === 'bad_debt_unrealized' || w.type === 'bad_debt_realized'
+        );
+
+        markets.push({
+          uniqueKey: market.uniqueKey,
+          loanAsset: market.loanAsset?.symbol || 'Unknown',
+          collateralAsset: market.collateralAsset?.symbol || 'Unknown',
+          allocationUsd,
+          allocationPct: tvlUsd > 0 ? allocationUsd / tvlUsd : 0,
+          lltv,
+          utilization,
+          warnings,
+          hasRedWarning,
+          hasBadDebt: marketHasBadDebt,
+        });
+
+        // Track aggregated metrics
+        if (utilization > maxUtilization) maxUtilization = utilization;
+        weightedLltv += lltv * allocationUsd;
+        totalAllocation += allocationUsd;
+        totalWarnings += warnings.length;
+        if (hasRedWarning) redWarningCount++;
+        if (marketHasBadDebt) hasBadDebt = true;
+
+        // Track critical warnings
+        for (const w of warnings) {
+          if (CRITICAL_WARNING_TYPES.includes(w.type) && !criticalWarnings.includes(w.type)) {
+            criticalWarnings.push(w.type);
+          }
+        }
+      }
+
+      const avgLltv = totalAllocation > 0 ? weightedLltv / totalAllocation : 0;
+
+      // Calculate vault risk score
+      const riskScore = calculateVaultRiskScore({
+        maxUtilization,
+        avgLltv,
+        redWarningCount,
+        hasBadDebt,
+        marketsCount: markets.length,
+      });
+
+      result.push({
+        address: vault.address,
+        name: vault.name,
+        symbol: vault.symbol,
+        curator,
+        chain: vault.chain?.id || 1,
+        tvlUsd,
+        apy: (vault.state?.apy || 0) * 100,
+        riskScore,
+        riskLevel: getRiskLevel(riskScore),
+        markets,
+        maxUtilization,
+        avgLltv,
+        totalWarnings,
+        redWarningCount,
+        hasBadDebt,
+        criticalWarnings,
+      });
+    }
+
+    // Sort by TVL
+    result.sort((a, b) => b.tvlUsd - a.tvlUsd);
+
+    console.log(`[Risk] Fetched risk metrics for ${result.length} vaults`);
+    return result;
+  } catch (error) {
+    console.error('[Risk] Error fetching vault risk:', error);
+    return [];
+  }
+}
+
+// Calculate vault-level risk score
+function calculateVaultRiskScore(metrics: {
+  maxUtilization: number;
+  avgLltv: number;
+  redWarningCount: number;
+  hasBadDebt: boolean;
+  marketsCount: number;
+}): number {
+  let score = 0;
+
+  // Utilization risk (0-35 points)
+  // Higher utilization = higher risk of liquidation cascade
+  if (metrics.maxUtilization > 0.98) score += 35;
+  else if (metrics.maxUtilization > 0.95) score += 25;
+  else if (metrics.maxUtilization > 0.90) score += 15;
+  else if (metrics.maxUtilization > 0.80) score += 8;
+  else if (metrics.maxUtilization > 0.70) score += 4;
+
+  // LLTV risk (0-25 points)
+  // Higher LLTV = less margin before liquidation
+  if (metrics.avgLltv > 0.95) score += 25;
+  else if (metrics.avgLltv > 0.90) score += 18;
+  else if (metrics.avgLltv > 0.85) score += 12;
+  else if (metrics.avgLltv > 0.80) score += 6;
+
+  // Warning risk (0-25 points)
+  score += Math.min(metrics.redWarningCount * 8, 25);
+
+  // Bad debt risk (0-15 points)
+  if (metrics.hasBadDebt) score += 15;
+
+  return Math.min(score, 100);
+}

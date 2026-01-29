@@ -1,10 +1,23 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Fragment } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { RiskBadge, RiskScoreBar } from '@/components/ui/risk-badge';
 import { formatTvl, cn } from '@/lib/utils';
 import { getChainColor } from '@/lib/colors';
-import { ArrowUpDown, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowUpDown, ChevronDown, ChevronUp, ChevronRight, AlertTriangle } from 'lucide-react';
+
+interface MarketRisk {
+  uniqueKey: string;
+  loanAsset: string;
+  collateralAsset: string;
+  allocationUsd: number;
+  allocationPct: number;
+  lltv: number;
+  utilization: number;
+  hasRedWarning: boolean;
+  hasBadDebt: boolean;
+}
 
 interface Vault {
   id: string;
@@ -20,6 +33,15 @@ interface Vault {
   stablecoin: boolean;
   exposure: string;
   poolMeta: string | null;
+  // Risk metrics
+  riskScore?: number;
+  riskLevel?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  maxUtilization?: number;
+  avgLltv?: number;
+  hasBadDebt?: boolean;
+  redWarningCount?: number;
+  criticalWarnings?: string[];
+  markets?: MarketRisk[];
 }
 
 interface VaultTableProps {
@@ -41,6 +63,7 @@ export function VaultTable({
   const [sortKey, setSortKey] = useState<SortKey>('tvl');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [showAll, setShowAll] = useState(false);
+  const [expandedVault, setExpandedVault] = useState<string | null>(null);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -141,92 +164,193 @@ export function VaultTable({
                 <th className="px-5 py-3 text-right text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
                   <SortButton columnKey="tvl" label="TVL" />
                 </th>
+                <th className="px-5 py-3 text-center text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
+                  Risk
+                </th>
                 <th className="px-5 py-3 text-right text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
                   <SortButton columnKey="apy" label="APY" />
                 </th>
                 <th className="px-5 py-3 text-right text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
-                  <SortButton columnKey="apyBase" label="Base" />
+                  Util%
                 </th>
                 <th className="px-5 py-3 text-right text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
-                  <SortButton columnKey="apyReward" label="Rewards" />
-                </th>
-                <th className="px-5 py-3 text-center text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
-                  Type
+                  LLTV
                 </th>
               </tr>
             </thead>
             <tbody>
               {displayedVaults.map((vault, index) => (
-                <tr
-                  key={vault.id}
-                  className="border-b border-zinc-800/40 hover:bg-zinc-800/20 transition-colors"
-                >
-                  <td className="px-5 py-3">
-                    <div className="flex items-center gap-3">
-                      <span className="text-[11px] text-zinc-600 font-mono w-5">
-                        {index + 1}
-                      </span>
-                      <div>
-                        <p className="text-[14px] text-white">{vault.symbol}</p>
-                        {vault.poolMeta && (
-                          <p className="text-[11px] text-zinc-600 mt-0.5">
-                            {vault.poolMeta}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-5 py-3">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-2 h-2 rounded-full"
-                        style={{ backgroundColor: getChainColor(vault.chain) }}
-                      />
-                      <span className="text-[13px] text-zinc-300">{vault.chain}</span>
-                    </div>
-                  </td>
-                  {showProject && (
+                <Fragment key={vault.id}>
+                  <tr
+                    onClick={() => vault.riskLevel && setExpandedVault(expandedVault === vault.id ? null : vault.id)}
+                    className={cn(
+                      'border-b border-zinc-800/40 hover:bg-zinc-800/20 transition-colors',
+                      vault.riskLevel && 'cursor-pointer',
+                      expandedVault === vault.id && 'bg-zinc-800/20'
+                    )}
+                  >
                     <td className="px-5 py-3">
-                      <span className="text-[13px] text-zinc-400">{vault.project}</span>
+                      <div className="flex items-center gap-3">
+                        {vault.riskLevel ? (
+                          expandedVault === vault.id ? (
+                            <ChevronDown className="h-3.5 w-3.5 text-zinc-600" />
+                          ) : (
+                            <ChevronRight className="h-3.5 w-3.5 text-zinc-700" />
+                          )
+                        ) : (
+                          <span className="text-[11px] text-zinc-600 font-mono w-4">
+                            {index + 1}
+                          </span>
+                        )}
+                        <div>
+                          <p className="text-[14px] text-white">{vault.symbol}</p>
+                          {vault.poolMeta && (
+                            <p className="text-[11px] text-zinc-600 mt-0.5">
+                              {vault.poolMeta}
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     </td>
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: getChainColor(vault.chain) }}
+                        />
+                        <span className="text-[13px] text-zinc-300">{vault.chain}</span>
+                      </div>
+                    </td>
+                    {showProject && (
+                      <td className="px-5 py-3">
+                        <span className="text-[13px] text-zinc-400">{vault.project}</span>
+                      </td>
+                    )}
+                    <td className="px-5 py-3 text-right">
+                      <span className="font-mono text-white text-[14px]">
+                        {formatTvl(vault.tvl)}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-center">
+                      {vault.riskLevel ? (
+                        <div className="flex items-center justify-center gap-2">
+                          <RiskBadge
+                            riskLevel={vault.riskLevel}
+                            riskScore={vault.riskScore}
+                            compact
+                          />
+                          {vault.hasBadDebt && (
+                            <AlertTriangle className="h-3.5 w-3.5 text-red-400" />
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-[11px] text-zinc-600">—</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3 text-right">
+                      <span className={cn(
+                        'font-mono text-[14px]',
+                        vault.apy > 10 ? 'text-emerald-400' : vault.apy > 5 ? 'text-emerald-500/80' : 'text-zinc-300'
+                      )}>
+                        {vault.apy.toFixed(2)}%
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-right">
+                      {vault.maxUtilization !== undefined ? (
+                        <span className={cn(
+                          'font-mono text-[13px]',
+                          vault.maxUtilization > 0.95 ? 'text-red-400' :
+                          vault.maxUtilization > 0.90 ? 'text-amber-400' :
+                          vault.maxUtilization > 0.80 ? 'text-yellow-400' : 'text-zinc-400'
+                        )}>
+                          {(vault.maxUtilization * 100).toFixed(0)}%
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-zinc-600">—</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3 text-right">
+                      {vault.avgLltv !== undefined ? (
+                        <span className={cn(
+                          'font-mono text-[13px]',
+                          vault.avgLltv > 0.90 ? 'text-amber-400' : 'text-zinc-400'
+                        )}>
+                          {(vault.avgLltv * 100).toFixed(0)}%
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-zinc-600">—</span>
+                      )}
+                    </td>
+                  </tr>
+                  {/* Expanded risk details */}
+                  {expandedVault === vault.id && vault.markets && (
+                    <tr className="bg-zinc-900/50">
+                      <td colSpan={showProject ? 9 : 8} className="px-5 py-4">
+                        <div className="pl-8">
+                          <div className="flex items-center gap-4 mb-3">
+                            <div>
+                              <p className="text-[11px] text-zinc-500 uppercase tracking-wider">Risk Score</p>
+                              <div className="w-32 mt-1">
+                                <RiskScoreBar score={vault.riskScore || 0} />
+                              </div>
+                            </div>
+                            {vault.criticalWarnings && vault.criticalWarnings.length > 0 && (
+                              <div>
+                                <p className="text-[11px] text-zinc-500 uppercase tracking-wider">Warnings</p>
+                                <div className="flex gap-1 mt-1">
+                                  {vault.criticalWarnings.map(w => (
+                                    <span key={w} className="px-1.5 py-0.5 text-[10px] bg-red-500/20 text-red-400 rounded">
+                                      {w.replace(/_/g, ' ')}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-2">
+                            Market Allocations ({vault.markets.length})
+                          </p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                            {vault.markets.slice(0, 6).map((market) => (
+                              <div
+                                key={market.uniqueKey}
+                                className={cn(
+                                  'p-2 rounded border text-[12px]',
+                                  market.hasRedWarning ? 'border-red-500/30 bg-red-500/5' :
+                                  market.utilization > 0.95 ? 'border-amber-500/30 bg-amber-500/5' :
+                                  'border-zinc-800 bg-zinc-800/30'
+                                )}
+                              >
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-white font-medium">
+                                    {market.loanAsset}/{market.collateralAsset}
+                                  </span>
+                                  <span className="text-zinc-500">
+                                    {(market.allocationPct * 100).toFixed(0)}%
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-3 text-[11px]">
+                                  <span className={cn(
+                                    market.utilization > 0.95 ? 'text-red-400' :
+                                    market.utilization > 0.90 ? 'text-amber-400' : 'text-zinc-500'
+                                  )}>
+                                    Util: {(market.utilization * 100).toFixed(0)}%
+                                  </span>
+                                  <span className="text-zinc-500">
+                                    LLTV: {(market.lltv * 100).toFixed(0)}%
+                                  </span>
+                                  {market.hasBadDebt && (
+                                    <span className="text-red-400">Bad Debt</span>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
                   )}
-                  <td className="px-5 py-3 text-right">
-                    <span className="font-mono text-white text-[14px]">
-                      {formatTvl(vault.tvl)}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3 text-right">
-                    <span className={cn(
-                      'font-mono text-[14px]',
-                      vault.apy > 10 ? 'text-emerald-400' : vault.apy > 5 ? 'text-emerald-500/80' : 'text-zinc-300'
-                    )}>
-                      {vault.apy.toFixed(2)}%
-                    </span>
-                  </td>
-                  <td className="px-5 py-3 text-right">
-                    <span className="font-mono text-zinc-400 text-[13px]">
-                      {vault.apyBase.toFixed(2)}%
-                    </span>
-                  </td>
-                  <td className="px-5 py-3 text-right">
-                    <span className={cn(
-                      'font-mono text-[13px]',
-                      vault.apyReward > 0 ? 'text-purple-400' : 'text-zinc-600'
-                    )}>
-                      {vault.apyReward > 0 ? `+${vault.apyReward.toFixed(2)}%` : '-'}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3 text-center">
-                    <span className={cn(
-                      'px-2 py-0.5 text-[11px] rounded',
-                      vault.stablecoin
-                        ? 'bg-blue-500/20 text-blue-400'
-                        : 'bg-amber-500/20 text-amber-400'
-                    )}>
-                      {vault.stablecoin ? 'Stable' : 'Volatile'}
-                    </span>
-                  </td>
-                </tr>
+                </Fragment>
               ))}
             </tbody>
           </table>
