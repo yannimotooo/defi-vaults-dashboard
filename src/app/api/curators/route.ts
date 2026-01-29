@@ -285,16 +285,27 @@ export async function GET() {
               ? CURATOR_NAME_VARIANTS[p.slug].map(v => riskMap.get(normalizeName(v))).find(Boolean)
               : undefined);
 
-        // TVL Priority: 1) Morpho on-chain (authoritative), 2) DeFiLlama (fallback)
-        const hasMorphoTvl = morphoData && morphoData.totalTvl > 0;
-        const totalTvl = hasMorphoTvl ? morphoData.totalTvl : p.tvl;
-        const tvlSource = hasMorphoTvl ? 'morpho' as const : 'defillama' as const;
+        // TVL: DeFiLlama is PRIMARY (aggregates all protocols)
+        // Morpho data is used for VERIFICATION and enhancement (APY, risk)
+        const defillamaTvl = p.tvl;
+        const morphoTvl = morphoData?.totalTvl || 0;
+
+        // Always use DeFiLlama as total TVL (it includes all protocols)
+        const totalTvl = defillamaTvl;
+
+        // Determine if Morpho data closely matches DeFiLlama (curator is primarily Morpho)
+        // If within 20%, consider it "verified" by on-chain data
+        const morphoMatchesDefillama = morphoTvl > 0 && defillamaTvl > 0
+          && Math.abs(morphoTvl - defillamaTvl) / defillamaTvl < 0.20;
+
+        // TVL source indicates where majority of TVL is tracked
+        const tvlSource = morphoMatchesDefillama ? 'morpho' as const : 'defillama' as const;
 
         // Use real vault data when available, fallback to estimates
         const vaultCount = morphoData?.vaultCount || realMetrics?.vaultCount || estimateVaultCount(totalTvl);
 
-        // APY Priority: 1) Morpho on-chain APY, 2) Fee data grossApy, 3) DefiLlama, 4) 0
-        const avgApy = morphoData?.avgApy || feeData?.avgGrossApy || feeData?.avgNetApy || realMetrics?.avgApy || 0;
+        // APY Priority: 1) Fee data grossApy (from Morpho), 2) Morpho on-chain, 3) DefiLlama, 4) 0
+        const avgApy = feeData?.avgGrossApy || feeData?.avgNetApy || morphoData?.avgApy || realMetrics?.avgApy || 0;
 
         const protocols = realMetrics?.protocols?.length
           ? realMetrics.protocols
@@ -303,8 +314,11 @@ export async function GET() {
           ? realMetrics.chains
           : (defillamaChains.length > 0 ? defillamaChains : ['Ethereum']);
 
-        // Data confidence: 'high' for on-chain Morpho data, otherwise use cross-ref
-        const dataConfidence = hasMorphoTvl ? 'high' as const : crossRef?.confidence;
+        // Data confidence: 'high' only if Morpho closely matches DeFiLlama (verified on-chain)
+        // Otherwise use Dune cross-reference confidence, or 'medium' as default
+        const dataConfidence = morphoMatchesDefillama
+          ? 'high' as const
+          : (crossRef?.confidence || 'medium' as const);
 
         return {
           name: formatCuratorName(p.name),
@@ -317,10 +331,10 @@ export async function GET() {
           // Calculate net flow from change percentages (use DeFiLlama changes as Morpho doesn't have this)
           netFlow7d: p.change_7d ? (totalTvl * p.change_7d) / 100 : 0,
           netFlow30d: p.change_1m ? (totalTvl * p.change_1m) / 100 : 0,
-          // TVL source tracking
+          // TVL source tracking (DeFiLlama is primary, Morpho is verification)
           tvlSource,
-          morphoTvl: morphoData?.totalTvl,
-          defillamaTvl: p.tvl,
+          morphoTvl: morphoTvl > 0 ? morphoTvl : undefined,
+          defillamaTvl,
           // Data confidence
           dataConfidence,
           duneTvl: crossRef?.duneTvl,
