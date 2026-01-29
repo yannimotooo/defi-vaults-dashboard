@@ -99,6 +99,63 @@ function formatProtocolName(project: string): string {
   return nameMap[lower] || project.charAt(0).toUpperCase() + project.slice(1);
 }
 
+// Curator name variations for fee data lookup
+// Maps DeFiLlama protocol slugs to possible Morpho/Euler curator names
+const CURATOR_NAME_VARIANTS: Record<string, string[]> = {
+  'steakhouse-financial': ['Steakhouse Financial', 'Steakhouse'],
+  'gauntlet': ['Gauntlet'],
+  'sentora': ['Sentora'],
+  'mev-capital': ['MEV Capital', 'Mev Capital'],
+  're7-labs': ['RE7 Labs', 'Re7 Labs', 'RE7'],
+  'k3-capital': ['K3 Capital', 'K3'],
+  'block-analitica': ['Block Analitica', 'BA Labs'],
+  'euler-dao': ['Euler DAO', 'Euler'],
+  'b-protocol': ['B.Protocol', 'B Protocol'],
+  'summer-fi': ['Summer.fi', 'Summerfi'],
+  'ultrayield-by-edge': ['UltraYield', 'Ultrayield', 'Edge'],
+  'hyperithm': ['Hyperithm'],
+  'vault-bridge': ['Vault Bridge', 'VaultBridge'],
+  'clearstar': ['Clearstar'],
+  'telos-consilium': ['Telos Consilium', 'Telos'],
+  'tulipa-capital': ['Tulipa Capital', 'Tulipa'],
+  'kpk': ['kpk', 'KPK'],
+  'alphaping': ['AlphaPing', 'Alphaping'],
+  '9summits': ['9Summits', '9summits'],
+};
+
+// Look up fee data using multiple name matching strategies
+function lookupFeeData(
+  protocolName: string,
+  protocolSlug: string,
+  feeDataMap: Map<string, { avgPerformanceFee: number; avgManagementFee: number; estimatedAnnualFeeRevenue: number; avgGrossApy: number; avgNetApy: number }>
+) {
+  // Normalize function for consistent key generation
+  const normalize = (s: string) => s.toLowerCase().replace(/[\s.-]/g, '');
+
+  // Strategy 1: Try slug directly
+  let feeData = feeDataMap.get(normalize(protocolSlug));
+  if (feeData) return feeData;
+
+  // Strategy 2: Try formatted protocol name
+  feeData = feeDataMap.get(normalize(formatCuratorName(protocolName)));
+  if (feeData) return feeData;
+
+  // Strategy 3: Try protocol name as-is
+  feeData = feeDataMap.get(normalize(protocolName));
+  if (feeData) return feeData;
+
+  // Strategy 4: Try known name variants for this slug
+  const variants = CURATOR_NAME_VARIANTS[protocolSlug];
+  if (variants) {
+    for (const variant of variants) {
+      feeData = feeDataMap.get(normalize(variant));
+      if (feeData) return feeData;
+    }
+  }
+
+  return undefined;
+}
+
 export async function GET() {
   try {
     // Fetch data from all sources in parallel (including yield pools ONCE to avoid N+1 queries)
@@ -120,9 +177,12 @@ export async function GET() {
       avgNetApy: number;
     }>();
 
+    // Consistent normalization for fee data keys
+    const normalizeFeeKey = (s: string) => s.toLowerCase().replace(/[\s.-]/g, '');
+
     // Add Morpho fee data
     for (const fd of morphoFeeData) {
-      const key = fd.curatorName.toLowerCase().replace(/\s+/g, '');
+      const key = normalizeFeeKey(fd.curatorName);
       feeDataMap.set(key, {
         avgPerformanceFee: fd.avgPerformanceFee,
         avgManagementFee: fd.avgManagementFee,
@@ -134,7 +194,7 @@ export async function GET() {
 
     // Merge/add Euler fee data
     for (const ed of eulerFeeData) {
-      const key = ed.curatorName.toLowerCase().replace(/\s+/g, '');
+      const key = normalizeFeeKey(ed.curatorName);
       const existing = feeDataMap.get(key);
 
       if (existing) {
@@ -186,19 +246,22 @@ export async function GET() {
         const crossRef = crossRefMap.get(p.slug);
         const realMetrics = realMetricsMap.get(p.slug);
 
+        // Look up fee data using multiple strategies (name matching is tricky)
+        const feeData = lookupFeeData(p.name, p.slug, feeDataMap);
+
         // Use real vault data when available, fallback to estimates
         const vaultCount = realMetrics?.vaultCount || estimateVaultCount(p.tvl);
-        const avgApy = realMetrics?.avgApy || 0; // Default to 0 if no real data
+
+        // APY Priority: 1) Morpho/Euler grossApy (most accurate), 2) DefiLlama yields, 3) 0
+        // Note: DefiLlama yields indexes by protocol (morpho-v1), not curator, so it often returns 0
+        const avgApy = feeData?.avgGrossApy || feeData?.avgNetApy || realMetrics?.avgApy || 0;
+
         const protocols = realMetrics?.protocols?.length
           ? realMetrics.protocols
           : metadata.protocols;
         const chains = realMetrics?.chains?.length
           ? realMetrics.chains
           : (defillamaChains.length > 0 ? defillamaChains : ['Ethereum']);
-
-        // Look up fee data from Morpho + Euler combined map
-        const curatorNameNormalized = formatCuratorName(p.name).toLowerCase().replace(/\s+/g, '');
-        const feeData = feeDataMap.get(curatorNameNormalized);
 
         return {
           name: formatCuratorName(p.name),
