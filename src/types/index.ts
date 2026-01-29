@@ -27,7 +27,11 @@ export interface Curator {
   avgApy: number;
   netFlow7d: number;
   netFlow30d: number;
-  // Cross-reference validation (DeFiLlama + Dune)
+  // TVL source tracking
+  tvlSource?: 'morpho' | 'defillama' | 'euler';
+  morphoTvl?: number;      // On-chain Morpho TVL (authoritative)
+  defillamaTvl?: number;   // DeFiLlama aggregated TVL
+  // Cross-reference validation
   dataConfidence?: 'high' | 'medium' | 'low';
   duneTvl?: number | null;
   // Fee economics (from Morpho)
@@ -36,10 +40,16 @@ export interface Curator {
   estimatedAnnualRevenue?: number;  // Estimated fee revenue at current TVL/APY
   grossApy?: number;  // APY before fees
   netApy?: number;    // APY after fees
-  // Risk metrics (Phase 3)
-  riskRating?: 'A+' | 'A' | 'B+' | 'B' | 'C' | 'D';
-  maxDrawdown?: number;
-  badDebtHistory?: number;
+  // Risk metrics (from Morpho GraphQL)
+  riskScore?: number;  // 0-100, higher = more risky
+  riskLevel?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  liquidationVolume24h?: number;
+  liquidationVolume7d?: number;
+  hasBadDebt?: boolean;
+  redWarningCount?: number;
+  yellowWarningCount?: number;
+  criticalWarnings?: string[];
+  avgUtilization?: number;
 }
 
 export interface Vault {

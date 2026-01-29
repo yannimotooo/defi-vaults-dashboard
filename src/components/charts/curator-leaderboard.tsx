@@ -4,6 +4,7 @@ import { useState, Fragment } from 'react';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { DataConfidenceBadge } from '@/components/ui/data-source-badge';
+import { RiskBadge } from '@/components/ui/risk-badge';
 import { formatTvl, formatFlow, cn } from '@/lib/utils';
 import { CURATOR_COLORS, FALLBACK_CURATOR_COLORS } from '@/lib/colors';
 import type { Curator } from '@/types';
@@ -33,6 +34,7 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                 <th className="px-5 py-3 text-left text-[11px] font-medium text-zinc-500 uppercase tracking-wider w-12">#</th>
                 <th className="px-5 py-3 text-left text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Curator</th>
                 <th className="px-5 py-3 text-right text-[11px] font-medium text-zinc-500 uppercase tracking-wider">TVL</th>
+                <th className="px-5 py-3 text-center text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Risk</th>
                 <th className="px-5 py-3 text-right text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Vaults</th>
                 <th className="px-5 py-3 text-right text-[11px] font-medium text-zinc-500 uppercase tracking-wider">APY</th>
                 <th className="px-5 py-3 text-right text-[11px] font-medium text-zinc-500 uppercase tracking-wider">7d Flow</th>
@@ -87,11 +89,23 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                         {curator.dataConfidence && (
                           <DataConfidenceBadge
                             confidence={curator.dataConfidence}
+                            tvlSource={curator.tvlSource}
                             duneTvl={curator.duneTvl}
-                            defillamaTvl={curator.totalTvl}
+                            defillamaTvl={curator.defillamaTvl || curator.totalTvl}
                           />
                         )}
                       </div>
+                    </td>
+                    <td className="px-5 py-4 text-center">
+                      {curator.riskLevel ? (
+                        <RiskBadge
+                          riskLevel={curator.riskLevel}
+                          riskScore={curator.riskScore}
+                          compact
+                        />
+                      ) : (
+                        <span className="text-[11px] text-zinc-600">—</span>
+                      )}
                     </td>
                     <td className="px-5 py-4 text-right">
                       <span className="font-mono text-zinc-400 text-[14px]">{curator.vaultCount}</span>
@@ -112,8 +126,8 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                   </tr>
                   {expandedCurator === curator.slug && (
                     <tr key={`${curator.slug}-expanded`} className="bg-zinc-900/50">
-                      <td colSpan={6} className="px-5 py-4">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pl-8">
+                      <td colSpan={7} className="px-5 py-4">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 pl-8">
                           <div>
                             <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-2">
                               Chains ({curator.chains.length})
@@ -155,6 +169,35 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                               {formatFlow(curator.netFlow30d)}
                             </span>
                           </div>
+                          {/* Risk Metrics */}
+                          {curator.riskLevel && (
+                            <div>
+                              <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-2">
+                                Risk Details
+                              </p>
+                              <div className="space-y-1 text-[12px]">
+                                <p className="text-zinc-400">
+                                  Score: <span className="font-mono text-white">{curator.riskScore}/100</span>
+                                </p>
+                                {(curator.liquidationVolume7d ?? 0) > 0 && (
+                                  <p className="text-zinc-400">
+                                    7d Liquidations: <span className="font-mono text-amber-400">{formatTvl(curator.liquidationVolume7d!)}</span>
+                                  </p>
+                                )}
+                                {curator.hasBadDebt && (
+                                  <p className="text-red-400">Has Bad Debt</p>
+                                )}
+                                {(curator.redWarningCount ?? 0) > 0 && (
+                                  <p className="text-red-400">{curator.redWarningCount} critical warnings</p>
+                                )}
+                                {curator.avgUtilization !== undefined && (
+                                  <p className="text-zinc-400">
+                                    Utilization: <span className="font-mono">{(curator.avgUtilization * 100).toFixed(0)}%</span>
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          )}
                           {curator.duneTvl && (
                             <div>
                               <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-2">
@@ -164,7 +207,7 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                                 {formatTvl(curator.duneTvl)}
                               </span>
                               <p className="text-[10px] text-zinc-600 mt-0.5">
-                                vs {formatTvl(curator.totalTvl)} DeFiLlama
+                                vs {formatTvl(curator.defillamaTvl || curator.totalTvl)} DeFiLlama
                               </p>
                             </div>
                           )}

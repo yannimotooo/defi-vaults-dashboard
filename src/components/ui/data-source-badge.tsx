@@ -30,6 +30,7 @@ export function DataSourceBadge({ source, verified = true, url }: DataSourceBadg
 // Data confidence indicator for cross-referenced data
 interface DataConfidenceBadgeProps {
   confidence: 'high' | 'medium' | 'low' | undefined;
+  tvlSource?: 'morpho' | 'defillama' | 'euler';
   duneTvl?: number | null;
   defillamaTvl?: number;
   showTooltip?: boolean;
@@ -37,18 +38,24 @@ interface DataConfidenceBadgeProps {
 
 export function DataConfidenceBadge({
   confidence,
+  tvlSource,
   duneTvl,
   defillamaTvl,
   showTooltip = true
 }: DataConfidenceBadgeProps) {
   if (!confidence) return null;
 
+  // On-chain sources get special treatment
+  const isOnChain = tvlSource === 'morpho' || tvlSource === 'euler';
+
   const config = {
     high: {
       color: 'bg-emerald-500',
       textColor: 'text-emerald-400',
-      label: 'Verified',
-      description: 'DeFiLlama & Dune data match (<5% difference)',
+      label: isOnChain ? 'On-chain' : 'Verified',
+      description: isOnChain
+        ? `Authoritative ${tvlSource === 'morpho' ? 'Morpho' : 'Euler'} smart contract data`
+        : 'DeFiLlama & Dune data match (<5% difference)',
     },
     medium: {
       color: 'bg-amber-500',

@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getAllProtocols, filterRiskCurators, extractChains, getYieldPools, filterCuratorVaultsFromPools, type VaultPool } from '@/lib/defillama';
 import { getMorphoCuratorData, crossReferenceCuratorData } from '@/lib/dune';
-import { getAllCuratorsFeeData } from '@/lib/morpho';
+import { getAllCuratorsFeeData, getMorphoCuratorsTvl } from '@/lib/morpho';
 import { getEulerCuratorFeeData } from '@/lib/euler';
+import { getRiskMetrics } from '@/lib/risk';
 import type { Curator } from '@/types';
 
 export const dynamic = 'force-dynamic';
@@ -158,14 +159,35 @@ function lookupFeeData(
 
 export async function GET() {
   try {
-    // Fetch data from all sources in parallel (including yield pools ONCE to avoid N+1 queries)
-    const [allProtocols, duneCuratorData, morphoFeeData, eulerFeeData, allYieldPools] = await Promise.all([
+    // Fetch data from all sources in parallel
+    const [
+      allProtocols,
+      duneCuratorData,
+      morphoFeeData,
+      eulerFeeData,
+      allYieldPools,
+      morphoCuratorTvl,  // On-chain TVL (primary source)
+      riskData,          // Risk metrics
+    ] = await Promise.all([
       getAllProtocols(),
-      getMorphoCuratorData().catch(() => []), // Don't fail if Dune fails
-      getAllCuratorsFeeData().catch(() => []), // Don't fail if Morpho fails
-      getEulerCuratorFeeData().catch(() => []), // Don't fail if Euler fails
-      getYieldPools().catch(() => []), // Fetch pools once for all curator metrics
+      getMorphoCuratorData().catch(() => []),
+      getAllCuratorsFeeData().catch(() => []),
+      getEulerCuratorFeeData().catch(() => []),
+      getYieldPools().catch(() => []),
+      getMorphoCuratorsTvl().catch(() => []),  // Authoritative on-chain TVL
+      getRiskMetrics().catch(() => null),       // Risk data
     ]);
+
+    // Create Morpho TVL lookup map (normalized curator name -> data)
+    const normalizeName = (s: string) => s.toLowerCase().replace(/[\s.-]/g, '');
+    const morphoTvlMap = new Map(
+      morphoCuratorTvl.map(c => [normalizeName(c.curatorName), c])
+    );
+
+    // Create risk data lookup map
+    const riskMap = new Map(
+      riskData?.curators.map(c => [normalizeName(c.curatorName), c]) || []
+    );
 
     // Create a map of fee data by curator name (normalized)
     // Combine Morpho and Euler data
@@ -249,12 +271,30 @@ export async function GET() {
         // Look up fee data using multiple strategies (name matching is tricky)
         const feeData = lookupFeeData(p.name, p.slug, feeDataMap);
 
-        // Use real vault data when available, fallback to estimates
-        const vaultCount = realMetrics?.vaultCount || estimateVaultCount(p.tvl);
+        // Look up Morpho on-chain TVL (try multiple name formats)
+        const morphoData = morphoTvlMap.get(normalizeName(p.name))
+          || morphoTvlMap.get(normalizeName(formatCuratorName(p.name)))
+          || (CURATOR_NAME_VARIANTS[p.slug]
+              ? CURATOR_NAME_VARIANTS[p.slug].map(v => morphoTvlMap.get(normalizeName(v))).find(Boolean)
+              : undefined);
 
-        // APY Priority: 1) Morpho/Euler grossApy (most accurate), 2) DefiLlama yields, 3) 0
-        // Note: DefiLlama yields indexes by protocol (morpho-v1), not curator, so it often returns 0
-        const avgApy = feeData?.avgGrossApy || feeData?.avgNetApy || realMetrics?.avgApy || 0;
+        // Look up risk data (try multiple name formats)
+        const risk = riskMap.get(normalizeName(p.name))
+          || riskMap.get(normalizeName(formatCuratorName(p.name)))
+          || (CURATOR_NAME_VARIANTS[p.slug]
+              ? CURATOR_NAME_VARIANTS[p.slug].map(v => riskMap.get(normalizeName(v))).find(Boolean)
+              : undefined);
+
+        // TVL Priority: 1) Morpho on-chain (authoritative), 2) DeFiLlama (fallback)
+        const hasMorphoTvl = morphoData && morphoData.totalTvl > 0;
+        const totalTvl = hasMorphoTvl ? morphoData.totalTvl : p.tvl;
+        const tvlSource = hasMorphoTvl ? 'morpho' as const : 'defillama' as const;
+
+        // Use real vault data when available, fallback to estimates
+        const vaultCount = morphoData?.vaultCount || realMetrics?.vaultCount || estimateVaultCount(totalTvl);
+
+        // APY Priority: 1) Morpho on-chain APY, 2) Fee data grossApy, 3) DefiLlama, 4) 0
+        const avgApy = morphoData?.avgApy || feeData?.avgGrossApy || feeData?.avgNetApy || realMetrics?.avgApy || 0;
 
         const protocols = realMetrics?.protocols?.length
           ? realMetrics.protocols
@@ -263,50 +303,75 @@ export async function GET() {
           ? realMetrics.chains
           : (defillamaChains.length > 0 ? defillamaChains : ['Ethereum']);
 
+        // Data confidence: 'high' for on-chain Morpho data, otherwise use cross-ref
+        const dataConfidence = hasMorphoTvl ? 'high' as const : crossRef?.confidence;
+
         return {
           name: formatCuratorName(p.name),
           slug: p.slug,
-          // Use DeFiLlama as primary TVL source
-          totalTvl: p.tvl,
+          totalTvl,
           vaultCount,
           chains,
           protocols,
           avgApy,
-          // Calculate net flow from change percentages
-          netFlow7d: p.change_7d ? (p.tvl * p.change_7d) / 100 : 0,
-          netFlow30d: p.change_1m ? (p.tvl * p.change_1m) / 100 : 0,
-          // Add cross-reference info
-          dataConfidence: crossRef?.confidence,
+          // Calculate net flow from change percentages (use DeFiLlama changes as Morpho doesn't have this)
+          netFlow7d: p.change_7d ? (totalTvl * p.change_7d) / 100 : 0,
+          netFlow30d: p.change_1m ? (totalTvl * p.change_1m) / 100 : 0,
+          // TVL source tracking
+          tvlSource,
+          morphoTvl: morphoData?.totalTvl,
+          defillamaTvl: p.tvl,
+          // Data confidence
+          dataConfidence,
           duneTvl: crossRef?.duneTvl,
-          // Add fee economics from Morpho + Euler
+          // Fee economics from Morpho + Euler
           avgPerformanceFee: feeData?.avgPerformanceFee,
           avgManagementFee: feeData?.avgManagementFee,
           estimatedAnnualRevenue: feeData?.estimatedAnnualFeeRevenue,
           grossApy: feeData?.avgGrossApy,
           netApy: feeData?.avgNetApy,
+          // Risk metrics
+          riskScore: risk?.riskScore,
+          riskLevel: risk?.riskLevel,
+          liquidationVolume24h: risk?.totalLiquidationVolume24h,
+          liquidationVolume7d: risk?.totalLiquidationVolume7d,
+          hasBadDebt: risk?.hasBadDebt,
+          redWarningCount: risk?.redWarningCount,
+          yellowWarningCount: risk?.yellowWarningCount,
+          criticalWarnings: risk?.criticalWarnings,
+          avgUtilization: risk?.avgUtilization,
         };
       })
       .sort((a, b) => b.totalTvl - a.totalTvl);
 
     // Add comprehensive validation info
-    const sources = ['DeFiLlama'];
+    const sources = [];
+    const morphoTvlCount = curators.filter(c => c.tvlSource === 'morpho').length;
+    if (morphoTvlCount > 0) sources.push(`Morpho On-chain (${morphoTvlCount})`);
+    sources.push('DeFiLlama');
     if (duneCuratorData.length > 0) sources.push('Dune');
-    if (morphoFeeData.length > 0) sources.push('Morpho (V1+V2)');
+    if (morphoFeeData.length > 0) sources.push('Morpho Fees');
     if (eulerFeeData.length > 0) sources.push('Euler V2');
+    if (riskData) sources.push('Risk API');
 
     const validation = {
       source: sources.join(' + '),
       timestamp: new Date().toISOString(),
       curatorCount: curators.length,
       totalTvl: curators.reduce((sum, c) => sum + c.totalTvl, 0),
+      // TVL source breakdown
+      morphoTvlCount,
+      defillamaTvlCount: curators.filter(c => c.tvlSource === 'defillama').length,
+      // Data availability
       duneDataAvailable: duneCuratorData.length > 0,
       morphoFeeDataAvailable: morphoFeeData.length > 0,
       eulerFeeDataAvailable: eulerFeeData.length > 0,
+      riskDataAvailable: riskData !== null,
+      // Quality metrics
       crossReferencedCount: crossReferenced.filter(c => c.dataSource === 'both').length,
-      highConfidenceCount: crossReferenced.filter(c => c.confidence === 'high').length,
+      highConfidenceCount: curators.filter(c => c.dataConfidence === 'high').length,
       curatorsWithFeeData: curators.filter(c => c.avgPerformanceFee !== undefined).length,
-      // Note: Kamino (Solana) doesn't have public REST API for fees
-      kaminoNote: 'Kamino fee data unavailable - no public API',
+      curatorsWithRiskData: curators.filter(c => c.riskLevel !== undefined).length,
     };
 
     return NextResponse.json({ curators, validation });

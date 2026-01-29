@@ -3,6 +3,7 @@
 // Supports both Vault V1 (legacy) and Vault V2 (current)
 
 const MORPHO_GRAPHQL_ENDPOINT = 'https://api.morpho.org/graphql';
+const MORPHO_BLUE_API = 'https://blue-api.morpho.org/graphql';
 
 export interface MorphoVault {
   address: string;
@@ -420,6 +421,116 @@ export async function getAllCuratorsFeeData(): Promise<CuratorFeeData[]> {
     return curatorFeeData;
   } catch (error) {
     console.error('Error getting all curators fee data:', error);
+    return [];
+  }
+}
+
+// ============================================
+// Morpho Blue API - Authoritative On-Chain TVL
+// ============================================
+
+export interface MorphoCuratorTvl {
+  curatorName: string;
+  totalTvl: number;
+  vaultCount: number;
+  avgApy: number;
+  vaults: Array<{
+    address: string;
+    name: string;
+    tvl: number;
+    apy: number;
+  }>;
+}
+
+// Fetch authoritative on-chain TVL data from Morpho Blue API
+// This is the primary source of truth for Morpho curator TVL
+export async function getMorphoCuratorsTvl(): Promise<MorphoCuratorTvl[]> {
+  const query = `
+    query GetCuratorsTvl {
+      vaults(first: 500, orderBy: TotalAssets, orderDirection: Desc) {
+        items {
+          address
+          name
+          state {
+            totalAssetsUsd
+            curators { name }
+            apy
+          }
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await fetch(MORPHO_BLUE_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query }),
+      next: { revalidate: 300 },
+    });
+
+    if (!response.ok) {
+      console.error('[Morpho TVL] API error:', response.status);
+      return [];
+    }
+
+    const data = await response.json();
+    const vaults = data?.data?.vaults?.items || [];
+
+    // Group vaults by curator name
+    const curatorMap = new Map<string, {
+      vaults: Array<{ address: string; name: string; tvl: number; apy: number }>;
+      totalTvl: number;
+      weightedApy: number;
+    }>();
+
+    for (const vault of vaults) {
+      const curators = vault.state?.curators || [];
+      const curatorName = curators[0]?.name || 'Unknown';
+      const tvl = vault.state?.totalAssetsUsd || 0;
+      const apy = (vault.state?.apy || 0) * 100; // Convert to percentage
+
+      // Skip very small vaults or unknown curators
+      if (curatorName === 'Unknown' || tvl < 10000) continue;
+
+      if (!curatorMap.has(curatorName)) {
+        curatorMap.set(curatorName, { vaults: [], totalTvl: 0, weightedApy: 0 });
+      }
+
+      const entry = curatorMap.get(curatorName)!;
+      entry.vaults.push({
+        address: vault.address,
+        name: vault.name,
+        tvl,
+        apy,
+      });
+      entry.totalTvl += tvl;
+      entry.weightedApy += tvl * apy; // For weighted average
+    }
+
+    // Build result array
+    const result: MorphoCuratorTvl[] = [];
+
+    for (const [curatorName, data] of curatorMap) {
+      // Skip curators with very low TVL
+      if (data.totalTvl < 100000) continue;
+
+      result.push({
+        curatorName,
+        totalTvl: data.totalTvl,
+        vaultCount: data.vaults.length,
+        avgApy: data.totalTvl > 0 ? data.weightedApy / data.totalTvl : 0,
+        vaults: data.vaults.sort((a, b) => b.tvl - a.tvl),
+      });
+    }
+
+    // Sort by TVL
+    result.sort((a, b) => b.totalTvl - a.totalTvl);
+
+    console.log(`[Morpho TVL] Fetched ${vaults.length} vaults, aggregated to ${result.length} curators`);
+    return result;
+  } catch (error) {
+    console.error('[Morpho TVL] Error:', error);
     return [];
   }
 }
