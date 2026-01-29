@@ -329,9 +329,9 @@ const CURATOR_PROJECT_MAPPING: Record<string, string[]> = {
   'clearstar': ['clearstar'],
 };
 
-// Get vaults for a specific curator
-export async function getCuratorVaults(curatorSlug: string): Promise<VaultPool[]> {
-  const allPools = await getYieldPools();
+// Get vaults for a specific curator (with optional pre-fetched pools to avoid N+1 queries)
+export async function getCuratorVaults(curatorSlug: string, prefetchedPools?: VaultPool[]): Promise<VaultPool[]> {
+  const allPools = prefetchedPools || await getYieldPools();
 
   // Get the project names associated with this curator
   const projectNames = CURATOR_PROJECT_MAPPING[curatorSlug] || [curatorSlug];
@@ -351,6 +351,26 @@ export async function getCuratorVaults(curatorSlug: string): Promise<VaultPool[]
   });
 
   // Sort by TVL descending
+  return curatorPools.sort((a, b) => b.tvlUsd - a.tvlUsd);
+}
+
+// Filter vaults from pre-fetched pools (for bulk operations without N+1 queries)
+export function filterCuratorVaultsFromPools(curatorSlug: string, allPools: VaultPool[]): VaultPool[] {
+  const projectNames = CURATOR_PROJECT_MAPPING[curatorSlug] || [curatorSlug];
+
+  const curatorPools = allPools.filter(pool => {
+    const projectLower = pool.project.toLowerCase();
+    const poolLower = pool.pool.toLowerCase();
+    const metaLower = (pool.poolMeta || '').toLowerCase();
+
+    return projectNames.some(name => {
+      const nameLower = name.toLowerCase();
+      return projectLower.includes(nameLower) ||
+             poolLower.includes(nameLower) ||
+             metaLower.includes(nameLower);
+    });
+  });
+
   return curatorPools.sort((a, b) => b.tvlUsd - a.tvlUsd);
 }
 

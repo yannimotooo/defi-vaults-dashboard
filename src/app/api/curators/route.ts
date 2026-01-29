@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAllProtocols, filterRiskCurators, extractChains, getCuratorVaults } from '@/lib/defillama';
+import { getAllProtocols, filterRiskCurators, extractChains, getYieldPools, filterCuratorVaultsFromPools, type VaultPool } from '@/lib/defillama';
 import { getMorphoCuratorData, crossReferenceCuratorData } from '@/lib/dune';
 import { getAllCuratorsFeeData } from '@/lib/morpho';
 import { getEulerCuratorFeeData } from '@/lib/euler';
@@ -31,16 +31,16 @@ const CURATOR_METADATA: Record<string, { protocols: string[] }> = {
   '9summits': { protocols: ['Morpho'] },
 };
 
-// Calculate real metrics from vault data
-async function getCuratorRealMetrics(slug: string): Promise<{
+// Calculate real metrics from vault data (using pre-fetched pools to avoid N+1 queries)
+function getCuratorRealMetrics(slug: string, allPools: VaultPool[]): {
   vaultCount: number;
   avgApy: number;
   protocols: string[];
   chains: string[];
   vaultTvl: number;
-} | null> {
+} | null {
   try {
-    const vaults = await getCuratorVaults(slug);
+    const vaults = filterCuratorVaultsFromPools(slug, allPools);
     if (vaults.length === 0) return null;
 
     const totalTvl = vaults.reduce((sum, v) => sum + v.tvlUsd, 0);
@@ -101,12 +101,13 @@ function formatProtocolName(project: string): string {
 
 export async function GET() {
   try {
-    // Fetch data from all sources in parallel
-    const [allProtocols, duneCuratorData, morphoFeeData, eulerFeeData] = await Promise.all([
+    // Fetch data from all sources in parallel (including yield pools ONCE to avoid N+1 queries)
+    const [allProtocols, duneCuratorData, morphoFeeData, eulerFeeData, allYieldPools] = await Promise.all([
       getAllProtocols(),
       getMorphoCuratorData().catch(() => []), // Don't fail if Dune fails
       getAllCuratorsFeeData().catch(() => []), // Don't fail if Morpho fails
       getEulerCuratorFeeData().catch(() => []), // Don't fail if Euler fails
+      getYieldPools().catch(() => []), // Fetch pools once for all curator metrics
     ]);
 
     // Create a map of fee data by curator name (normalized)
@@ -170,12 +171,10 @@ export async function GET() {
     // Create a map of cross-referenced data for lookup
     const crossRefMap = new Map(crossReferenced.map(c => [c.slug, c]));
 
-    // Fetch real vault metrics for each curator (in parallel, with limit)
+    // Calculate real vault metrics for each curator (using pre-fetched pools - no more N+1 queries)
     const curatorSlugs = curatorProtocols.filter(p => p.tvl > 0).map(p => p.slug);
-    const realMetricsPromises = curatorSlugs.map(slug => getCuratorRealMetrics(slug));
-    const realMetricsResults = await Promise.all(realMetricsPromises);
     const realMetricsMap = new Map(
-      curatorSlugs.map((slug, i) => [slug, realMetricsResults[i]])
+      curatorSlugs.map(slug => [slug, getCuratorRealMetrics(slug, allYieldPools)])
     );
 
     // Transform to our Curator type with real metrics when available
