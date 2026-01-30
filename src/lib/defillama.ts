@@ -312,70 +312,83 @@ export async function getYieldPools(): Promise<VaultPool[]> {
 }
 
 // Curator configuration: defines what to search for in DeFiLlama pools
-// For Morpho curators: we look for pools on morpho/morpho-blue with curator name in metadata
+// For Morpho curators: we match symbol prefixes since DeFiLlama encodes curator in symbol
 interface CuratorConfig {
-  searchTerms: string[];           // Terms to match in poolMeta, symbol, or pool name
+  symbolPrefixes: string[];        // Symbol prefixes to match (e.g., "GT" for Gauntlet)
+  symbolContains?: string[];       // Alternative: symbol contains these strings
   requiredProjects?: string[];     // If set, pool.project must match one of these
   directProjects?: string[];       // If set, pool.project directly matches (non-Morpho curators)
 }
 
+// Morpho projects in DeFiLlama
+const MORPHO_PROJECTS = ['morpho', 'morpho-blue', 'morpho-v1'];
+
 const CURATOR_CONFIG: Record<string, CuratorConfig> = {
-  // Morpho curators - must be on morpho/morpho-blue protocol with curator name in metadata
+  // Morpho curators - match by symbol prefix on morpho projects
   'steakhouse-financial': {
-    searchTerms: ['steakhouse'],
-    requiredProjects: ['morpho', 'morpho-blue', 'morpho-v1']
+    symbolPrefixes: ['STEAK'],
+    requiredProjects: MORPHO_PROJECTS
   },
   'gauntlet': {
-    searchTerms: ['gauntlet'],
-    requiredProjects: ['morpho', 'morpho-blue', 'morpho-v1']
+    symbolPrefixes: ['GT'],
+    requiredProjects: MORPHO_PROJECTS
   },
   'sentora': {
-    searchTerms: ['sentora'],
-    requiredProjects: ['morpho', 'morpho-blue', 'morpho-v1']
+    symbolPrefixes: ['SM', 'SEN'],
+    symbolContains: ['SENTORA'],
+    requiredProjects: MORPHO_PROJECTS
   },
   'mev-capital': {
-    searchTerms: ['mev capital', 'mev-capital', 'mevcapital'],
-    requiredProjects: ['morpho', 'morpho-blue', 'morpho-v1']
+    symbolPrefixes: ['MC-', 'MC', 'MMEV', 'MEV'],
+    symbolContains: ['MEV'],
+    requiredProjects: MORPHO_PROJECTS
   },
   're7-labs': {
-    searchTerms: ['re7'],
-    requiredProjects: ['morpho', 'morpho-blue', 'morpho-v1']
+    symbolPrefixes: ['RE7'],
+    requiredProjects: MORPHO_PROJECTS
   },
   'k3-capital': {
-    searchTerms: ['k3'],
-    requiredProjects: ['morpho', 'morpho-blue', 'morpho-v1']
+    symbolPrefixes: ['K3', 'KHYPE'],
+    requiredProjects: MORPHO_PROJECTS
   },
   'block-analitica': {
-    searchTerms: ['block analitica', 'block-analitica', 'blockanalitica'],
-    requiredProjects: ['morpho', 'morpho-blue', 'morpho-v1']
+    symbolPrefixes: ['BBQ', 'BB'],
+    requiredProjects: MORPHO_PROJECTS
   },
   'b-protocol': {
-    searchTerms: ['b.protocol', 'b-protocol', 'bprotocol'],
-    requiredProjects: ['morpho', 'morpho-blue', 'morpho-v1']
+    symbolPrefixes: ['BP'],
+    symbolContains: ['BPROTOCOL'],
+    requiredProjects: MORPHO_PROJECTS
   },
   'summer-fi': {
-    searchTerms: ['summer.fi', 'summer-fi', 'summerfi'],
-    requiredProjects: ['morpho', 'morpho-blue', 'morpho-v1']
+    symbolPrefixes: ['SPARK', 'SU'],
+    symbolContains: ['SUMMER'],
+    requiredProjects: MORPHO_PROJECTS
   },
   'ultrayield-by-edge': {
-    searchTerms: ['ultrayield'],
-    requiredProjects: ['morpho', 'morpho-blue', 'morpho-v1']
+    symbolPrefixes: ['EDGE', 'UY'],
+    symbolContains: ['ULTRAYIELD'],
+    requiredProjects: MORPHO_PROJECTS
   },
   'hyperithm': {
-    searchTerms: ['hyperithm'],
-    requiredProjects: ['morpho', 'morpho-blue', 'morpho-v1']
+    symbolPrefixes: ['HYPER', 'HB', 'HY'],
+    requiredProjects: MORPHO_PROJECTS
   },
   'vault-bridge': {
-    searchTerms: ['vault bridge', 'vault-bridge', 'vaultbridge'],
-    requiredProjects: ['morpho', 'morpho-blue', 'morpho-v1']
+    symbolPrefixes: ['VB'],
+    requiredProjects: MORPHO_PROJECTS
   },
   'clearstar': {
-    searchTerms: ['clearstar'],
-    requiredProjects: ['morpho', 'morpho-blue', 'morpho-v1']
+    symbolPrefixes: ['CS'],
+    requiredProjects: MORPHO_PROJECTS
+  },
+  'kpk': {
+    symbolPrefixes: ['KPK-', 'KPK'],
+    requiredProjects: MORPHO_PROJECTS
   },
   // Non-Morpho curators - match directly by project
   'euler-dao': {
-    searchTerms: [],
+    symbolPrefixes: [],
     directProjects: ['euler', 'euler-v2']
   },
 };
@@ -386,46 +399,43 @@ export async function getCuratorVaults(curatorSlug: string, prefetchedPools?: Va
   const config = CURATOR_CONFIG[curatorSlug];
 
   if (!config) {
-    // Fallback: try to match by slug as a search term on Morpho
-    const slugSearchTerm = curatorSlug.replace(/-/g, ' ');
-    const curatorPools = allPools.filter(pool => {
-      const projectLower = pool.project.toLowerCase();
-      const isMorpho = projectLower.includes('morpho');
-      if (!isMorpho) return false;
-
-      const metaLower = (pool.poolMeta || '').toLowerCase();
-      const symbolLower = pool.symbol.toLowerCase();
-      return metaLower.includes(slugSearchTerm) || symbolLower.includes(slugSearchTerm);
-    });
-    return curatorPools.sort((a, b) => b.tvlUsd - a.tvlUsd);
+    // Fallback: no config found, return empty
+    console.log(`[getCuratorVaults] No config for curator: ${curatorSlug}`);
+    return [];
   }
 
   // Filter pools based on curator config
   const curatorPools = allPools.filter(pool => {
     const projectLower = pool.project.toLowerCase();
-    const metaLower = (pool.poolMeta || '').toLowerCase();
-    const symbolLower = pool.symbol.toLowerCase();
-    const poolLower = pool.pool.toLowerCase();
+    const symbolUpper = pool.symbol.toUpperCase();
 
     // Direct project match (for non-Morpho curators like Euler)
     if (config.directProjects && config.directProjects.length > 0) {
       return config.directProjects.some(proj => projectLower.includes(proj.toLowerCase()));
     }
 
-    // Morpho curators: must be on a Morpho protocol AND have search term in metadata
+    // Morpho curators: must be on a Morpho protocol AND match symbol pattern
     if (config.requiredProjects && config.requiredProjects.length > 0) {
       const isRequiredProject = config.requiredProjects.some(proj =>
         projectLower.includes(proj.toLowerCase())
       );
       if (!isRequiredProject) return false;
 
-      // Must also match one of the search terms in metadata/symbol/pool
-      return config.searchTerms.some(term => {
-        const termLower = term.toLowerCase();
-        return metaLower.includes(termLower) ||
-               symbolLower.includes(termLower) ||
-               poolLower.includes(termLower);
-      });
+      // Check symbol prefix match
+      const prefixMatch = config.symbolPrefixes.some(prefix =>
+        symbolUpper.startsWith(prefix.toUpperCase())
+      );
+      if (prefixMatch) return true;
+
+      // Check symbol contains match (fallback)
+      if (config.symbolContains && config.symbolContains.length > 0) {
+        const containsMatch = config.symbolContains.some(term =>
+          symbolUpper.includes(term.toUpperCase())
+        );
+        if (containsMatch) return true;
+      }
+
+      return false;
     }
 
     return false;
@@ -441,44 +451,40 @@ export function filterCuratorVaultsFromPools(curatorSlug: string, allPools: Vaul
   const config = CURATOR_CONFIG[curatorSlug];
 
   if (!config) {
-    // Fallback: try to match by slug as a search term on Morpho
-    const slugSearchTerm = curatorSlug.replace(/-/g, ' ');
-    const curatorPools = allPools.filter(pool => {
-      const projectLower = pool.project.toLowerCase();
-      const isMorpho = projectLower.includes('morpho');
-      if (!isMorpho) return false;
-
-      const metaLower = (pool.poolMeta || '').toLowerCase();
-      const symbolLower = pool.symbol.toLowerCase();
-      return metaLower.includes(slugSearchTerm) || symbolLower.includes(slugSearchTerm);
-    });
-    return curatorPools.sort((a, b) => b.tvlUsd - a.tvlUsd);
+    return [];
   }
 
   const curatorPools = allPools.filter(pool => {
     const projectLower = pool.project.toLowerCase();
-    const metaLower = (pool.poolMeta || '').toLowerCase();
-    const symbolLower = pool.symbol.toLowerCase();
-    const poolLower = pool.pool.toLowerCase();
+    const symbolUpper = pool.symbol.toUpperCase();
 
     // Direct project match (for non-Morpho curators like Euler)
     if (config.directProjects && config.directProjects.length > 0) {
       return config.directProjects.some(proj => projectLower.includes(proj.toLowerCase()));
     }
 
-    // Morpho curators: must be on a Morpho protocol AND have search term in metadata
+    // Morpho curators: must be on a Morpho protocol AND match symbol pattern
     if (config.requiredProjects && config.requiredProjects.length > 0) {
       const isRequiredProject = config.requiredProjects.some(proj =>
         projectLower.includes(proj.toLowerCase())
       );
       if (!isRequiredProject) return false;
 
-      return config.searchTerms.some(term => {
-        const termLower = term.toLowerCase();
-        return metaLower.includes(termLower) ||
-               symbolLower.includes(termLower) ||
-               poolLower.includes(termLower);
-      });
+      // Check symbol prefix match
+      const prefixMatch = config.symbolPrefixes.some(prefix =>
+        symbolUpper.startsWith(prefix.toUpperCase())
+      );
+      if (prefixMatch) return true;
+
+      // Check symbol contains match (fallback)
+      if (config.symbolContains && config.symbolContains.length > 0) {
+        const containsMatch = config.symbolContains.some(term =>
+          symbolUpper.includes(term.toUpperCase())
+        );
+        if (containsMatch) return true;
+      }
+
+      return false;
     }
 
     return false;
