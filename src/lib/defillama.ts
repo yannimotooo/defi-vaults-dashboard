@@ -311,43 +311,124 @@ export async function getYieldPools(): Promise<VaultPool[]> {
   }
 }
 
-// Map curator names to their associated project slugs in DeFiLlama yields
-const CURATOR_PROJECT_MAPPING: Record<string, string[]> = {
-  'steakhouse-financial': ['morpho-steakhouse', 'steakhouse'],
-  'gauntlet': ['morpho-gauntlet', 'gauntlet'],
-  'sentora': ['morpho-sentora', 'sentora'],
-  'mev-capital': ['morpho-mev-capital', 'mev-capital'],
-  're7-labs': ['morpho-re7', 're7-labs', 're7'],
-  'k3-capital': ['morpho-k3', 'k3-capital', 'k3'],
-  'block-analitica': ['morpho-block-analitica', 'block-analitica'],
-  'euler-dao': ['euler', 'euler-v2'],
-  'b-protocol': ['b-protocol'],
-  'summer-fi': ['summer.fi', 'summer-fi'],
-  'ultrayield-by-edge': ['ultrayield'],
-  'hyperithm': ['hyperithm'],
-  'vault-bridge': ['vault-bridge'],
-  'clearstar': ['clearstar'],
+// Curator configuration: defines what to search for in DeFiLlama pools
+// For Morpho curators: we look for pools on morpho/morpho-blue with curator name in metadata
+interface CuratorConfig {
+  searchTerms: string[];           // Terms to match in poolMeta, symbol, or pool name
+  requiredProjects?: string[];     // If set, pool.project must match one of these
+  directProjects?: string[];       // If set, pool.project directly matches (non-Morpho curators)
+}
+
+const CURATOR_CONFIG: Record<string, CuratorConfig> = {
+  // Morpho curators - must be on morpho/morpho-blue protocol with curator name in metadata
+  'steakhouse-financial': {
+    searchTerms: ['steakhouse'],
+    requiredProjects: ['morpho', 'morpho-blue', 'morpho-v1']
+  },
+  'gauntlet': {
+    searchTerms: ['gauntlet'],
+    requiredProjects: ['morpho', 'morpho-blue', 'morpho-v1']
+  },
+  'sentora': {
+    searchTerms: ['sentora'],
+    requiredProjects: ['morpho', 'morpho-blue', 'morpho-v1']
+  },
+  'mev-capital': {
+    searchTerms: ['mev capital', 'mev-capital', 'mevcapital'],
+    requiredProjects: ['morpho', 'morpho-blue', 'morpho-v1']
+  },
+  're7-labs': {
+    searchTerms: ['re7'],
+    requiredProjects: ['morpho', 'morpho-blue', 'morpho-v1']
+  },
+  'k3-capital': {
+    searchTerms: ['k3'],
+    requiredProjects: ['morpho', 'morpho-blue', 'morpho-v1']
+  },
+  'block-analitica': {
+    searchTerms: ['block analitica', 'block-analitica', 'blockanalitica'],
+    requiredProjects: ['morpho', 'morpho-blue', 'morpho-v1']
+  },
+  'b-protocol': {
+    searchTerms: ['b.protocol', 'b-protocol', 'bprotocol'],
+    requiredProjects: ['morpho', 'morpho-blue', 'morpho-v1']
+  },
+  'summer-fi': {
+    searchTerms: ['summer.fi', 'summer-fi', 'summerfi'],
+    requiredProjects: ['morpho', 'morpho-blue', 'morpho-v1']
+  },
+  'ultrayield-by-edge': {
+    searchTerms: ['ultrayield'],
+    requiredProjects: ['morpho', 'morpho-blue', 'morpho-v1']
+  },
+  'hyperithm': {
+    searchTerms: ['hyperithm'],
+    requiredProjects: ['morpho', 'morpho-blue', 'morpho-v1']
+  },
+  'vault-bridge': {
+    searchTerms: ['vault bridge', 'vault-bridge', 'vaultbridge'],
+    requiredProjects: ['morpho', 'morpho-blue', 'morpho-v1']
+  },
+  'clearstar': {
+    searchTerms: ['clearstar'],
+    requiredProjects: ['morpho', 'morpho-blue', 'morpho-v1']
+  },
+  // Non-Morpho curators - match directly by project
+  'euler-dao': {
+    searchTerms: [],
+    directProjects: ['euler', 'euler-v2']
+  },
 };
 
 // Get vaults for a specific curator (with optional pre-fetched pools to avoid N+1 queries)
 export async function getCuratorVaults(curatorSlug: string, prefetchedPools?: VaultPool[]): Promise<VaultPool[]> {
   const allPools = prefetchedPools || await getYieldPools();
+  const config = CURATOR_CONFIG[curatorSlug];
 
-  // Get the project names associated with this curator
-  const projectNames = CURATOR_PROJECT_MAPPING[curatorSlug] || [curatorSlug];
+  if (!config) {
+    // Fallback: try to match by slug as a search term on Morpho
+    const slugSearchTerm = curatorSlug.replace(/-/g, ' ');
+    const curatorPools = allPools.filter(pool => {
+      const projectLower = pool.project.toLowerCase();
+      const isMorpho = projectLower.includes('morpho');
+      if (!isMorpho) return false;
 
-  // Filter pools that match this curator's projects
+      const metaLower = (pool.poolMeta || '').toLowerCase();
+      const symbolLower = pool.symbol.toLowerCase();
+      return metaLower.includes(slugSearchTerm) || symbolLower.includes(slugSearchTerm);
+    });
+    return curatorPools.sort((a, b) => b.tvlUsd - a.tvlUsd);
+  }
+
+  // Filter pools based on curator config
   const curatorPools = allPools.filter(pool => {
     const projectLower = pool.project.toLowerCase();
-    const poolLower = pool.pool.toLowerCase();
     const metaLower = (pool.poolMeta || '').toLowerCase();
+    const symbolLower = pool.symbol.toLowerCase();
+    const poolLower = pool.pool.toLowerCase();
 
-    return projectNames.some(name => {
-      const nameLower = name.toLowerCase();
-      return projectLower.includes(nameLower) ||
-             poolLower.includes(nameLower) ||
-             metaLower.includes(nameLower);
-    });
+    // Direct project match (for non-Morpho curators like Euler)
+    if (config.directProjects && config.directProjects.length > 0) {
+      return config.directProjects.some(proj => projectLower.includes(proj.toLowerCase()));
+    }
+
+    // Morpho curators: must be on a Morpho protocol AND have search term in metadata
+    if (config.requiredProjects && config.requiredProjects.length > 0) {
+      const isRequiredProject = config.requiredProjects.some(proj =>
+        projectLower.includes(proj.toLowerCase())
+      );
+      if (!isRequiredProject) return false;
+
+      // Must also match one of the search terms in metadata/symbol/pool
+      return config.searchTerms.some(term => {
+        const termLower = term.toLowerCase();
+        return metaLower.includes(termLower) ||
+               symbolLower.includes(termLower) ||
+               poolLower.includes(termLower);
+      });
+    }
+
+    return false;
   });
 
   // Sort by TVL descending
@@ -355,20 +436,52 @@ export async function getCuratorVaults(curatorSlug: string, prefetchedPools?: Va
 }
 
 // Filter vaults from pre-fetched pools (for bulk operations without N+1 queries)
+// Uses same logic as getCuratorVaults but synchronously with pre-fetched data
 export function filterCuratorVaultsFromPools(curatorSlug: string, allPools: VaultPool[]): VaultPool[] {
-  const projectNames = CURATOR_PROJECT_MAPPING[curatorSlug] || [curatorSlug];
+  const config = CURATOR_CONFIG[curatorSlug];
+
+  if (!config) {
+    // Fallback: try to match by slug as a search term on Morpho
+    const slugSearchTerm = curatorSlug.replace(/-/g, ' ');
+    const curatorPools = allPools.filter(pool => {
+      const projectLower = pool.project.toLowerCase();
+      const isMorpho = projectLower.includes('morpho');
+      if (!isMorpho) return false;
+
+      const metaLower = (pool.poolMeta || '').toLowerCase();
+      const symbolLower = pool.symbol.toLowerCase();
+      return metaLower.includes(slugSearchTerm) || symbolLower.includes(slugSearchTerm);
+    });
+    return curatorPools.sort((a, b) => b.tvlUsd - a.tvlUsd);
+  }
 
   const curatorPools = allPools.filter(pool => {
     const projectLower = pool.project.toLowerCase();
-    const poolLower = pool.pool.toLowerCase();
     const metaLower = (pool.poolMeta || '').toLowerCase();
+    const symbolLower = pool.symbol.toLowerCase();
+    const poolLower = pool.pool.toLowerCase();
 
-    return projectNames.some(name => {
-      const nameLower = name.toLowerCase();
-      return projectLower.includes(nameLower) ||
-             poolLower.includes(nameLower) ||
-             metaLower.includes(nameLower);
-    });
+    // Direct project match (for non-Morpho curators like Euler)
+    if (config.directProjects && config.directProjects.length > 0) {
+      return config.directProjects.some(proj => projectLower.includes(proj.toLowerCase()));
+    }
+
+    // Morpho curators: must be on a Morpho protocol AND have search term in metadata
+    if (config.requiredProjects && config.requiredProjects.length > 0) {
+      const isRequiredProject = config.requiredProjects.some(proj =>
+        projectLower.includes(proj.toLowerCase())
+      );
+      if (!isRequiredProject) return false;
+
+      return config.searchTerms.some(term => {
+        const termLower = term.toLowerCase();
+        return metaLower.includes(termLower) ||
+               symbolLower.includes(termLower) ||
+               poolLower.includes(termLower);
+      });
+    }
+
+    return false;
   });
 
   return curatorPools.sort((a, b) => b.tvlUsd - a.tvlUsd);
@@ -378,14 +491,14 @@ export function filterCuratorVaultsFromPools(curatorSlug: string, allPools: Vaul
 export async function getTopVaults(limit: number = 50): Promise<VaultPool[]> {
   const allPools = await getYieldPools();
 
-  // Filter for curator-related projects
-  const allCuratorProjects = Object.values(CURATOR_PROJECT_MAPPING).flat();
-
+  // Filter for vault protocol pools (Morpho, Euler, etc.)
   const curatorPools = allPools.filter(pool => {
     const projectLower = pool.project.toLowerCase();
-    return allCuratorProjects.some(name =>
-      projectLower.includes(name.toLowerCase())
-    ) || projectLower.includes('morpho') || projectLower.includes('euler');
+    return projectLower.includes('morpho') ||
+           projectLower.includes('euler') ||
+           projectLower.includes('yearn') ||
+           projectLower.includes('gearbox') ||
+           projectLower.includes('sommelier');
   });
 
   // Sort by TVL and return top N
