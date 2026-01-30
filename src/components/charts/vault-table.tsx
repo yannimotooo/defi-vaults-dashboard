@@ -5,7 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { CompactRating, PillarDetailCard } from '@/components/ui/credit-rating';
 import { ApyWithQuality } from '@/components/ui/apy-quality-badge';
 import { formatTvl, cn } from '@/lib/utils';
-import { getChainColor } from '@/lib/colors';
+import { getChainColor, getProtocolColor } from '@/lib/colors';
 import {
   ArrowUpDown,
   ChevronDown,
@@ -252,7 +252,13 @@ export function VaultTable({
                       </td>
                       {showProject && (
                         <td className="px-5 py-3">
-                          <span className="text-[13px] text-zinc-400">{vault.project}</span>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-2 h-2 rounded-full"
+                              style={{ backgroundColor: getProtocolColor(vault.project) }}
+                            />
+                            <span className="text-[13px] text-zinc-400">{vault.project}</span>
+                          </div>
                         </td>
                       )}
                       <td className="px-5 py-3 text-right">

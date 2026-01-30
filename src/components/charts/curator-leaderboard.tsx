@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { DataConfidenceBadge } from '@/components/ui/data-source-badge';
 import { RiskBadge } from '@/components/ui/risk-badge';
 import { formatTvl, formatFlow, cn } from '@/lib/utils';
-import { CURATOR_COLORS, FALLBACK_CURATOR_COLORS } from '@/lib/colors';
+import { CURATOR_COLORS, FALLBACK_CURATOR_COLORS, getProtocolColor } from '@/lib/colors';
 import type { Curator } from '@/types';
 import { ChevronDown, ChevronRight, ExternalLink, AlertTriangle, TrendingDown } from 'lucide-react';
 
@@ -75,8 +75,17 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                             {curator.name}
                             <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                           </p>
-                          <p className="text-[11px] text-zinc-600 mt-0.5">
-                            {curator.protocols.slice(0, 2).join(' · ')}
+                          <p className="text-[11px] text-zinc-600 mt-0.5 flex items-center gap-1.5">
+                            {curator.protocols.slice(0, 2).map((protocol, i) => (
+                              <span key={protocol} className="flex items-center gap-1">
+                                <span
+                                  className="w-1.5 h-1.5 rounded-full"
+                                  style={{ backgroundColor: getProtocolColor(protocol) }}
+                                />
+                                {protocol}
+                                {i < Math.min(curator.protocols.length, 2) - 1 && <span className="text-zinc-700 ml-0.5">·</span>}
+                              </span>
+                            ))}
                           </p>
                         </div>
                       </Link>
@@ -191,8 +200,12 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                                 {curator.protocols.map((protocol) => (
                                   <span
                                     key={protocol}
-                                    className="px-2 py-0.5 text-[12px] text-zinc-300 bg-zinc-800 rounded"
+                                    className="px-2 py-0.5 text-[12px] text-zinc-300 bg-zinc-800 rounded flex items-center gap-1.5"
                                   >
+                                    <span
+                                      className="w-2 h-2 rounded-full"
+                                      style={{ backgroundColor: getProtocolColor(protocol) }}
+                                    />
                                     {protocol}
                                   </span>
                                 ))}
