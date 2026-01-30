@@ -1,5 +1,9 @@
 // Data types for DeFi Vault Dashboard
 
+import type { VaultCreditRating, CreditRating, PillarRating } from '@/lib/risk-rating';
+
+export type { VaultCreditRating, CreditRating, PillarRating };
+
 export interface ChainTVL {
   chain: string;
   tvl: number;
@@ -22,6 +26,7 @@ export interface Curator {
   slug: string;
   totalTvl: number;
   vaultCount: number;
+  vaultCountEstimated?: boolean;  // True if vault count is estimated from TVL
   chains: string[];
   protocols: string[];
   avgApy: number;
@@ -31,6 +36,9 @@ export interface Curator {
   tvlSource?: 'morpho' | 'defillama' | 'euler';
   morphoTvl?: number;      // On-chain Morpho TVL (authoritative)
   defillamaTvl?: number;   // DeFiLlama aggregated TVL
+  // Kamino (Solana) data
+  kaminoTvl?: number;      // Estimated Kamino TVL on Solana
+  kaminoVaultCount?: number;  // Number of Kamino vaults managed
   // Cross-reference validation
   dataConfidence?: 'high' | 'medium' | 'low';
   duneTvl?: number | null;
@@ -41,8 +49,8 @@ export interface Curator {
   grossApy?: number;  // APY before fees
   netApy?: number;    // APY after fees
   // Risk metrics (from Morpho GraphQL)
-  riskScore?: number;  // 0-100, higher = more risky
-  riskLevel?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  riskScore?: number;  // 0-100, higher = more risky (legacy)
+  riskLevel?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';  // Legacy
   liquidationVolume24h?: number;
   liquidationVolume7d?: number;
   hasBadDebt?: boolean;
@@ -50,6 +58,12 @@ export interface Curator {
   yellowWarningCount?: number;
   criticalWarnings?: string[];
   avgUtilization?: number;
+  // New three-pillar credit rating
+  creditRating?: CreditRating;  // Composite credit rating (AAA-C)
+  capitalSafetyRating?: CreditRating;
+  liquidityHealthRating?: CreditRating;
+  curatorQualityRating?: CreditRating;
+  investmentGrade?: boolean;
 }
 
 export interface Vault {

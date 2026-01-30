@@ -3,6 +3,83 @@ import { getCuratorVaults, getTopVaults } from '@/lib/defillama';
 import { getAllVaultsTvl } from '@/lib/dune';
 import { getVaultRiskMetrics } from '@/lib/risk';
 
+// Morpho vault APY data interface
+interface MorphoVaultApy {
+  symbol: string;
+  name: string;
+  tvlUsd: number;
+  apy: number;
+  netApy: number;
+}
+
+// In-memory cache for Morpho APY data
+let morphoApyCache: { data: MorphoVaultApy[]; timestamp: number } | null = null;
+const MORPHO_APY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+// Fetch APY data directly from Morpho GraphQL API (cached)
+async function getMorphoVaultApyData(): Promise<MorphoVaultApy[]> {
+  // Return cached data if valid
+  if (morphoApyCache && Date.now() - morphoApyCache.timestamp < MORPHO_APY_CACHE_TTL) {
+    console.log('[Morpho APY] Using cached data');
+    return morphoApyCache.data;
+  }
+
+  const MORPHO_BLUE_API = 'https://blue-api.morpho.org/graphql';
+
+  const query = `
+    query GetVaultApys {
+      vaults(first: 500, orderBy: TotalAssets, orderDirection: Desc) {
+        items {
+          name
+          symbol
+          state {
+            totalAssetsUsd
+            apy
+            netApy
+          }
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await fetch(MORPHO_BLUE_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query }),
+      next: { revalidate: 300 },
+    });
+
+    if (!response.ok) {
+      console.error('[Morpho APY] API error:', response.status);
+      return [];
+    }
+
+    const data = await response.json();
+    const vaults = data?.data?.vaults?.items || [];
+
+    const result = vaults.map((v: { name: string; symbol: string; state: { totalAssetsUsd: number; apy: number; netApy: number } }) => ({
+      symbol: v.symbol,
+      name: v.name,
+      tvlUsd: v.state?.totalAssetsUsd || 0,
+      apy: (v.state?.apy || 0) * 100, // Convert to percentage
+      netApy: (v.state?.netApy || 0) * 100,
+    }));
+
+    // Cache the result
+    morphoApyCache = { data: result, timestamp: Date.now() };
+    return result;
+  } catch (error) {
+    console.error('[Morpho APY] Error fetching:', error);
+    // Return stale cache if available
+    if (morphoApyCache) {
+      console.log('[Morpho APY] Returning stale cache due to error');
+      return morphoApyCache.data;
+    }
+    return [];
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -11,10 +88,11 @@ export async function GET(request: NextRequest) {
     const includeRisk = searchParams.get('risk') !== 'false'; // Include risk by default
 
     // Fetch from all sources in parallel
-    const [vaults, duneVaults, vaultRiskData] = await Promise.all([
+    const [vaults, duneVaults, vaultRiskData, morphoApyData] = await Promise.all([
       curatorSlug ? getCuratorVaults(curatorSlug) : getTopVaults(limit),
       getAllVaultsTvl().catch(() => []),
       includeRisk ? getVaultRiskMetrics().catch(() => []) : Promise.resolve([]),
+      getMorphoVaultApyData().catch(() => []), // Morpho API APY data
     ]);
 
     // Create lookup maps
@@ -27,6 +105,15 @@ export async function GET(request: NextRequest) {
     const riskMap = new Map(
       vaultRiskData.map(v => [normalizeName(v.name), v])
     );
+
+    // Create Morpho APY lookup by symbol (normalized)
+    // Try multiple matching strategies
+    const morphoApyMap = new Map<string, MorphoVaultApy>();
+    for (const vault of morphoApyData) {
+      morphoApyMap.set(normalizeName(vault.symbol), vault);
+      morphoApyMap.set(normalizeName(vault.name), vault);
+    }
+    console.log(`[Vaults] Morpho APY data available for ${morphoApyData.length} vaults`);
 
     // Transform to a cleaner format with risk data
     const transformedVaults = vaults.map(vault => {
@@ -41,6 +128,29 @@ export async function GET(request: NextRequest) {
             normalizeName(vault.symbol).includes(normalizeName(r.symbol))
           );
 
+      // Try to get APY from Morpho API if DeFiLlama has 0
+      // This fixes morpho-v1 pools that show 0% APY in DeFiLlama
+      let finalApy = vault.apy || 0;
+      let finalApyBase = vault.apyBase || 0;
+      let apySource = 'defillama';
+
+      if (finalApy === 0 && vault.project.toLowerCase().includes('morpho')) {
+        // Try to find matching Morpho vault APY
+        const morphoApy = morphoApyMap.get(normalizeName(vault.symbol))
+          || morphoApyMap.get(normalizeName(vault.poolMeta || ''))
+          || Array.from(morphoApyMap.values()).find(m =>
+              normalizeName(m.symbol).includes(normalizeName(vault.symbol)) ||
+              normalizeName(vault.symbol).includes(normalizeName(m.symbol)) ||
+              normalizeName(m.name).includes(normalizeName(vault.symbol))
+            );
+
+        if (morphoApy && morphoApy.apy > 0) {
+          finalApy = morphoApy.netApy || morphoApy.apy;
+          finalApyBase = morphoApy.apy;
+          apySource = 'morpho';
+        }
+      }
+
       return {
         id: vault.pool,
         name: formatVaultName(vault),
@@ -48,9 +158,10 @@ export async function GET(request: NextRequest) {
         project: vault.project,
         symbol: vault.symbol,
         tvl: vault.tvlUsd,
-        apy: vault.apy || 0,
-        apyBase: vault.apyBase || 0,
+        apy: finalApy,
+        apyBase: finalApyBase,
         apyReward: vault.apyReward || 0,
+        apySource, // Track where APY came from
         apyChange7d: vault.apyPct7D || 0,
         stablecoin: vault.stablecoin,
         exposure: vault.exposure,
@@ -87,6 +198,7 @@ export async function GET(request: NextRequest) {
             apy: riskVault.apy,
             apyBase: riskVault.apy,
             apyReward: 0,
+            apySource: 'morpho', // On-chain data
             apyChange7d: 0,
             stablecoin: false,
             exposure: 'single',
@@ -109,14 +221,21 @@ export async function GET(request: NextRequest) {
     // Sort by TVL
     transformedVaults.sort((a, b) => b.tvl - a.tvl);
 
+    // Count how many vaults got APY from Morpho
+    const vaultsWithMorphoApy = transformedVaults.filter(v => v.apySource === 'morpho').length;
+
     return NextResponse.json({
       vaults: transformedVaults.slice(0, limit),
       count: transformedVaults.length,
       curator: curatorSlug || null,
-      dataSource: vaultRiskData.length > 0
-        ? 'DeFiLlama + Morpho On-chain Risk'
-        : duneVaults.length > 0 ? 'DeFiLlama + Dune' : 'DeFiLlama',
+      dataSource: [
+        'DeFiLlama',
+        morphoApyData.length > 0 ? `Morpho APY (${vaultsWithMorphoApy})` : null,
+        vaultRiskData.length > 0 ? 'Morpho Risk' : null,
+        duneVaults.length > 0 ? 'Dune' : null,
+      ].filter(Boolean).join(' + '),
       vaultsWithRiskData: transformedVaults.filter(v => v.riskScore !== undefined).length,
+      vaultsWithMorphoApy,
     });
   } catch (error) {
     console.error('Error fetching vaults:', error);

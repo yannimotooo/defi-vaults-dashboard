@@ -33,6 +33,8 @@ interface DataConfidenceBadgeProps {
   tvlSource?: 'morpho' | 'defillama' | 'euler';
   duneTvl?: number | null;
   defillamaTvl?: number;
+  morphoTvl?: number;
+  hasApyData?: boolean;
   showTooltip?: boolean;
 }
 
@@ -41,12 +43,44 @@ export function DataConfidenceBadge({
   tvlSource,
   duneTvl,
   defillamaTvl,
+  morphoTvl,
+  hasApyData = true,
   showTooltip = true
 }: DataConfidenceBadgeProps) {
   if (!confidence) return null;
 
   // On-chain sources get special treatment
   const isOnChain = tvlSource === 'morpho' || tvlSource === 'euler';
+  const hasOnChainData = (morphoTvl ?? 0) > 0;
+
+  // Determine the reason for low confidence
+  const getLowConfidenceDetails = () => {
+    if (!hasOnChainData && !hasApyData) {
+      return {
+        label: 'Limited',
+        description: 'No on-chain data or APY available. TVL from DeFiLlama protocol tracking only.',
+      };
+    }
+    if (!hasOnChainData) {
+      return {
+        label: 'Limited',
+        description: 'No on-chain verification. TVL from DeFiLlama only.',
+      };
+    }
+    if (!hasApyData) {
+      return {
+        label: 'Partial',
+        description: 'On-chain TVL available but APY data missing.',
+      };
+    }
+    // Actual data discrepancy
+    return {
+      label: 'Unverified',
+      description: 'Significant data discrepancy between sources (>15%)',
+    };
+  };
+
+  const lowDetails = getLowConfidenceDetails();
 
   const config = {
     high: {
@@ -55,19 +89,21 @@ export function DataConfidenceBadge({
       label: isOnChain ? 'On-chain' : 'Verified',
       description: isOnChain
         ? `Authoritative ${tvlSource === 'morpho' ? 'Morpho' : 'Euler'} smart contract data`
-        : 'DeFiLlama & Dune data match (<5% difference)',
+        : 'On-chain TVL verified with APY data available',
     },
     medium: {
       color: 'bg-amber-500',
       textColor: 'text-amber-400',
       label: 'Partial',
-      description: duneTvl ? 'Data sources differ (5-15%)' : 'Single source only',
+      description: hasOnChainData
+        ? 'On-chain data available but some metrics missing'
+        : (duneTvl ? 'Data sources differ (5-15%)' : 'Single source only, limited verification'),
     },
     low: {
-      color: 'bg-red-500',
-      textColor: 'text-red-400',
-      label: 'Unverified',
-      description: 'Significant data discrepancy (>15%)',
+      color: 'bg-zinc-500',
+      textColor: 'text-zinc-400',
+      label: lowDetails.label,
+      description: lowDetails.description,
     },
   };
 
@@ -84,7 +120,7 @@ export function DataConfidenceBadge({
       <span className={`text-[10px] ${textColor}`}>{label}</span>
 
       {showTooltip && (
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1.5 bg-zinc-900 border border-zinc-800 rounded text-[11px] text-zinc-400 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+        <div className="absolute bottom-full right-0 mb-2 px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded-lg text-[11px] text-zinc-400 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
           <p>{description}</p>
           {difference && (
             <p className="text-zinc-500 mt-0.5">

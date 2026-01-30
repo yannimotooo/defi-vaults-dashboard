@@ -8,7 +8,7 @@ import { RiskBadge } from '@/components/ui/risk-badge';
 import { formatTvl, formatFlow, cn } from '@/lib/utils';
 import { CURATOR_COLORS, FALLBACK_CURATOR_COLORS } from '@/lib/colors';
 import type { Curator } from '@/types';
-import { ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
+import { ChevronDown, ChevronRight, ExternalLink, AlertTriangle, TrendingDown } from 'lucide-react';
 
 interface CuratorLeaderboardProps {
   curators: Curator[];
@@ -92,6 +92,8 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                             tvlSource={curator.tvlSource}
                             duneTvl={curator.duneTvl}
                             defillamaTvl={curator.defillamaTvl || curator.totalTvl}
+                            morphoTvl={curator.morphoTvl}
+                            hasApyData={curator.avgApy > 0}
                           />
                         )}
                       </div>
@@ -108,12 +110,48 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                       )}
                     </td>
                     <td className="px-5 py-4 text-right">
-                      <span className="font-mono text-zinc-400 text-[14px]">{curator.vaultCount}</span>
+                      <span
+                        className={cn(
+                          'font-mono text-[14px]',
+                          curator.vaultCountEstimated ? 'text-zinc-600' : 'text-zinc-400'
+                        )}
+                        title={curator.vaultCountEstimated ? 'Estimated from TVL' : 'Actual vault count'}
+                      >
+                        {curator.vaultCountEstimated ? `~${curator.vaultCount}` : curator.vaultCount}
+                      </span>
                     </td>
                     <td className="px-5 py-4 text-right">
-                      <span className="font-mono text-emerald-400 text-[14px]">
-                        {curator.avgApy.toFixed(1)}%
-                      </span>
+                      {curator.avgApy > 0 ? (
+                        <div className="group relative inline-block">
+                          <span className="font-mono text-emerald-400 text-[14px] cursor-help">
+                            {curator.avgApy.toFixed(1)}%
+                          </span>
+                          {/* APY Tooltip with Gross/Net breakdown */}
+                          {(curator.grossApy || curator.netApy || curator.avgPerformanceFee) && (
+                            <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-[11px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+                              <div className="space-y-1">
+                                {curator.grossApy !== undefined && (
+                                  <p className="text-zinc-400">
+                                    Gross APY: <span className="font-mono text-white">{curator.grossApy.toFixed(2)}%</span>
+                                  </p>
+                                )}
+                                {curator.avgPerformanceFee !== undefined && (
+                                  <p className="text-zinc-400">
+                                    Perf Fee: <span className="font-mono text-amber-400">-{curator.avgPerformanceFee.toFixed(1)}%</span>
+                                  </p>
+                                )}
+                                {curator.netApy !== undefined && (
+                                  <p className="text-zinc-400 border-t border-zinc-700 pt-1 mt-1">
+                                    Net APY: <span className="font-mono text-emerald-400">{curator.netApy.toFixed(2)}%</span>
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-[11px] text-zinc-600" title="APY data not available">—</span>
+                      )}
                     </td>
                     <td className="px-5 py-4 text-right">
                       <span className={cn(
@@ -127,107 +165,178 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                   {expandedCurator === curator.slug && (
                     <tr key={`${curator.slug}-expanded`} className="bg-zinc-900/50">
                       <td colSpan={7} className="px-5 py-4">
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 pl-8">
-                          <div>
-                            <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-2">
-                              Chains ({curator.chains.length})
-                            </p>
-                            <div className="flex flex-wrap gap-1.5">
-                              {curator.chains.map((chain) => (
-                                <span
-                                  key={chain}
-                                  className="px-2 py-0.5 text-[12px] text-zinc-300 bg-zinc-800 rounded"
-                                >
-                                  {chain}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                          <div>
-                            <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-2">
-                              Protocols
-                            </p>
-                            <div className="flex flex-wrap gap-1.5">
-                              {curator.protocols.map((protocol) => (
-                                <span
-                                  key={protocol}
-                                  className="px-2 py-0.5 text-[12px] text-zinc-300 bg-zinc-800 rounded"
-                                >
-                                  {protocol}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                          <div>
-                            <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-2">
-                              30d Flow
-                            </p>
-                            <span className={cn(
-                              'font-mono text-[14px]',
-                              curator.netFlow30d > 0 ? 'text-emerald-400' : curator.netFlow30d < 0 ? 'text-red-400' : 'text-zinc-500'
-                            )}>
-                              {formatFlow(curator.netFlow30d)}
-                            </span>
-                          </div>
-                          {/* Risk Metrics */}
-                          {curator.riskLevel && (
+                        <div className="pl-8 space-y-4">
+                          {/* Row 1: Basic Info */}
+                          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                             <div>
                               <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-2">
-                                Risk Details
+                                Chains ({curator.chains.length})
                               </p>
-                              <div className="space-y-1 text-[12px]">
-                                <p className="text-zinc-400">
-                                  Score: <span className="font-mono text-white">{curator.riskScore}/100</span>
-                                </p>
-                                {(curator.liquidationVolume7d ?? 0) > 0 && (
-                                  <p className="text-zinc-400">
-                                    7d Liquidations: <span className="font-mono text-amber-400">{formatTvl(curator.liquidationVolume7d!)}</span>
-                                  </p>
-                                )}
-                                {curator.hasBadDebt && (
-                                  <p className="text-red-400">Has Bad Debt</p>
-                                )}
-                                {(curator.redWarningCount ?? 0) > 0 && (
-                                  <p className="text-red-400">{curator.redWarningCount} critical warnings</p>
-                                )}
-                                {curator.avgUtilization !== undefined && (
-                                  <p className="text-zinc-400">
-                                    Utilization: <span className="font-mono">{(curator.avgUtilization * 100).toFixed(0)}%</span>
-                                  </p>
-                                )}
+                              <div className="flex flex-wrap gap-1.5">
+                                {curator.chains.map((chain) => (
+                                  <span
+                                    key={chain}
+                                    className="px-2 py-0.5 text-[12px] text-zinc-300 bg-zinc-800 rounded"
+                                  >
+                                    {chain}
+                                  </span>
+                                ))}
                               </div>
                             </div>
-                          )}
-                          {curator.duneTvl && (
                             <div>
                               <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-2">
-                                Dune TVL
+                                Protocols
                               </p>
-                              <span className="font-mono text-[14px] text-zinc-400">
-                                {formatTvl(curator.duneTvl)}
-                              </span>
-                              <p className="text-[10px] text-zinc-600 mt-0.5">
-                                vs {formatTvl(curator.defillamaTvl || curator.totalTvl)} DeFiLlama
-                              </p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {curator.protocols.map((protocol) => (
+                                  <span
+                                    key={protocol}
+                                    className="px-2 py-0.5 text-[12px] text-zinc-300 bg-zinc-800 rounded"
+                                  >
+                                    {protocol}
+                                  </span>
+                                ))}
+                              </div>
                             </div>
-                          )}
-                          {curator.avgPerformanceFee !== undefined && (
-                            <div>
-                              <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-2">
-                                Avg Perf Fee
-                              </p>
-                              <span className={cn(
-                                'font-mono text-[14px]',
-                                curator.avgPerformanceFee > 15 ? 'text-amber-400' :
-                                curator.avgPerformanceFee > 10 ? 'text-zinc-300' : 'text-emerald-400'
-                              )}>
-                                {curator.avgPerformanceFee.toFixed(1)}%
-                              </span>
-                              {curator.estimatedAnnualRevenue !== undefined && (
-                                <p className="text-[10px] text-zinc-600 mt-0.5">
-                                  ~{formatTvl(curator.estimatedAnnualRevenue)}/yr revenue
+                            {curator.netFlow30d !== 0 && (
+                              <div>
+                                <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-2">
+                                  30d Flow
                                 </p>
-                              )}
+                                <span className={cn(
+                                  'font-mono text-[14px]',
+                                  curator.netFlow30d > 0 ? 'text-emerald-400' : curator.netFlow30d < 0 ? 'text-red-400' : 'text-zinc-500'
+                                )}>
+                                  {formatFlow(curator.netFlow30d)}
+                                </span>
+                              </div>
+                            )}
+                            {curator.avgPerformanceFee !== undefined && (
+                              <div>
+                                <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-2">
+                                  Fee Structure
+                                </p>
+                                <div className="space-y-0.5">
+                                  <p className="text-[12px]">
+                                    <span className="text-zinc-500">Perf:</span>{' '}
+                                    <span className={cn(
+                                      'font-mono',
+                                      curator.avgPerformanceFee > 15 ? 'text-amber-400' :
+                                      curator.avgPerformanceFee > 10 ? 'text-zinc-300' : 'text-emerald-400'
+                                    )}>
+                                      {curator.avgPerformanceFee.toFixed(1)}%
+                                    </span>
+                                  </p>
+                                  {curator.avgManagementFee !== undefined && curator.avgManagementFee > 0 && (
+                                    <p className="text-[12px]">
+                                      <span className="text-zinc-500">Mgmt:</span>{' '}
+                                      <span className="font-mono text-zinc-400">{curator.avgManagementFee.toFixed(2)}%</span>
+                                    </p>
+                                  )}
+                                  {curator.estimatedAnnualRevenue !== undefined && curator.estimatedAnnualRevenue > 0 && (
+                                    <p className="text-[10px] text-zinc-600 mt-1">
+                                      Est. {formatTvl(curator.estimatedAnnualRevenue)}/yr
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            {curator.duneTvl && (
+                              <div>
+                                <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-2">
+                                  Cross-Reference
+                                </p>
+                                <span className="font-mono text-[13px] text-zinc-400">
+                                  {formatTvl(curator.duneTvl)}
+                                </span>
+                                <p className="text-[10px] text-zinc-600">Dune Analytics</p>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Row 2: Risk & Health - Always show if any risk data exists */}
+                          {(curator.riskLevel || (curator.liquidationVolume7d ?? 0) > 0 || curator.hasBadDebt || curator.avgUtilization !== undefined || curator.riskScore !== undefined) && (
+                            <div className="border-t border-zinc-800 pt-4">
+                              <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                Risk & Health Metrics
+                                {curator.hasBadDebt && (
+                                  <span className="px-1.5 py-0.5 text-[9px] font-medium bg-red-500/20 text-red-400 rounded flex items-center gap-1">
+                                    <AlertTriangle className="h-3 w-3" />
+                                    BAD DEBT
+                                  </span>
+                                )}
+                                {(curator.redWarningCount ?? 0) > 0 && (
+                                  <span className="px-1.5 py-0.5 text-[9px] font-medium bg-amber-500/20 text-amber-400 rounded">
+                                    {curator.redWarningCount} WARNING{curator.redWarningCount! > 1 ? 'S' : ''}
+                                  </span>
+                                )}
+                              </p>
+                              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                                {curator.riskScore !== undefined && (
+                                  <div>
+                                    <p className="text-[10px] text-zinc-600 mb-1">Risk Score</p>
+                                    <div className="flex items-center gap-2">
+                                      <span className={cn(
+                                        'font-mono text-[14px]',
+                                        curator.riskScore < 30 ? 'text-emerald-400' :
+                                        curator.riskScore < 50 ? 'text-amber-400' :
+                                        curator.riskScore < 70 ? 'text-orange-400' : 'text-red-400'
+                                      )}>
+                                        {curator.riskScore}
+                                      </span>
+                                      <span className="text-[11px] text-zinc-600">/100</span>
+                                    </div>
+                                  </div>
+                                )}
+                                {curator.avgUtilization !== undefined && (
+                                  <div>
+                                    <p className="text-[10px] text-zinc-600 mb-1">Avg Utilization</p>
+                                    <span className={cn(
+                                      'font-mono text-[14px]',
+                                      curator.avgUtilization > 0.95 ? 'text-red-400' :
+                                      curator.avgUtilization > 0.85 ? 'text-amber-400' :
+                                      curator.avgUtilization > 0.70 ? 'text-yellow-400' : 'text-zinc-300'
+                                    )}>
+                                      {(curator.avgUtilization * 100).toFixed(0)}%
+                                    </span>
+                                  </div>
+                                )}
+                                {(curator.liquidationVolume7d ?? 0) > 0 && (
+                                  <div>
+                                    <p className="text-[10px] text-zinc-600 mb-1 flex items-center gap-1">
+                                      <TrendingDown className="h-3 w-3" />
+                                      7d Liquidations
+                                    </p>
+                                    <span className={cn(
+                                      'font-mono text-[14px]',
+                                      curator.liquidationVolume7d! > 1_000_000 ? 'text-red-400' :
+                                      curator.liquidationVolume7d! > 100_000 ? 'text-amber-400' : 'text-zinc-300'
+                                    )}>
+                                      {formatTvl(curator.liquidationVolume7d!)}
+                                    </span>
+                                  </div>
+                                )}
+                                {(curator.liquidationVolume24h ?? 0) > 0 && (
+                                  <div>
+                                    <p className="text-[10px] text-zinc-600 mb-1">24h Liquidations</p>
+                                    <span className={cn(
+                                      'font-mono text-[14px]',
+                                      curator.liquidationVolume24h! > 500_000 ? 'text-red-400' :
+                                      curator.liquidationVolume24h! > 50_000 ? 'text-amber-400' : 'text-zinc-300'
+                                    )}>
+                                      {formatTvl(curator.liquidationVolume24h!)}
+                                    </span>
+                                  </div>
+                                )}
+                                {curator.yellowWarningCount !== undefined && curator.yellowWarningCount > 0 && (
+                                  <div>
+                                    <p className="text-[10px] text-zinc-600 mb-1">Yellow Warnings</p>
+                                    <span className="font-mono text-[14px] text-yellow-400">
+                                      {curator.yellowWarningCount}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           )}
                         </div>

@@ -11,6 +11,8 @@ import { CuratorComparisonChart } from '@/components/charts/curator-comparison-c
 import { VaultTable } from '@/components/charts/vault-table';
 import { YieldQualityChart } from '@/components/charts/yield-quality-chart';
 import { DataSourceBadge } from '@/components/ui/data-source-badge';
+import { DataFreshnessBadge } from '@/components/ui/data-freshness-badge';
+import { RiskSummaryCard } from '@/components/charts/risk-summary-card';
 import { formatTvl } from '@/lib/utils';
 import type { MarketOverview, Curator, DataValidation } from '@/types';
 import { RefreshCw, LayoutDashboard, Users, Layers, Vault } from 'lucide-react';
@@ -154,28 +156,23 @@ export default function Dashboard() {
               <p className="text-[13px] text-zinc-500">Cross-chain vault & curator analytics</p>
             </div>
             <div className="flex items-center gap-4">
-              {curatorValidation && (
-                <div className="hidden sm:flex items-center gap-2 text-[12px] text-zinc-500">
-                  <div className={`w-1.5 h-1.5 rounded-full ${
-                    curatorValidation.duneDataAvailable ? 'bg-emerald-500' : 'bg-amber-500'
-                  }`}></div>
-                  <span>{curatorValidation.source}</span>
-                  {curatorValidation.highConfidenceCount !== undefined && curatorValidation.highConfidenceCount > 0 && (
-                    <span className="text-zinc-600">
-                      ({curatorValidation.highConfidenceCount} verified)
-                    </span>
-                  )}
-                </div>
+              {curatorValidation?.timestamp && (
+                <DataFreshnessBadge
+                  timestamp={curatorValidation.timestamp}
+                  sources={curatorValidation.source}
+                  className="hidden sm:flex"
+                />
               )}
-              {lastUpdated && (
-                <span className="text-[12px] text-zinc-600 hidden sm:inline font-mono">
-                  {lastUpdated.toLocaleTimeString()}
+              {curatorValidation?.highConfidenceCount !== undefined && curatorValidation.highConfidenceCount > 0 && (
+                <span className="hidden lg:inline text-[11px] text-zinc-600 px-2 py-1 bg-zinc-800/50 rounded">
+                  {curatorValidation.highConfidenceCount} verified
                 </span>
               )}
               <button
                 onClick={fetchData}
                 disabled={loading}
                 className="p-2 rounded-md hover:bg-zinc-800/60 transition-colors disabled:opacity-50"
+                title="Refresh data"
               >
                 <RefreshCw className={`h-4 w-4 text-zinc-400 ${loading ? 'animate-spin' : ''}`} />
               </button>
@@ -252,6 +249,13 @@ export default function Dashboard() {
               <TvlByChainChart data={overviewData.tvlByChain} />
               <TvlByProtocolChart data={overviewData.tvlByProtocol} />
             </div>
+
+            {/* Risk Summary */}
+            {curators.length > 0 && (
+              <div className="mb-8">
+                <RiskSummaryCard curators={curators} />
+              </div>
+            )}
 
             {/* Quick Curator Preview */}
             {curators.length > 0 && (

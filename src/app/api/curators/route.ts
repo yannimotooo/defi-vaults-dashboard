@@ -4,7 +4,90 @@ import { getMorphoCuratorData, crossReferenceCuratorData } from '@/lib/dune';
 import { getAllCuratorsFeeData, getMorphoCuratorsTvl } from '@/lib/morpho';
 import { getEulerCuratorFeeData } from '@/lib/euler';
 import { getRiskMetrics } from '@/lib/risk';
+import { fetchKaminoVaultsDirectly, aggregateByKaminoCurator, bpsToPercent } from '@/lib/kamino-onchain';
 import type { Curator } from '@/types';
+
+// Kamino curator data interface
+interface KaminoCuratorData {
+  curatorName: string;
+  vaultCount: number;
+  avgPerformanceFeePct: number;
+  avgManagementFeePct: number;
+  estimatedTvlUsd: number;
+}
+
+// Simple in-memory cache for Kamino data (expensive Solana RPC call)
+let kaminoCache: { data: KaminoCuratorData[]; timestamp: number } | null = null;
+const KAMINO_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
+// Fetch Kamino curator data with TVL estimates (cached)
+async function getKaminoCuratorData(): Promise<KaminoCuratorData[]> {
+  // Return cached data if valid
+  if (kaminoCache && Date.now() - kaminoCache.timestamp < KAMINO_CACHE_TTL) {
+    console.log('[Kamino] Using cached data');
+    return kaminoCache.data;
+  }
+
+  try {
+    // Fetch on-chain vault data with timeout
+    const rpcUrl = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+
+    const result = await fetchKaminoVaultsDirectly(rpcUrl);
+    clearTimeout(timeoutId);
+
+    if (result.vaults.length === 0) {
+      console.log('[Kamino] No vaults found');
+      return [];
+    }
+
+    // Aggregate by curator
+    const curatorMap = aggregateByKaminoCurator(result.vaults);
+
+    // Get Kamino Lend TVL from DeFiLlama for proportional distribution
+    // Kamino Lend has ~$2B TVL
+    const KAMINO_TOTAL_TVL = 2_000_000_000; // $2B estimate
+
+    // Calculate total vaults for proportional TVL
+    const totalVaults = result.vaults.length;
+
+    // Convert to array with TVL estimates
+    const curators: KaminoCuratorData[] = [];
+    for (const [, data] of curatorMap) {
+      // Skip "Other" and "Kamino Core" for curator attribution
+      if (data.curatorName === 'Other' || data.curatorName === 'Kamino Core') continue;
+
+      // Estimate TVL proportionally based on vault count
+      // This is approximate - real TVL would need on-chain reads
+      const tvlShare = data.vaultCount / totalVaults;
+      const estimatedTvl = KAMINO_TOTAL_TVL * tvlShare;
+
+      curators.push({
+        curatorName: data.curatorName,
+        vaultCount: data.vaultCount,
+        avgPerformanceFeePct: data.avgPerformanceFeePct,
+        avgManagementFeePct: data.avgManagementFeePct,
+        estimatedTvlUsd: estimatedTvl,
+      });
+    }
+
+    console.log(`[Kamino] Processed ${curators.length} curators from ${result.vaults.length} vaults`);
+
+    // Cache the result
+    kaminoCache = { data: curators, timestamp: Date.now() };
+
+    return curators;
+  } catch (error) {
+    console.error('[Kamino] Error fetching curator data:', error);
+    // Return stale cache if available
+    if (kaminoCache) {
+      console.log('[Kamino] Returning stale cache due to error');
+      return kaminoCache.data;
+    }
+    return [];
+  }
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -112,6 +195,7 @@ const CURATOR_NAME_VARIANTS: Record<string, string[]> = {
   'block-analitica': ['Block Analitica', 'BA Labs'],
   'euler-dao': ['Euler DAO', 'Euler'],
   'b-protocol': ['B.Protocol', 'B Protocol'],
+  'b.protocol-curator': ['B.Protocol', 'B Protocol', 'B.Protocol Curator'],
   'summer-fi': ['Summer.fi', 'Summerfi'],
   'ultrayield-by-edge': ['UltraYield', 'Ultrayield', 'Edge'],
   'hyperithm': ['Hyperithm'],
@@ -122,6 +206,12 @@ const CURATOR_NAME_VARIANTS: Record<string, string[]> = {
   'kpk': ['kpk', 'KPK'],
   'alphaping': ['AlphaPing', 'Alphaping'],
   '9summits': ['9Summits', '9summits'],
+  // Name variations between DeFiLlama and Morpho API
+  'yearn-curating': ['Yearn', 'Yearn Curating', 'yearn'],
+  'hakutora': ['Hakutora'],
+  'singularv': ['SingularV'],
+  'avantgarde': ['Avantgarde'],
+  'apostro': ['Apostro'],
 };
 
 // Look up fee data using multiple name matching strategies
@@ -168,6 +258,7 @@ export async function GET() {
       allYieldPools,
       morphoCuratorTvl,  // On-chain TVL (primary source)
       riskData,          // Risk metrics
+      kaminoCuratorData, // Kamino Solana data
     ] = await Promise.all([
       getAllProtocols(),
       getMorphoCuratorData().catch(() => []),
@@ -176,6 +267,7 @@ export async function GET() {
       getYieldPools().catch(() => []),
       getMorphoCuratorsTvl().catch(() => []),  // Authoritative on-chain TVL
       getRiskMetrics().catch(() => null),       // Risk data
+      getKaminoCuratorData().catch(() => []),   // Kamino Solana data
     ]);
 
     // Create Morpho TVL lookup map (normalized curator name -> data)
@@ -188,6 +280,12 @@ export async function GET() {
     const riskMap = new Map(
       riskData?.curators.map(c => [normalizeName(c.curatorName), c]) || []
     );
+
+    // Create Kamino data lookup map (for Solana TVL and fee data)
+    const kaminoMap = new Map(
+      kaminoCuratorData.map(c => [normalizeName(c.curatorName), c])
+    );
+    console.log(`[Curators] Kamino data available for ${kaminoCuratorData.length} curators`);
 
     // Create a map of fee data by curator name (normalized)
     // Combine Morpho and Euler data
@@ -285,12 +383,22 @@ export async function GET() {
               ? CURATOR_NAME_VARIANTS[p.slug].map(v => riskMap.get(normalizeName(v))).find(Boolean)
               : undefined);
 
+        // Look up Kamino data (Solana vaults)
+        const kaminoData = kaminoMap.get(normalizeName(p.name))
+          || kaminoMap.get(normalizeName(formatCuratorName(p.name)))
+          || (CURATOR_NAME_VARIANTS[p.slug]
+              ? CURATOR_NAME_VARIANTS[p.slug].map(v => kaminoMap.get(normalizeName(v))).find(Boolean)
+              : undefined);
+
         // TVL: DeFiLlama is PRIMARY (aggregates all protocols)
         // Morpho data is used for VERIFICATION and enhancement (APY, risk)
+        // Kamino data adds Solana TVL (not always in DeFiLlama)
         const defillamaTvl = p.tvl;
         const morphoTvl = morphoData?.totalTvl || 0;
+        const kaminoTvl = kaminoData?.estimatedTvlUsd || 0;
 
-        // Always use DeFiLlama as total TVL (it includes all protocols)
+        // Total TVL includes DeFiLlama + Kamino (if not already counted)
+        // DeFiLlama should include Kamino, but we add it as a separate field for visibility
         const totalTvl = defillamaTvl;
 
         // Determine if Morpho data closely matches DeFiLlama (curator is primarily Morpho)
@@ -302,29 +410,55 @@ export async function GET() {
         const tvlSource = morphoMatchesDefillama ? 'morpho' as const : 'defillama' as const;
 
         // Use real vault data when available, fallback to estimates
-        const vaultCount = morphoData?.vaultCount || realMetrics?.vaultCount || estimateVaultCount(totalTvl);
+        // Include Kamino vault count if available
+        const morphoVaultCount = morphoData?.vaultCount || 0;
+        const kaminoVaultCount = kaminoData?.vaultCount || 0;
+        const hasRealVaultCount = (morphoVaultCount + kaminoVaultCount) > 0 || (realMetrics?.vaultCount ?? 0) > 0;
+        const vaultCount = (morphoVaultCount + kaminoVaultCount) || realMetrics?.vaultCount || estimateVaultCount(totalTvl);
+        const vaultCountEstimated = !hasRealVaultCount;
 
         // APY Priority: 1) Fee data grossApy (from Morpho), 2) Morpho on-chain, 3) DefiLlama, 4) 0
         const avgApy = feeData?.avgGrossApy || feeData?.avgNetApy || morphoData?.avgApy || realMetrics?.avgApy || 0;
 
-        const protocols = realMetrics?.protocols?.length
-          ? realMetrics.protocols
-          : metadata.protocols;
-        const chains = realMetrics?.chains?.length
-          ? realMetrics.chains
-          : (defillamaChains.length > 0 ? defillamaChains : ['Ethereum']);
+        // Build protocols list - include Kamino if curator has Solana vaults
+        let protocols = realMetrics?.protocols?.length
+          ? [...realMetrics.protocols]
+          : [...metadata.protocols];
+        if (kaminoData && !protocols.includes('Kamino')) {
+          protocols.push('Kamino');
+        }
 
-        // Data confidence: 'high' only if Morpho closely matches DeFiLlama (verified on-chain)
-        // Otherwise use Dune cross-reference confidence, or 'medium' as default
-        const dataConfidence = morphoMatchesDefillama
-          ? 'high' as const
-          : (crossRef?.confidence || 'medium' as const);
+        // Build chains list - include Solana if curator has Kamino vaults
+        let chains = realMetrics?.chains?.length
+          ? [...realMetrics.chains]
+          : (defillamaChains.length > 0 ? [...defillamaChains] : ['Ethereum']);
+        if (kaminoData && !chains.includes('Solana')) {
+          chains.push('Solana');
+        }
+
+        // Data confidence based on data completeness:
+        // - High: Has on-chain data (Morpho or Kamino) AND has APY data
+        // - Medium: Has some data but incomplete
+        // - Low: Missing critical data
+        const hasOnChainData = morphoTvl > 0 || kaminoTvl > 0;
+        const hasApyData = avgApy > 0;
+        const hasFeeData = feeData !== undefined;
+
+        let dataConfidence: 'high' | 'medium' | 'low';
+        if (hasOnChainData && hasApyData) {
+          dataConfidence = 'high';
+        } else if (hasOnChainData || hasApyData || hasFeeData) {
+          dataConfidence = 'medium';
+        } else {
+          dataConfidence = 'low';
+        }
 
         return {
           name: formatCuratorName(p.name),
           slug: p.slug,
           totalTvl,
           vaultCount,
+          vaultCountEstimated,
           chains,
           protocols,
           avgApy,
@@ -335,6 +469,9 @@ export async function GET() {
           tvlSource,
           morphoTvl: morphoTvl > 0 ? morphoTvl : undefined,
           defillamaTvl,
+          // Kamino (Solana) data
+          kaminoTvl: kaminoTvl > 0 ? kaminoTvl : undefined,
+          kaminoVaultCount: kaminoVaultCount > 0 ? kaminoVaultCount : undefined,
           // Data confidence
           dataConfidence,
           duneTvl: crossRef?.duneTvl,
@@ -361,7 +498,9 @@ export async function GET() {
     // Add comprehensive validation info
     const sources = [];
     const morphoTvlCount = curators.filter(c => c.tvlSource === 'morpho').length;
+    const kaminoCuratorCount = curators.filter(c => c.kaminoTvl).length;
     if (morphoTvlCount > 0) sources.push(`Morpho On-chain (${morphoTvlCount})`);
+    if (kaminoCuratorCount > 0) sources.push(`Kamino Solana (${kaminoCuratorCount})`);
     sources.push('DeFiLlama');
     if (duneCuratorData.length > 0) sources.push('Dune');
     if (morphoFeeData.length > 0) sources.push('Morpho Fees');

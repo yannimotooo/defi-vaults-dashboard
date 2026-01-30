@@ -759,7 +759,7 @@ export async function getVaultRiskMetrics(): Promise<VaultRiskMetrics[]> {
   }
 }
 
-// Calculate vault-level risk score
+// Calculate vault-level risk score (legacy - kept for backwards compatibility)
 function calculateVaultRiskScore(metrics: {
   maxUtilization: number;
   avgLltv: number;
@@ -791,4 +791,169 @@ function calculateVaultRiskScore(metrics: {
   if (metrics.hasBadDebt) score += 15;
 
   return Math.min(score, 100);
+}
+
+// =============================================================================
+// THREE-PILLAR CREDIT RATING SYSTEM
+// =============================================================================
+
+import {
+  type VaultCreditRating,
+  type CapitalSafetyInput,
+  type LiquidityHealthInput,
+  type CuratorQualityInput,
+  calculateVaultCreditRating,
+} from './risk-rating';
+
+export type { VaultCreditRating };
+
+// Extended vault metrics with credit rating
+export interface VaultWithCreditRating extends VaultRiskMetrics {
+  creditRating: VaultCreditRating;
+}
+
+// Calculate credit rating for a single vault
+export function calculateVaultCredit(vault: VaultRiskMetrics, curatorData?: {
+  ageMonths?: number;
+  totalTvlManaged?: number;
+  vaultCount?: number;
+  chainCount?: number;
+  performanceFee?: number;
+  hasHistoricalBadDebt?: boolean;
+}): VaultCreditRating {
+  // Build Capital Safety input
+  const capitalSafetyInput: CapitalSafetyInput = {
+    hasBadDebt: vault.hasBadDebt,
+    badDebtUsd: 0, // Would need to aggregate from markets
+    tvlUsd: vault.tvlUsd,
+    hasOracleWarning: vault.criticalWarnings.some(w =>
+      w.includes('oracle') || w.includes('ORACLE')
+    ),
+    avgLltv: vault.avgLltv,
+    markets: vault.markets.map(m => ({
+      collateralAsset: m.collateralAsset,
+      loanAsset: m.loanAsset,
+      allocationPct: m.allocationPct,
+      lltv: m.lltv,
+      hasBadDebt: m.hasBadDebt,
+      hasRedWarning: m.hasRedWarning,
+    })),
+  };
+
+  // Build Liquidity Health input
+  const totalLiquidity = vault.markets.reduce((sum, m) => {
+    // Liquidity = supply * (1 - utilization)
+    const marketLiquidity = m.allocationUsd * (1 - m.utilization);
+    return sum + marketLiquidity;
+  }, 0);
+
+  const liquidityHealthInput: LiquidityHealthInput = {
+    tvlUsd: vault.tvlUsd,
+    availableLiquidityUsd: totalLiquidity,
+    maxUtilization: vault.maxUtilization,
+    avgUtilization: vault.markets.length > 0
+      ? vault.markets.reduce((sum, m) => sum + m.utilization * m.allocationPct, 0)
+      : vault.maxUtilization,
+    avgLltv: vault.avgLltv,
+    markets: vault.markets.map(m => ({
+      utilization: m.utilization,
+      lltv: m.lltv,
+      liquidityUsd: m.allocationUsd * (1 - m.utilization),
+      allocationPct: m.allocationPct,
+      supplyUsd: m.allocationUsd,
+    })),
+  };
+
+  // Build Curator Quality input (with defaults if no curator data)
+  const curatorQualityInput: CuratorQualityInput = {
+    curatorName: vault.curator,
+    hasHistoricalBadDebt: curatorData?.hasHistoricalBadDebt ?? vault.hasBadDebt,
+    incidentCount: vault.hasBadDebt ? 1 : 0,
+    ageMonths: curatorData?.ageMonths ?? 6, // Default to 6 months if unknown
+    totalTvlManaged: curatorData?.totalTvlManaged ?? vault.tvlUsd,
+    exoticAssetPct: calculateExoticAssetPct(vault.markets),
+    avgLltv: vault.avgLltv,
+    vaultCount: curatorData?.vaultCount ?? 1,
+    avgMarketsPerVault: vault.markets.length,
+    chainCount: curatorData?.chainCount ?? 1,
+    performanceFee: curatorData?.performanceFee ?? 0.10, // Default 10%
+  };
+
+  return calculateVaultCreditRating({
+    capitalSafety: capitalSafetyInput,
+    liquidityHealth: liquidityHealthInput,
+    curatorQuality: curatorQualityInput,
+  });
+}
+
+// Helper to calculate exotic asset percentage
+const BLUECHIP_ASSETS = [
+  'WETH', 'ETH', 'WBTC', 'BTC', 'USDC', 'USDT', 'DAI', 'FRAX',
+  'stETH', 'wstETH', 'cbETH', 'rETH', 'sfrxETH', 'WSTETH',
+  'USDS', 'sUSDS', 'PYUSD', 'USDM', 'USDe', 'sUSDe'
+];
+
+function calculateExoticAssetPct(markets: VaultRiskMetrics['markets']): number {
+  let exoticAllocation = 0;
+  let totalAllocation = 0;
+
+  for (const market of markets) {
+    const isBluechip = BLUECHIP_ASSETS.some(
+      a => market.collateralAsset.toUpperCase().includes(a) ||
+           market.loanAsset.toUpperCase().includes(a)
+    );
+
+    totalAllocation += market.allocationPct;
+    if (!isBluechip) {
+      exoticAllocation += market.allocationPct;
+    }
+  }
+
+  return totalAllocation > 0 ? exoticAllocation / totalAllocation : 0;
+}
+
+// Get vault risk metrics with credit ratings
+export async function getVaultRiskWithCreditRatings(): Promise<VaultWithCreditRating[]> {
+  const vaults = await getVaultRiskMetrics();
+
+  // Group vaults by curator to get curator-level stats
+  const curatorStats = new Map<string, {
+    vaultCount: number;
+    totalTvl: number;
+    chains: Set<number>;
+    hasHistoricalBadDebt: boolean;
+  }>();
+
+  for (const vault of vaults) {
+    const stats = curatorStats.get(vault.curator) || {
+      vaultCount: 0,
+      totalTvl: 0,
+      chains: new Set<number>(),
+      hasHistoricalBadDebt: false,
+    };
+
+    stats.vaultCount++;
+    stats.totalTvl += vault.tvlUsd;
+    stats.chains.add(vault.chain);
+    if (vault.hasBadDebt) stats.hasHistoricalBadDebt = true;
+
+    curatorStats.set(vault.curator, stats);
+  }
+
+  // Calculate credit ratings for each vault
+  return vaults.map(vault => {
+    const stats = curatorStats.get(vault.curator);
+
+    const creditRating = calculateVaultCredit(vault, {
+      vaultCount: stats?.vaultCount,
+      totalTvlManaged: stats?.totalTvl,
+      chainCount: stats?.chains.size,
+      hasHistoricalBadDebt: stats?.hasHistoricalBadDebt,
+    });
+
+    return {
+      ...vault,
+      creditRating,
+    };
+  });
 }
