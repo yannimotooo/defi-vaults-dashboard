@@ -644,8 +644,8 @@ export default function Dashboard() {
             />
 
             {/* Credit Rating Methodology Explainer */}
-            <div id="methodology" className="mt-12 pt-8 border-t border-zinc-800/60">
-              <h3 className="text-[15px] font-semibold text-zinc-100 mb-4">Credit Rating Methodology</h3>
+            <div id="methodology" className="mt-12 pt-8 border-t-4 border-red-500 bg-red-500/20">
+              <h3 className="text-[20px] font-bold text-red-400 mb-4">DEBUG: Credit Rating Methodology</h3>
               <div className="bg-zinc-900/30 border border-zinc-800/60 rounded-lg p-6">
                 <p className="text-[13px] text-zinc-400 mb-6">
                   Our three-pillar credit rating system is inspired by S&P, Moody's, and Fitch methodologies,
