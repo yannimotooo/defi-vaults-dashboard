@@ -612,6 +612,159 @@ export default function Dashboard() {
               showProject={true}
               maxDisplay={25}
             />
+
+            {/* Credit Rating Methodology Explainer */}
+            <div className="mt-12 pt-8 border-t border-zinc-800/60">
+              <h3 className="text-[15px] font-semibold text-zinc-100 mb-4">Credit Rating Methodology</h3>
+              <div className="bg-zinc-900/30 border border-zinc-800/60 rounded-lg p-6">
+                <p className="text-[13px] text-zinc-400 mb-6">
+                  Our three-pillar credit rating system is inspired by S&P, Moody's, and Fitch methodologies,
+                  adapted for DeFi vault risk assessment. Lower scores indicate higher quality.
+                </p>
+
+                {/* Rating Scale */}
+                <div className="mb-8">
+                  <h4 className="text-[13px] font-medium text-zinc-300 mb-3">Rating Scale</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2">
+                    {[
+                      { rating: 'AAA', score: '< 5', label: 'Exceptional', color: 'text-emerald-400 bg-emerald-500/10' },
+                      { rating: 'AA', score: '< 12', label: 'Excellent', color: 'text-emerald-400 bg-emerald-500/10' },
+                      { rating: 'A', score: '< 20', label: 'Good', color: 'text-green-400 bg-green-500/10' },
+                      { rating: 'BBB', score: '< 30', label: 'Adequate', color: 'text-yellow-400 bg-yellow-500/10' },
+                      { rating: 'BB', score: '< 45', label: 'Speculative', color: 'text-amber-400 bg-amber-500/10' },
+                    ].map(r => (
+                      <div key={r.rating} className={`px-3 py-2 rounded ${r.color.split(' ')[1]} border border-zinc-800/60`}>
+                        <span className={`text-[13px] font-mono font-medium ${r.color.split(' ')[0]}`}>{r.rating}</span>
+                        <span className="text-[11px] text-zinc-500 ml-2">{r.score}</span>
+                        <p className="text-[10px] text-zinc-500 mt-0.5">{r.label}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-zinc-600 mt-2">
+                    Investment Grade: AAA, AA, A, BBB • Speculative Grade: BB, B, CCC, CC, C
+                  </p>
+                </div>
+
+                {/* Three Pillars */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  {/* Pillar 1: Capital Safety */}
+                  <div className="bg-zinc-800/30 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-[13px]">🛡️</span>
+                      <h4 className="text-[13px] font-medium text-zinc-200">Capital Safety</h4>
+                      <span className="text-[10px] text-zinc-500 ml-auto">50% weight</span>
+                    </div>
+                    <p className="text-[11px] text-zinc-500 mb-3">"What's the likelihood of losing my deposit?"</p>
+                    <ul className="text-[11px] text-zinc-400 space-y-1.5">
+                      <li className="flex items-start gap-2">
+                        <span className="text-zinc-600">•</span>
+                        <span><strong className="text-zinc-300">Bad Debt</strong> (35%): Historical losses</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-zinc-600">•</span>
+                        <span><strong className="text-zinc-300">Collateral</strong> (25%): Blue-chip vs exotic</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-zinc-600">•</span>
+                        <span><strong className="text-zinc-300">Oracle</strong> (20%): Price feed reliability</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-zinc-600">•</span>
+                        <span><strong className="text-zinc-300">LLTV</strong> (15%): Liquidation buffer</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-zinc-600">•</span>
+                        <span><strong className="text-zinc-300">Concentration</strong> (5%): Diversification</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  {/* Pillar 2: Liquidity Health */}
+                  <div className="bg-zinc-800/30 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-[13px]">💧</span>
+                      <h4 className="text-[13px] font-medium text-zinc-200">Liquidity Health</h4>
+                      <span className="text-[10px] text-zinc-500 ml-auto">30% weight</span>
+                    </div>
+                    <p className="text-[11px] text-zinc-500 mb-3">"Can I withdraw when I need to?"</p>
+                    <ul className="text-[11px] text-zinc-400 space-y-1.5">
+                      <li className="flex items-start gap-2">
+                        <span className="text-zinc-600">•</span>
+                        <span><strong className="text-zinc-300">Available</strong> (40%): Immediate withdrawability</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-zinc-600">•</span>
+                        <span><strong className="text-zinc-300">Stress Buffer</strong> (35%): (1-LLTV) + (1-Utilization)</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-zinc-600">•</span>
+                        <span><strong className="text-zinc-300">Depth</strong> (25%): Underlying market liquidity</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  {/* Pillar 3: Curator Quality */}
+                  <div className="bg-zinc-800/30 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-[13px]">👤</span>
+                      <h4 className="text-[13px] font-medium text-zinc-200">Curator Quality</h4>
+                      <span className="text-[10px] text-zinc-500 ml-auto">20% weight</span>
+                    </div>
+                    <p className="text-[11px] text-zinc-500 mb-3">"Is this vault well-managed?"</p>
+                    <ul className="text-[11px] text-zinc-400 space-y-1.5">
+                      <li className="flex items-start gap-2">
+                        <span className="text-zinc-600">•</span>
+                        <span><strong className="text-zinc-300">Track Record</strong> (40%): History, incidents</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-zinc-600">•</span>
+                        <span><strong className="text-zinc-300">Risk Mgmt</strong> (30%): Asset selection</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-zinc-600">•</span>
+                        <span><strong className="text-zinc-300">Diversification</strong> (20%): Multi-chain, multi-vault</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-zinc-600">•</span>
+                        <span><strong className="text-zinc-300">Fees</strong> (10%): Performance fee levels</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Key Thresholds */}
+                <div className="bg-zinc-800/20 rounded-lg p-4">
+                  <h4 className="text-[12px] font-medium text-zinc-300 mb-3">Key LLTV Thresholds</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-[11px]">
+                    <div>
+                      <span className="text-emerald-400">≤77%</span>
+                      <p className="text-zinc-500">Strong buffer</p>
+                    </div>
+                    <div>
+                      <span className="text-green-400">≤85%</span>
+                      <p className="text-zinc-500">Adequate</p>
+                    </div>
+                    <div>
+                      <span className="text-yellow-400">≤90%</span>
+                      <p className="text-zinc-500">Elevated risk</p>
+                    </div>
+                    <div>
+                      <span className="text-amber-400">≤94.5%</span>
+                      <p className="text-zinc-500">Narrow margin</p>
+                    </div>
+                    <div>
+                      <span className="text-red-400">&gt;94.5%</span>
+                      <p className="text-zinc-500">Minimal buffer</p>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-zinc-600 mt-4">
+                  Note: Like S&P's AAA (held by only 2 US companies), our AAA is reserved for exceptional vaults with
+                  minimal risk. Most well-managed vaults receive A or AA ratings. Data sourced from Morpho Blue on-chain state.
+                </p>
+              </div>
+            </div>
           </>
         )}
 
