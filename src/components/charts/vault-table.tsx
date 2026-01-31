@@ -207,7 +207,8 @@ export function VaultTable({
             <tbody>
               {displayedVaults.map((vault, index) => {
                 const hasRating = vault.creditRating;
-                const canExpand = hasRating || vault.markets;
+                const hasRiskData = vault.markets || vault.maxUtilization !== undefined;
+                const canExpand = true; // Always allow expansion to show basic info
 
                 // Calculate stress buffer for display
                 const stressBuffer = vault.avgLltv !== undefined && vault.maxUtilization !== undefined
@@ -277,7 +278,15 @@ export function VaultTable({
                           {hasRating ? (
                             <CompactRating rating={vault.creditRating!} />
                           ) : (
-                            <span className="text-[11px] text-zinc-600">NR</span>
+                            <div className="group relative">
+                              <span className="text-[11px] text-zinc-500 bg-zinc-800/50 px-1.5 py-0.5 rounded cursor-help">
+                                No Data
+                              </span>
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded-lg text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+                                <p className="text-zinc-300">Insufficient on-chain data</p>
+                                <p className="text-zinc-500">Raw market or non-Morpho vault</p>
+                              </div>
+                            </div>
                           )}
                           {vault.hasBadDebt && (
                             <AlertTriangle className="h-3.5 w-3.5 text-red-400" />
