@@ -124,11 +124,14 @@ export async function GET(request: NextRequest) {
       const duneVault = duneMap.get(duneKey);
 
       // Try to match risk data by name or symbol
-      const riskData = riskMap.get(normalizeName(vault.symbol))
-        || riskMap.get(normalizeName(vault.poolMeta || ''))
+      const normalizedSymbol = normalizeName(vault.symbol);
+      const normalizedMeta = normalizeName(vault.poolMeta || '');
+
+      const riskData = riskMap.get(normalizedSymbol)
+        || riskMap.get(normalizedMeta)
         || Array.from(riskMap.values()).find(r =>
-            normalizeName(r.name).includes(normalizeName(vault.symbol)) ||
-            normalizeName(vault.symbol).includes(normalizeName(r.symbol))
+            normalizeName(r.name).includes(normalizedSymbol) ||
+            normalizedSymbol.includes(normalizeName(r.symbol))
           );
 
       // Try to get APY from Morpho API if DeFiLlama has 0

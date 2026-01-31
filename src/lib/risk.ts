@@ -605,7 +605,7 @@ export interface VaultRiskMetrics {
 export async function getVaultRiskMetrics(): Promise<VaultRiskMetrics[]> {
   const query = `
     query GetVaultRisk {
-      vaults(first: 200, orderBy: TotalAssets, orderDirection: Desc) {
+      vaults(first: 500) {
         items {
           address
           name
