@@ -147,20 +147,20 @@ export default function Dashboard() {
     <div className="min-h-screen bg-[#050505] text-white">
       {/* Header */}
       <header className="border-b border-zinc-800/60 sticky top-0 z-50 bg-[#050505]/95 backdrop-blur-sm">
-        <div className="max-w-[1400px] mx-auto px-6 py-4">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-semibold text-white">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-lg sm:text-xl font-semibold text-white truncate">
                 DeFi Vault Dashboard
               </h1>
-              <p className="text-[13px] text-zinc-500">Cross-chain vault & curator analytics</p>
+              <p className="text-[12px] sm:text-[13px] text-zinc-500 hidden sm:block">Cross-chain vault & curator analytics</p>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4 ml-2">
               {curatorValidation?.timestamp && (
                 <DataFreshnessBadge
                   timestamp={curatorValidation.timestamp}
                   sources={curatorValidation.source}
-                  className="hidden sm:flex"
+                  className="hidden md:flex"
                 />
               )}
               {curatorValidation?.highConfidenceCount !== undefined && curatorValidation.highConfidenceCount > 0 && (
@@ -179,8 +179,8 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Tabs */}
-          <div className="flex gap-1 mt-5 -mb-px">
+          {/* Tabs - Desktop */}
+          <div className="hidden sm:flex gap-1 mt-4 -mb-px">
             <TabButton
               active={activeTab === 'overview'}
               onClick={() => setActiveTab('overview')}
@@ -209,8 +209,38 @@ export default function Dashboard() {
         </div>
       </header>
 
+      {/* Mobile Bottom Navigation */}
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0a0a0a]/95 backdrop-blur-sm border-t border-zinc-800/60 safe-area-pb">
+        <div className="flex justify-around items-center h-14">
+          <MobileTabButton
+            active={activeTab === 'overview'}
+            onClick={() => setActiveTab('overview')}
+            icon={<LayoutDashboard className="h-5 w-5" />}
+            label="Overview"
+          />
+          <MobileTabButton
+            active={activeTab === 'curators'}
+            onClick={() => setActiveTab('curators')}
+            icon={<Users className="h-5 w-5" />}
+            label="Curators"
+          />
+          <MobileTabButton
+            active={activeTab === 'protocols'}
+            onClick={() => setActiveTab('protocols')}
+            icon={<Layers className="h-5 w-5" />}
+            label="Protocols"
+          />
+          <MobileTabButton
+            active={activeTab === 'vaults'}
+            onClick={() => setActiveTab('vaults')}
+            icon={<Vault className="h-5 w-5" />}
+            label="Vaults"
+          />
+        </div>
+      </nav>
+
       {/* Main Content */}
-      <main className="max-w-[1400px] mx-auto px-6 py-8">
+      <main className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-20 sm:pb-8">
         {activeTab === 'overview' && (
           <>
             {/* Stats Row */}
@@ -769,8 +799,8 @@ export default function Dashboard() {
         )}
 
         {/* Footer */}
-        <footer className="mt-16 pt-6 border-t border-zinc-800/60">
-          <div className="flex items-center justify-between text-[12px] text-zinc-600">
+        <footer className="mt-12 sm:mt-16 pt-6 border-t border-zinc-800/60">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] sm:text-[12px] text-zinc-600">
             <div className="flex items-center gap-4">
               <a href="https://defillama.com" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-400 transition-colors">
                 DeFiLlama
@@ -779,7 +809,7 @@ export default function Dashboard() {
                 Dune
               </a>
             </div>
-            <span>Morpho • Euler • Kamino • Yearn</span>
+            <span className="text-center">Morpho • Euler • Kamino • Yearn</span>
           </div>
         </footer>
       </main>
@@ -809,6 +839,32 @@ function TabButton({
     >
       {icon}
       {label}
+    </button>
+  );
+}
+
+function MobileTabButton({
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex flex-col items-center justify-center gap-1 flex-1 py-2 transition-colors ${
+        active
+          ? 'text-white'
+          : 'text-zinc-500'
+      }`}
+    >
+      {icon}
+      <span className="text-[10px] font-medium">{label}</span>
     </button>
   );
 }

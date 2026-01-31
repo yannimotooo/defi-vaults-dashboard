@@ -179,27 +179,27 @@ export function VaultTable({
           <table className="w-full">
             <thead>
               <tr className="border-b border-zinc-800/60">
-                <th className="px-5 py-3 text-left text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
+                <th className="px-3 sm:px-5 py-3 text-left text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
                   <SortButton columnKey="name" label="Vault" />
                 </th>
-                <th className="px-5 py-3 text-left text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
+                <th className="hidden sm:table-cell px-3 sm:px-5 py-3 text-left text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
                   <SortButton columnKey="chain" label="Chain" />
                 </th>
                 {showProject && (
-                  <th className="px-5 py-3 text-left text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
+                  <th className="hidden lg:table-cell px-3 sm:px-5 py-3 text-left text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
                     Protocol
                   </th>
                 )}
-                <th className="px-5 py-3 text-right text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
+                <th className="px-3 sm:px-5 py-3 text-right text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
                   <SortButton columnKey="tvl" label="TVL" />
                 </th>
-                <th className="px-5 py-3 text-center text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
+                <th className="px-3 sm:px-5 py-3 text-center text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
                   <SortButton columnKey="rating" label="Rating" />
                 </th>
-                <th className="px-5 py-3 text-right text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
+                <th className="px-3 sm:px-5 py-3 text-right text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
                   <SortButton columnKey="apy" label="APY" />
                 </th>
-                <th className="px-5 py-3 text-right text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
+                <th className="hidden md:table-cell px-3 sm:px-5 py-3 text-right text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
                   Buffer
                 </th>
               </tr>
@@ -225,61 +225,69 @@ export function VaultTable({
                         expandedVault === vault.id && 'bg-zinc-800/20'
                       )}
                     >
-                      <td className="px-5 py-3">
-                        <div className="flex items-center gap-3">
+                      <td className="px-3 sm:px-5 py-3">
+                        <div className="flex items-center gap-2 sm:gap-3">
                           {canExpand ? (
                             expandedVault === vault.id ? (
-                              <ChevronDown className="h-3.5 w-3.5 text-zinc-600" />
+                              <ChevronDown className="h-3.5 w-3.5 text-zinc-600 flex-shrink-0" />
                             ) : (
-                              <ChevronRight className="h-3.5 w-3.5 text-zinc-700" />
+                              <ChevronRight className="h-3.5 w-3.5 text-zinc-700 flex-shrink-0" />
                             )
                           ) : (
-                            <span className="text-[11px] text-zinc-600 font-mono w-4">
+                            <span className="text-[11px] text-zinc-600 font-mono w-4 flex-shrink-0">
                               {index + 1}
                             </span>
                           )}
-                          <div>
-                            <p className="text-[14px] text-white">{vault.symbol}</p>
+                          <div className="min-w-0">
+                            <p className="text-[13px] sm:text-[14px] text-white truncate">{vault.symbol}</p>
                             {vault.poolMeta && (
-                              <p className="text-[11px] text-zinc-600 mt-0.5">
+                              <p className="text-[10px] sm:text-[11px] text-zinc-600 mt-0.5 truncate">
                                 {vault.poolMeta}
                               </p>
                             )}
+                            {/* Show chain on mobile since column is hidden */}
+                            <p className="sm:hidden text-[10px] text-zinc-500 mt-0.5 flex items-center gap-1">
+                              <span
+                                className="w-1.5 h-1.5 rounded-full inline-block"
+                                style={{ backgroundColor: getChainColor(vault.chain) }}
+                              />
+                              {vault.chain}
+                            </p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-5 py-3">
+                      <td className="hidden sm:table-cell px-3 sm:px-5 py-3">
                         <div className="flex items-center gap-2">
                           <div
-                            className="w-2 h-2 rounded-full"
+                            className="w-2 h-2 rounded-full flex-shrink-0"
                             style={{ backgroundColor: getChainColor(vault.chain) }}
                           />
                           <span className="text-[13px] text-zinc-300">{vault.chain}</span>
                         </div>
                       </td>
                       {showProject && (
-                        <td className="px-5 py-3">
+                        <td className="hidden lg:table-cell px-3 sm:px-5 py-3">
                           <div className="flex items-center gap-2">
                             <div
-                              className="w-2 h-2 rounded-full"
+                              className="w-2 h-2 rounded-full flex-shrink-0"
                               style={{ backgroundColor: getProtocolColor(vault.project) }}
                             />
                             <span className="text-[13px] text-zinc-400">{vault.project}</span>
                           </div>
                         </td>
                       )}
-                      <td className="px-5 py-3 text-right">
-                        <span className="font-mono text-white text-[14px]">
+                      <td className="px-3 sm:px-5 py-3 text-right">
+                        <span className="font-mono text-white text-[12px] sm:text-[14px]">
                           {formatTvl(vault.tvl)}
                         </span>
                       </td>
-                      <td className="px-5 py-3">
-                        <div className="flex items-center justify-center gap-2">
+                      <td className="px-3 sm:px-5 py-3">
+                        <div className="flex items-center justify-center gap-1 sm:gap-2">
                           {hasRating ? (
                             <CompactRating rating={vault.creditRating!} />
                           ) : (
                             <div className="group relative">
-                              <span className="text-[11px] text-zinc-500 bg-zinc-800/50 px-1.5 py-0.5 rounded cursor-help">
+                              <span className="text-[10px] sm:text-[11px] text-zinc-500 bg-zinc-800/50 px-1 sm:px-1.5 py-0.5 rounded cursor-help">
                                 No Data
                               </span>
                               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded-lg text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
@@ -289,20 +297,20 @@ export function VaultTable({
                             </div>
                           )}
                           {vault.hasBadDebt && (
-                            <AlertTriangle className="h-3.5 w-3.5 text-red-400" />
+                            <AlertTriangle className="h-3 sm:h-3.5 w-3 sm:w-3.5 text-red-400" />
                           )}
                         </div>
                       </td>
-                      <td className="px-5 py-3 text-right">
+                      <td className="px-3 sm:px-5 py-3 text-right">
                         <div className="flex flex-col items-end">
                           <ApyWithQuality
                             apy={vault.apy}
                             apyBase={vault.apyBase || vault.apy}
                             apyReward={vault.apyReward || 0}
                           />
-                          {/* APY Breakdown inline */}
+                          {/* APY Breakdown inline - hidden on small screens */}
                           {vault.apy > 0 && (
-                            <div className="flex items-center gap-2 mt-0.5 text-[10px]">
+                            <div className="hidden sm:flex items-center gap-2 mt-0.5 text-[10px]">
                               <span className="text-emerald-400/70">{(vault.apyBase || vault.apy).toFixed(1)}%</span>
                               <span className="text-zinc-600">+</span>
                               <span className="text-amber-400/70">{(vault.apyReward || 0).toFixed(1)}%</span>
@@ -310,7 +318,7 @@ export function VaultTable({
                           )}
                         </div>
                       </td>
-                      <td className="px-5 py-3 text-right">
+                      <td className="hidden md:table-cell px-3 sm:px-5 py-3 text-right">
                         {stressBuffer !== null ? (
                           <div className="group relative inline-block">
                             <span className={cn(
@@ -342,10 +350,10 @@ export function VaultTable({
                     {/* Expanded vault details */}
                     {expandedVault === vault.id && (
                       <tr className="bg-zinc-900/50">
-                        <td colSpan={showProject ? 8 : 7} className="px-5 py-4">
-                          <div className="pl-8 space-y-5">
+                        <td colSpan={100} className="px-3 sm:px-5 py-4">
+                          <div className="sm:pl-8 space-y-4 sm:space-y-5">
                             {/* Quick Overview Section */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 p-4 rounded-lg bg-zinc-800/30 border border-zinc-800">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg bg-zinc-800/30 border border-zinc-800">
                               {/* Chain */}
                               <div>
                                 <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 flex items-center gap-1">

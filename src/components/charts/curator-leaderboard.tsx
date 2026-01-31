@@ -31,13 +31,13 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
           <table className="w-full">
             <thead>
               <tr className="border-b border-zinc-800/60">
-                <th className="px-5 py-3 text-left text-[11px] font-medium text-zinc-500 uppercase tracking-wider w-12">#</th>
-                <th className="px-5 py-3 text-left text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Curator</th>
-                <th className="px-5 py-3 text-right text-[11px] font-medium text-zinc-500 uppercase tracking-wider">TVL</th>
-                <th className="px-5 py-3 text-center text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Risk</th>
-                <th className="px-5 py-3 text-right text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Vaults</th>
-                <th className="px-5 py-3 text-right text-[11px] font-medium text-zinc-500 uppercase tracking-wider">APY</th>
-                <th className="px-5 py-3 text-right text-[11px] font-medium text-zinc-500 uppercase tracking-wider">7d Flow</th>
+                <th className="px-3 sm:px-5 py-3 text-left text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider w-10 sm:w-12">#</th>
+                <th className="px-3 sm:px-5 py-3 text-left text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Curator</th>
+                <th className="px-3 sm:px-5 py-3 text-right text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">TVL</th>
+                <th className="hidden sm:table-cell px-3 sm:px-5 py-3 text-center text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Risk</th>
+                <th className="hidden md:table-cell px-3 sm:px-5 py-3 text-right text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Vaults</th>
+                <th className="px-3 sm:px-5 py-3 text-right text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">APY</th>
+                <th className="hidden lg:table-cell px-3 sm:px-5 py-3 text-right text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">7d Flow</th>
               </tr>
             </thead>
             <tbody>
@@ -50,39 +50,39 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                       expandedCurator === curator.slug && 'bg-zinc-800/20'
                     )}
                   >
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-2">
+                    <td className="px-3 sm:px-5 py-3 sm:py-4">
+                      <div className="flex items-center gap-1.5 sm:gap-2">
                         {expandedCurator === curator.slug ? (
-                          <ChevronDown className="h-3.5 w-3.5 text-zinc-600" />
+                          <ChevronDown className="h-3 sm:h-3.5 w-3 sm:w-3.5 text-zinc-600 flex-shrink-0" />
                         ) : (
-                          <ChevronRight className="h-3.5 w-3.5 text-zinc-700" />
+                          <ChevronRight className="h-3 sm:h-3.5 w-3 sm:w-3.5 text-zinc-700 flex-shrink-0" />
                         )}
-                        <span className="font-mono text-zinc-500 text-[13px]">{index + 1}</span>
+                        <span className="font-mono text-zinc-500 text-[12px] sm:text-[13px]">{index + 1}</span>
                       </div>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-3 sm:px-5 py-3 sm:py-4">
                       <Link
                         href={`/curator/${curator.slug}`}
-                        className="flex items-center gap-2.5 group"
+                        className="flex items-center gap-2 sm:gap-2.5 group"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <div
                           className="w-2 h-2 rounded-full flex-shrink-0"
                           style={{ backgroundColor: CURATOR_COLORS[curator.name] || FALLBACK_CURATOR_COLORS[index % FALLBACK_CURATOR_COLORS.length] }}
                         />
-                        <div>
-                          <p className="text-[14px] text-white group-hover:text-blue-400 transition-colors flex items-center gap-1">
+                        <div className="min-w-0">
+                          <p className="text-[13px] sm:text-[14px] text-white group-hover:text-blue-400 transition-colors flex items-center gap-1 truncate">
                             {curator.name}
-                            <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
                           </p>
-                          <p className="text-[11px] text-zinc-600 mt-0.5 flex items-center gap-1.5">
+                          <p className="text-[10px] sm:text-[11px] text-zinc-600 mt-0.5 flex items-center gap-1.5 truncate">
                             {curator.protocols.slice(0, 2).map((protocol, i) => (
                               <span key={protocol} className="flex items-center gap-1">
                                 <span
-                                  className="w-1.5 h-1.5 rounded-full"
+                                  className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                                   style={{ backgroundColor: getProtocolColor(protocol) }}
                                 />
-                                {protocol}
+                                <span className="truncate">{protocol}</span>
                                 {i < Math.min(curator.protocols.length, 2) - 1 && <span className="text-zinc-700 ml-0.5">·</span>}
                               </span>
                             ))}
@@ -90,24 +90,26 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                         </div>
                       </Link>
                     </td>
-                    <td className="px-5 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <span className="font-mono text-white text-[14px]">
+                    <td className="px-3 sm:px-5 py-3 sm:py-4 text-right">
+                      <div className="flex items-center justify-end gap-1.5 sm:gap-2">
+                        <span className="font-mono text-white text-[12px] sm:text-[14px]">
                           {formatTvl(curator.totalTvl)}
                         </span>
-                        {curator.dataConfidence && (
-                          <DataConfidenceBadge
-                            confidence={curator.dataConfidence}
-                            tvlSource={curator.tvlSource}
-                            duneTvl={curator.duneTvl}
-                            defillamaTvl={curator.defillamaTvl || curator.totalTvl}
-                            morphoTvl={curator.morphoTvl}
-                            hasApyData={curator.avgApy > 0}
-                          />
-                        )}
+                        <span className="hidden sm:inline">
+                          {curator.dataConfidence && (
+                            <DataConfidenceBadge
+                              confidence={curator.dataConfidence}
+                              tvlSource={curator.tvlSource}
+                              duneTvl={curator.duneTvl}
+                              defillamaTvl={curator.defillamaTvl || curator.totalTvl}
+                              morphoTvl={curator.morphoTvl}
+                              hasApyData={curator.avgApy > 0}
+                            />
+                          )}
+                        </span>
                       </div>
                     </td>
-                    <td className="px-5 py-4 text-center">
+                    <td className="hidden sm:table-cell px-3 sm:px-5 py-3 sm:py-4 text-center">
                       {curator.riskLevel ? (
                         <RiskBadge
                           riskLevel={curator.riskLevel}
@@ -118,7 +120,7 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                         <span className="text-[11px] text-zinc-600">—</span>
                       )}
                     </td>
-                    <td className="px-5 py-4 text-right">
+                    <td className="hidden md:table-cell px-3 sm:px-5 py-3 sm:py-4 text-right">
                       <span
                         className={cn(
                           'font-mono text-[14px]',
@@ -129,15 +131,15 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                         {curator.vaultCountEstimated ? `~${curator.vaultCount}` : curator.vaultCount}
                       </span>
                     </td>
-                    <td className="px-5 py-4 text-right">
+                    <td className="px-3 sm:px-5 py-3 sm:py-4 text-right">
                       {curator.avgApy > 0 ? (
                         <div className="group relative inline-block">
-                          <span className="font-mono text-emerald-400 text-[14px] cursor-help">
+                          <span className="font-mono text-emerald-400 text-[12px] sm:text-[14px] cursor-help">
                             {curator.avgApy.toFixed(1)}%
                           </span>
-                          {/* APY Tooltip with Gross/Net breakdown */}
+                          {/* APY Tooltip with Gross/Net breakdown - hidden on mobile */}
                           {(curator.grossApy || curator.netApy || curator.avgPerformanceFee) && (
-                            <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-[11px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+                            <div className="hidden sm:block absolute bottom-full right-0 mb-2 px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-[11px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
                               <div className="space-y-1">
                                 {curator.grossApy !== undefined && (
                                   <p className="text-zinc-400">
@@ -162,7 +164,7 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                         <span className="text-[11px] text-zinc-600" title="APY data not available">—</span>
                       )}
                     </td>
-                    <td className="px-5 py-4 text-right">
+                    <td className="hidden lg:table-cell px-3 sm:px-5 py-3 sm:py-4 text-right">
                       <span className={cn(
                         'font-mono text-[14px]',
                         curator.netFlow7d > 0 ? 'text-emerald-400' : curator.netFlow7d < 0 ? 'text-red-400' : 'text-zinc-500'
@@ -173,10 +175,10 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                   </tr>
                   {expandedCurator === curator.slug && (
                     <tr key={`${curator.slug}-expanded`} className="bg-zinc-900/50">
-                      <td colSpan={7} className="px-5 py-4">
-                        <div className="pl-8 space-y-4">
+                      <td colSpan={100} className="px-3 sm:px-5 py-3 sm:py-4">
+                        <div className="sm:pl-8 space-y-4">
                           {/* Row 1: Basic Info */}
-                          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
                             <div>
                               <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-2">
                                 Chains ({curator.chains.length})
