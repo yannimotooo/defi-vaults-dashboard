@@ -406,6 +406,12 @@ export async function getCuratorVaults(curatorSlug: string, prefetchedPools?: Va
 
   console.log(`[getCuratorVaults] Filtering for ${curatorSlug}, prefixes: ${config.symbolPrefixes?.join(', ')}`);
 
+  // TEMPORARY TEST: Return empty for mev-capital to verify deployment
+  if (curatorSlug === 'mev-capital') {
+    console.log('[getCuratorVaults] TEST: Returning empty for mev-capital');
+    return [];
+  }
+
   // Filter pools based on curator config
   const curatorPools = allPools.filter(pool => {
     const projectLower = pool.project.toLowerCase();
