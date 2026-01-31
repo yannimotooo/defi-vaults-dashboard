@@ -407,104 +407,202 @@ export default function Dashboard() {
 
         {activeTab === 'vaults' && (
           <>
-            {/* Vault Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-zinc-800/60 rounded-lg overflow-hidden mb-8 border border-zinc-800/60">
-              <div className="bg-[#0a0a0a]">
-                <StatCard
-                  title="Total Vault TVL"
-                  value={topVaults.reduce((sum, v) => sum + v.tvl, 0)}
-                />
+            {/* Vault Stats - Redesigned for fund analysts */}
+            {(() => {
+              // Calculate meaningful metrics
+              const vaultsWithRating = topVaults.filter((v: any) => v.creditRating);
+              const investmentGrade = vaultsWithRating.filter((v: any) =>
+                v.creditRating?.investmentGrade
+              );
+              const stablecoinVaults = topVaults.filter(v => v.stablecoin);
+              const stablecoinAvgApy = stablecoinVaults.length > 0
+                ? stablecoinVaults.reduce((sum, v) => sum + v.apy, 0) / stablecoinVaults.length
+                : 0;
+              const vaultsWithBadDebt = topVaults.filter((v: any) => v.hasBadDebt);
+              const ratedTvl = vaultsWithRating.reduce((sum: number, v: any) => sum + v.tvl, 0);
+              const totalTvl = topVaults.reduce((sum, v) => sum + v.tvl, 0);
+              const ratedPct = totalTvl > 0 ? (ratedTvl / totalTvl) * 100 : 0;
+
+              return (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-zinc-800/60 rounded-lg overflow-hidden mb-8 border border-zinc-800/60">
+                  <div className="bg-[#0a0a0a]">
+                    <StatCard
+                      title="Total Vault TVL"
+                      value={totalTvl}
+                    />
+                  </div>
+                  <div className="bg-[#0a0a0a]">
+                    <StatCard
+                      title="Rated Coverage"
+                      value={ratedPct}
+                      format="percent"
+                      subtitle={`${vaultsWithRating.length}/${topVaults.length} vaults`}
+                    />
+                  </div>
+                  <div className="bg-[#0a0a0a]">
+                    <StatCard
+                      title="Stablecoin Avg APY"
+                      value={stablecoinAvgApy}
+                      format="percent"
+                      subtitle={`${stablecoinVaults.length} vaults`}
+                    />
+                  </div>
+                  <div className="bg-[#0a0a0a]">
+                    <StatCard
+                      title="Investment Grade"
+                      value={investmentGrade.length}
+                      format="number"
+                      subtitle={vaultsWithBadDebt.length > 0 ? `${vaultsWithBadDebt.length} with bad debt` : 'No bad debt detected'}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Asset Class Breakdown - Critical for fund analysts */}
+            {topVaults.length > 0 && (
+              <div className="mb-8">
+                <h3 className="text-[15px] font-semibold text-zinc-100 mb-4">APY by Asset Class</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {(() => {
+                    // Categorize vaults
+                    const stablecoins = topVaults.filter(v => v.stablecoin);
+                    const ethVaults = topVaults.filter(v =>
+                      !v.stablecoin && (
+                        v.symbol.toUpperCase().includes('ETH') ||
+                        v.symbol.toUpperCase().includes('STETH') ||
+                        v.symbol.toUpperCase().includes('WSTETH') ||
+                        v.symbol.toUpperCase().includes('WEETH') ||
+                        v.symbol.toUpperCase().includes('CBETH')
+                      )
+                    );
+                    const btcVaults = topVaults.filter(v =>
+                      !v.stablecoin && (
+                        v.symbol.toUpperCase().includes('BTC') ||
+                        v.symbol.toUpperCase().includes('WBTC') ||
+                        v.symbol.toUpperCase().includes('CBBTC') ||
+                        v.symbol.toUpperCase().includes('LBTC')
+                      )
+                    );
+
+                    const calcStats = (vaults: typeof topVaults) => {
+                      if (vaults.length === 0) return { count: 0, tvl: 0, avgApy: 0, medianApy: 0 };
+                      const tvl = vaults.reduce((sum, v) => sum + v.tvl, 0);
+                      const avgApy = vaults.reduce((sum, v) => sum + v.apy, 0) / vaults.length;
+                      const sortedApys = vaults.map(v => v.apy).sort((a, b) => a - b);
+                      const medianApy = sortedApys[Math.floor(sortedApys.length / 2)];
+                      return { count: vaults.length, tvl, avgApy, medianApy };
+                    };
+
+                    const categories = [
+                      { name: 'Stablecoins', icon: '💵', color: 'emerald', stats: calcStats(stablecoins) },
+                      { name: 'ETH & LSTs', icon: '⟠', color: 'blue', stats: calcStats(ethVaults) },
+                      { name: 'BTC', icon: '₿', color: 'amber', stats: calcStats(btcVaults) },
+                    ];
+
+                    return categories.map(cat => (
+                      <div key={cat.name} className="bg-zinc-900/50 border border-zinc-800/60 rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="text-lg">{cat.icon}</span>
+                          <span className="text-[14px] text-white font-medium">{cat.name}</span>
+                          <span className="text-[11px] text-zinc-500 ml-auto">{cat.stats.count} vaults</span>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-[12px]">
+                            <span className="text-zinc-500">TVL</span>
+                            <span className="text-white font-mono">{formatTvl(cat.stats.tvl)}</span>
+                          </div>
+                          <div className="flex justify-between text-[12px]">
+                            <span className="text-zinc-500">Avg APY</span>
+                            <span className={`font-mono ${cat.stats.avgApy > 3 ? 'text-emerald-400' : 'text-zinc-300'}`}>
+                              {cat.stats.avgApy.toFixed(2)}%
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-[12px]">
+                            <span className="text-zinc-500">Median APY</span>
+                            <span className="text-zinc-400 font-mono">{cat.stats.medianApy.toFixed(2)}%</span>
+                          </div>
+                        </div>
+                      </div>
+                    ));
+                  })()}
+                </div>
               </div>
-              <div className="bg-[#0a0a0a]">
-                <StatCard
-                  title="Vaults Tracked"
-                  value={topVaults.length}
-                  format="number"
-                />
-              </div>
-              <div className="bg-[#0a0a0a]">
-                <StatCard
-                  title="Avg APY"
-                  value={topVaults.length > 0
-                    ? topVaults.reduce((sum, v) => sum + v.apy, 0) / topVaults.length
-                    : 0}
-                  format="percent"
-                />
-              </div>
-              <div className="bg-[#0a0a0a]">
-                <StatCard
-                  title="Stablecoin Vaults"
-                  value={topVaults.filter(v => v.stablecoin).length}
-                  format="number"
-                />
-              </div>
-            </div>
+            )}
 
             {/* Yield Quality Analysis */}
             {topVaults.length > 0 && (
               <div className="mb-8">
                 <YieldQualityChart
                   vaults={topVaults}
-                  title="Market Yield Quality"
+                  title="Yield Quality Distribution"
                 />
               </div>
             )}
 
-            {/* Top Vaults by APY */}
+            {/* Top Investment-Grade Vaults by APY */}
             <div className="mb-8">
-              <h3 className="text-[15px] font-semibold text-zinc-100 mb-4">Top Vaults by APY</h3>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-[15px] font-semibold text-zinc-100">Top Rated Vaults</h3>
+                  <p className="text-[12px] text-zinc-500">Investment-grade vaults (BBB or better) with highest APY</p>
+                </div>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {[...topVaults]
+                  .filter((v: any) => v.creditRating?.investmentGrade && v.tvl > 1000000) // Only IG vaults with >$1M TVL
                   .sort((a, b) => b.apy - a.apy)
                   .slice(0, 6)
-                  .map((vault) => (
-                    <div
-                      key={vault.id}
-                      className="bg-zinc-900/50 border border-zinc-800/60 rounded-lg p-4"
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-[14px] text-white font-medium">{vault.symbol}</span>
-                        <div className="text-right">
-                          <span className="text-[13px] text-emerald-400 font-mono">
-                            {vault.apy.toFixed(2)}%
-                          </span>
-                          {vault.apyReward > 0 && (
-                            <span className="text-[10px] text-purple-400 ml-1">
-                              +{vault.apyReward.toFixed(1)}% rewards
+                  .map((vault: any) => {
+                    const rating = vault.creditRating?.compositeRating || 'NR';
+                    const ratingColors: Record<string, string> = {
+                      'AAA': 'text-emerald-400 bg-emerald-500/10',
+                      'AA': 'text-emerald-400 bg-emerald-500/10',
+                      'A': 'text-green-400 bg-green-500/10',
+                      'BBB': 'text-yellow-400 bg-yellow-500/10',
+                    };
+                    return (
+                      <div
+                        key={vault.id}
+                        className="bg-zinc-900/50 border border-zinc-800/60 rounded-lg p-4"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[14px] text-white font-medium">{vault.symbol}</span>
+                            <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${ratingColors[rating] || 'text-zinc-400 bg-zinc-800'}`}>
+                              {rating}
                             </span>
-                          )}
+                          </div>
+                          <div className="text-right">
+                            <span className="text-[13px] text-emerald-400 font-mono">
+                              {vault.apy.toFixed(2)}%
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center justify-between text-[12px]">
-                        <span className="text-zinc-500">{vault.chain}</span>
-                        <span className="text-zinc-400 font-mono">{formatTvl(vault.tvl)}</span>
-                      </div>
-                      {vault.poolMeta && (
-                        <p className="text-[11px] text-zinc-600 mt-1">{vault.poolMeta}</p>
-                      )}
-                      {/* Yield quality indicator */}
-                      <div className="mt-2 flex items-center gap-2">
-                        <div className="flex-1 h-1 bg-zinc-800 rounded-full overflow-hidden flex">
-                          <div
-                            className="h-full bg-emerald-500"
-                            style={{
-                              width: `${vault.apy > 0 ? ((vault.apyBase || 0) / vault.apy) * 100 : 0}%`
-                            }}
-                          />
-                          <div
-                            className="h-full bg-purple-500"
-                            style={{
-                              width: `${vault.apy > 0 ? ((vault.apyReward || 0) / vault.apy) * 100 : 0}%`
-                            }}
-                          />
+                        <div className="flex items-center justify-between text-[12px] mb-2">
+                          <span className="text-zinc-500">{vault.chain}</span>
+                          <span className="text-zinc-400 font-mono">{formatTvl(vault.tvl)}</span>
                         </div>
-                        <span className="text-[10px] text-zinc-600">
-                          {vault.apy > 0 ? Math.round(((vault.apyBase || 0) / vault.apy) * 100) : 0}% organic
-                        </span>
+                        {/* APY breakdown */}
+                        <div className="flex items-center justify-between text-[11px] text-zinc-500">
+                          <span>Base: <span className="text-emerald-400/80">{(vault.apyBase || vault.apy).toFixed(1)}%</span></span>
+                          <span>Rewards: <span className="text-amber-400/80">{(vault.apyReward || 0).toFixed(1)}%</span></span>
+                        </div>
+                        {/* Risk metrics */}
+                        {vault.maxUtilization !== undefined && (
+                          <div className="mt-2 pt-2 border-t border-zinc-800/60 flex items-center justify-between text-[10px]">
+                            <span className="text-zinc-600">Util: {(vault.maxUtilization * 100).toFixed(0)}%</span>
+                            <span className="text-zinc-600">LLTV: {((vault.avgLltv || 0) * 100).toFixed(0)}%</span>
+                            {vault.hasBadDebt && <span className="text-red-400">Bad Debt</span>}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
               </div>
+              {topVaults.filter((v: any) => v.creditRating?.investmentGrade && v.tvl > 1000000).length === 0 && (
+                <p className="text-[13px] text-zinc-500 text-center py-8">No investment-grade vaults found. Check the full table below.</p>
+              )}
             </div>
 
             {/* Full Vault Table */}
