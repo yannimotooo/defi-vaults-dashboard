@@ -16,6 +16,12 @@ import {
   Droplets,
   Users,
   CheckCircle,
+  Coins,
+  TrendingUp,
+  Lock,
+  Activity,
+  Layers,
+  ExternalLink,
 } from 'lucide-react';
 import type { VaultCreditRating } from '@/lib/risk-rating';
 
@@ -279,11 +285,21 @@ export function VaultTable({
                         </div>
                       </td>
                       <td className="px-5 py-3 text-right">
-                        <ApyWithQuality
-                          apy={vault.apy}
-                          apyBase={vault.apyBase || vault.apy}
-                          apyReward={vault.apyReward || 0}
-                        />
+                        <div className="flex flex-col items-end">
+                          <ApyWithQuality
+                            apy={vault.apy}
+                            apyBase={vault.apyBase || vault.apy}
+                            apyReward={vault.apyReward || 0}
+                          />
+                          {/* APY Breakdown inline */}
+                          {vault.apy > 0 && (
+                            <div className="flex items-center gap-2 mt-0.5 text-[10px]">
+                              <span className="text-emerald-400/70">{(vault.apyBase || vault.apy).toFixed(1)}%</span>
+                              <span className="text-zinc-600">+</span>
+                              <span className="text-amber-400/70">{(vault.apyReward || 0).toFixed(1)}%</span>
+                            </div>
+                          )}
+                        </div>
                       </td>
                       <td className="px-5 py-3 text-right">
                         {stressBuffer !== null ? (
@@ -314,136 +330,232 @@ export function VaultTable({
                         )}
                       </td>
                     </tr>
-                    {/* Expanded credit rating details */}
+                    {/* Expanded vault details */}
                     {expandedVault === vault.id && (
                       <tr className="bg-zinc-900/50">
                         <td colSpan={showProject ? 8 : 7} className="px-5 py-4">
-                          <div className="pl-8 space-y-4">
-                            {/* Credit Rating Breakdown */}
-                            {hasRating && (
+                          <div className="pl-8 space-y-5">
+                            {/* Quick Overview Section */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 p-4 rounded-lg bg-zinc-800/30 border border-zinc-800">
+                              {/* Chain */}
                               <div>
-                                <div className="flex items-center justify-between mb-3">
-                                  <p className="text-[11px] text-zinc-500 uppercase tracking-wider">
-                                    Credit Rating Breakdown
+                                <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 flex items-center gap-1">
+                                  <Layers className="h-3 w-3" /> Chain
+                                </p>
+                                <div className="flex items-center gap-1.5">
+                                  <div
+                                    className="w-2.5 h-2.5 rounded-full"
+                                    style={{ backgroundColor: getChainColor(vault.chain) }}
+                                  />
+                                  <span className="text-[13px] text-white">{vault.chain}</span>
+                                </div>
+                              </div>
+
+                              {/* Protocol */}
+                              <div>
+                                <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 flex items-center gap-1">
+                                  <Activity className="h-3 w-3" /> Protocol
+                                </p>
+                                <div className="flex items-center gap-1.5">
+                                  <div
+                                    className="w-2.5 h-2.5 rounded-full"
+                                    style={{ backgroundColor: getProtocolColor(vault.project) }}
+                                  />
+                                  <span className="text-[13px] text-white capitalize">{vault.project}</span>
+                                </div>
+                              </div>
+
+                              {/* Curator */}
+                              {vault.poolMeta && (
+                                <div>
+                                  <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 flex items-center gap-1">
+                                    <Users className="h-3 w-3" /> Curator
+                                  </p>
+                                  <span className="text-[13px] text-white">{vault.poolMeta}</span>
+                                </div>
+                              )}
+
+                              {/* Strategy Type */}
+                              <div>
+                                <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 flex items-center gap-1">
+                                  <TrendingUp className="h-3 w-3" /> Strategy
+                                </p>
+                                <span className={cn(
+                                  'text-[13px]',
+                                  vault.stablecoin ? 'text-blue-400' : 'text-purple-400'
+                                )}>
+                                  {vault.stablecoin ? 'Stablecoin Lending' : vault.exposure === 'single' ? 'Single Asset' : 'Multi-Asset'}
+                                </span>
+                              </div>
+
+                              {/* TVL */}
+                              <div>
+                                <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 flex items-center gap-1">
+                                  <Coins className="h-3 w-3" /> TVL
+                                </p>
+                                <span className="text-[13px] text-white font-mono">{formatTvl(vault.tvl)}</span>
+                              </div>
+
+                              {/* APY */}
+                              <div>
+                                <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 flex items-center gap-1">
+                                  <TrendingUp className="h-3 w-3" /> APY
+                                </p>
+                                <span className="text-[13px] text-emerald-400 font-mono">{vault.apy.toFixed(2)}%</span>
+                              </div>
+                            </div>
+
+                            {/* Risk Metrics Row */}
+                            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                              {/* Credit Rating */}
+                              {hasRating && (
+                                <div className="p-3 rounded-lg bg-zinc-800/30 border border-zinc-800">
+                                  <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Credit Rating</p>
+                                  <div className="flex items-center gap-2">
+                                    <CompactRating rating={vault.creditRating!} />
+                                    <span className={cn(
+                                      'text-[10px] px-1.5 py-0.5 rounded',
+                                      vault.creditRating!.investmentGrade
+                                        ? 'bg-emerald-500/15 text-emerald-400'
+                                        : 'bg-amber-500/15 text-amber-400'
+                                    )}>
+                                      {vault.creditRating!.investmentGrade ? 'IG' : 'Spec'}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Utilization */}
+                              {vault.maxUtilization !== undefined && (
+                                <div className="p-3 rounded-lg bg-zinc-800/30 border border-zinc-800">
+                                  <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 flex items-center gap-1">
+                                    <Activity className="h-3 w-3" /> Utilization
                                   </p>
                                   <span className={cn(
-                                    'text-[10px] px-2 py-0.5 rounded-full',
-                                    vault.creditRating!.investmentGrade
-                                      ? 'bg-emerald-500/15 text-emerald-400'
-                                      : 'bg-amber-500/15 text-amber-400'
+                                    'text-[16px] font-mono',
+                                    vault.maxUtilization > 0.95 ? 'text-red-400' :
+                                    vault.maxUtilization > 0.85 ? 'text-amber-400' :
+                                    vault.maxUtilization > 0.70 ? 'text-yellow-400' : 'text-emerald-400'
                                   )}>
-                                    {vault.creditRating!.investmentGrade ? 'Investment Grade' : 'Speculative'}
+                                    {(vault.maxUtilization * 100).toFixed(0)}%
                                   </span>
                                 </div>
+                              )}
 
-                                {/* Three Pillars Summary */}
-                                <div className="grid grid-cols-3 gap-3 mb-4">
-                                  <PillarSummaryCard
-                                    pillar="capital"
-                                    rating={vault.creditRating!.capitalSafety}
-                                  />
-                                  <PillarSummaryCard
-                                    pillar="liquidity"
-                                    rating={vault.creditRating!.liquidityHealth}
-                                  />
-                                  <PillarSummaryCard
-                                    pillar="curator"
-                                    rating={vault.creditRating!.curatorQuality}
-                                  />
+                              {/* LLTV */}
+                              {vault.avgLltv !== undefined && (
+                                <div className="p-3 rounded-lg bg-zinc-800/30 border border-zinc-800">
+                                  <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 flex items-center gap-1">
+                                    <Lock className="h-3 w-3" /> Avg LLTV
+                                  </p>
+                                  <span className={cn(
+                                    'text-[16px] font-mono',
+                                    vault.avgLltv > 0.90 ? 'text-red-400' :
+                                    vault.avgLltv > 0.80 ? 'text-amber-400' : 'text-zinc-300'
+                                  )}>
+                                    {(vault.avgLltv * 100).toFixed(0)}%
+                                  </span>
                                 </div>
+                              )}
 
-                                {/* Key Insights */}
-                                <div className="grid grid-cols-2 gap-4 mb-4">
-                                  {vault.creditRating!.keyStrengths.length > 0 && (
-                                    <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
-                                      <p className="text-[10px] text-emerald-400 uppercase tracking-wider mb-2 flex items-center gap-1">
-                                        <CheckCircle className="h-3 w-3" /> Key Strengths
-                                      </p>
-                                      <ul className="space-y-1">
-                                        {vault.creditRating!.keyStrengths.slice(0, 2).map((s, i) => (
-                                          <li key={i} className="text-[11px] text-emerald-400/80">{s}</li>
-                                        ))}
-                                      </ul>
-                                    </div>
-                                  )}
-                                  {vault.creditRating!.keyRisks.length > 0 && (
-                                    <div className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/20">
-                                      <p className="text-[10px] text-amber-400 uppercase tracking-wider mb-2 flex items-center gap-1">
-                                        <AlertTriangle className="h-3 w-3" /> Key Risks
-                                      </p>
-                                      <ul className="space-y-1">
-                                        {vault.creditRating!.keyRisks.slice(0, 2).map((r, i) => (
-                                          <li key={i} className="text-[11px] text-amber-400/80">{r}</li>
-                                        ))}
-                                      </ul>
-                                    </div>
-                                  )}
+                              {/* Stress Buffer */}
+                              {stressBuffer !== null && (
+                                <div className="p-3 rounded-lg bg-zinc-800/30 border border-zinc-800">
+                                  <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 flex items-center gap-1">
+                                    <Shield className="h-3 w-3" /> Stress Buffer
+                                  </p>
+                                  <span className={cn(
+                                    'text-[16px] font-mono',
+                                    stressBuffer >= 0.30 ? 'text-emerald-400' :
+                                    stressBuffer >= 0.20 ? 'text-green-400' :
+                                    stressBuffer >= 0.12 ? 'text-amber-400' : 'text-red-400'
+                                  )}>
+                                    {(stressBuffer * 100).toFixed(0)}%
+                                  </span>
                                 </div>
+                              )}
 
-                                {/* Rating Rationale */}
-                                <p className="text-[12px] text-zinc-400 leading-relaxed">
-                                  {vault.creditRating!.ratingRationale}
-                                </p>
-                              </div>
-                            )}
+                              {/* Warnings */}
+                              {(vault.hasBadDebt || (vault.redWarningCount ?? 0) > 0) && (
+                                <div className={cn(
+                                  'p-3 rounded-lg border',
+                                  vault.hasBadDebt ? 'bg-red-500/10 border-red-500/30' : 'bg-amber-500/10 border-amber-500/30'
+                                )}>
+                                  <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 flex items-center gap-1">
+                                    <AlertTriangle className="h-3 w-3" /> Warnings
+                                  </p>
+                                  <div className="flex flex-wrap gap-1">
+                                    {vault.hasBadDebt && (
+                                      <span className="text-[11px] text-red-400">Bad Debt</span>
+                                    )}
+                                    {(vault.redWarningCount ?? 0) > 0 && (
+                                      <span className="text-[11px] text-amber-400">{vault.redWarningCount} Critical</span>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
 
-                            {/* Market Allocations */}
+                            {/* Collateral / Market Allocations */}
                             {vault.markets && vault.markets.length > 0 && (
                               <div>
-                                <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-2">
-                                  Market Allocations ({vault.markets.length})
+                                <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-3 flex items-center gap-1">
+                                  <Coins className="h-3.5 w-3.5" /> Collateral Markets ({vault.markets.length})
                                 </p>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                                   {vault.markets.slice(0, 6).map((market) => {
-                                    // Calculate market stress buffer
                                     const marketBuffer = (1 - market.lltv) + (1 - market.utilization);
-
                                     return (
                                       <div
                                         key={market.uniqueKey}
                                         className={cn(
-                                          'p-2 rounded border text-[12px]',
+                                          'p-3 rounded-lg border text-[12px]',
                                           market.hasRedWarning ? 'border-red-500/30 bg-red-500/5' :
                                           market.hasBadDebt ? 'border-amber-500/30 bg-amber-500/5' :
                                           'border-zinc-800 bg-zinc-800/30'
                                         )}
                                       >
-                                        <div className="flex items-center justify-between mb-1">
+                                        <div className="flex items-center justify-between mb-2">
                                           <span className="text-white font-medium">
-                                            {market.loanAsset}/{market.collateralAsset}
+                                            {market.loanAsset} / {market.collateralAsset}
                                           </span>
-                                          <span className="text-zinc-500">
-                                            {(market.allocationPct * 100).toFixed(0)}%
+                                          <span className="text-zinc-400 font-mono text-[11px]">
+                                            {formatTvl(market.allocationUsd)}
                                           </span>
                                         </div>
-                                        <div className="flex items-center gap-3 text-[11px]">
-                                          <span className="text-zinc-500">
-                                            LLTV: {(market.lltv * 100).toFixed(0)}%
-                                          </span>
-                                          <span className={cn(
-                                            market.utilization > 0.95 ? 'text-red-400' :
-                                            market.utilization > 0.90 ? 'text-amber-400' : 'text-zinc-500'
-                                          )}>
-                                            Util: {(market.utilization * 100).toFixed(0)}%
-                                          </span>
-                                          <span className={cn(
-                                            marketBuffer >= 0.25 ? 'text-emerald-400' :
-                                            marketBuffer >= 0.15 ? 'text-amber-400' : 'text-red-400'
-                                          )}>
-                                            Buffer: {(marketBuffer * 100).toFixed(0)}%
-                                          </span>
+                                        <div className="grid grid-cols-3 gap-2 text-[11px]">
+                                          <div>
+                                            <span className="text-zinc-500">LLTV</span>
+                                            <p className="text-zinc-300 font-mono">{(market.lltv * 100).toFixed(0)}%</p>
+                                          </div>
+                                          <div>
+                                            <span className="text-zinc-500">Util</span>
+                                            <p className={cn(
+                                              'font-mono',
+                                              market.utilization > 0.95 ? 'text-red-400' :
+                                              market.utilization > 0.90 ? 'text-amber-400' : 'text-zinc-300'
+                                            )}>
+                                              {(market.utilization * 100).toFixed(0)}%
+                                            </p>
+                                          </div>
+                                          <div>
+                                            <span className="text-zinc-500">Buffer</span>
+                                            <p className={cn(
+                                              'font-mono',
+                                              marketBuffer >= 0.25 ? 'text-emerald-400' :
+                                              marketBuffer >= 0.15 ? 'text-amber-400' : 'text-red-400'
+                                            )}>
+                                              {(marketBuffer * 100).toFixed(0)}%
+                                            </p>
+                                          </div>
                                         </div>
                                         {(market.hasBadDebt || market.hasRedWarning) && (
-                                          <div className="mt-1 flex gap-1">
+                                          <div className="mt-2 pt-2 border-t border-zinc-700/50 flex gap-1">
                                             {market.hasBadDebt && (
-                                              <span className="text-[10px] text-red-400 bg-red-500/10 px-1 py-0.5 rounded">
-                                                Bad Debt
-                                              </span>
+                                              <span className="text-[10px] text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded">Bad Debt</span>
                                             )}
                                             {market.hasRedWarning && (
-                                              <span className="text-[10px] text-amber-400 bg-amber-500/10 px-1 py-0.5 rounded">
-                                                Warning
-                                              </span>
+                                              <span className="text-[10px] text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">Warning</span>
                                             )}
                                           </div>
                                         )}

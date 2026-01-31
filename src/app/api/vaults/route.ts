@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCuratorVaults, getTopVaults } from '@/lib/defillama';
 import { getAllVaultsTvl } from '@/lib/dune';
-import { getVaultRiskMetrics } from '@/lib/risk';
+import { getVaultRiskWithCreditRatings, type VaultWithCreditRating } from '@/lib/risk';
 
 // Morpho vault APY data interface
 interface MorphoVaultApy {
@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
     const [vaults, duneVaults, vaultRiskData, morphoApyData] = await Promise.all([
       curatorSlug ? getCuratorVaults(curatorSlug) : getTopVaults(limit),
       getAllVaultsTvl().catch(() => []),
-      includeRisk ? getVaultRiskMetrics().catch(() => []) : Promise.resolve([]),
+      includeRisk ? getVaultRiskWithCreditRatings().catch(() => []) : Promise.resolve([]),
       getMorphoVaultApyData().catch(() => []), // Morpho API APY data
     ]);
 
@@ -102,9 +102,12 @@ export async function GET(request: NextRequest) {
 
     // Create risk lookup by vault name (normalized)
     const normalizeName = (s: string) => s.toLowerCase().replace(/[\s\-_]/g, '');
-    const riskMap = new Map(
-      vaultRiskData.map(v => [normalizeName(v.name), v])
-    );
+    const riskMap = new Map<string, VaultWithCreditRating>();
+    for (const vault of vaultRiskData) {
+      // Map by multiple keys for better matching
+      riskMap.set(normalizeName(vault.name), vault);
+      riskMap.set(normalizeName(vault.symbol), vault);
+    }
 
     // Create Morpho APY lookup by symbol (normalized)
     // Try multiple matching strategies
@@ -178,6 +181,8 @@ export async function GET(request: NextRequest) {
         redWarningCount: riskData?.redWarningCount,
         criticalWarnings: riskData?.criticalWarnings,
         markets: riskData?.markets,
+        // Credit rating (three-pillar system)
+        creditRating: riskData?.creditRating,
       };
     });
 
@@ -213,6 +218,7 @@ export async function GET(request: NextRequest) {
             redWarningCount: riskVault.redWarningCount,
             criticalWarnings: riskVault.criticalWarnings,
             markets: riskVault.markets,
+            creditRating: riskVault.creditRating,
           });
         }
       }
