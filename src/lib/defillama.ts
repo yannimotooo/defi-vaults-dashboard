@@ -404,6 +404,8 @@ export async function getCuratorVaults(curatorSlug: string, prefetchedPools?: Va
     return [];
   }
 
+  console.log(`[getCuratorVaults] Filtering for ${curatorSlug}, prefixes: ${config.symbolPrefixes?.join(', ')}`);
+
   // Filter pools based on curator config
   const curatorPools = allPools.filter(pool => {
     const projectLower = pool.project.toLowerCase();
@@ -422,9 +424,10 @@ export async function getCuratorVaults(curatorSlug: string, prefetchedPools?: Va
       if (!isRequiredProject) return false;
 
       // Check symbol prefix match
-      const prefixMatch = config.symbolPrefixes.some(prefix =>
-        symbolUpper.startsWith(prefix.toUpperCase())
-      );
+      const prefixMatch = config.symbolPrefixes.some(prefix => {
+        const matches = symbolUpper.startsWith(prefix.toUpperCase());
+        return matches;
+      });
       if (prefixMatch) return true;
 
       // Check symbol contains match (fallback)
@@ -440,6 +443,8 @@ export async function getCuratorVaults(curatorSlug: string, prefetchedPools?: Va
 
     return false;
   });
+
+  console.log(`[getCuratorVaults] Found ${curatorPools.length} vaults for ${curatorSlug}`);
 
   // Sort by TVL descending
   return curatorPools.sort((a, b) => b.tvlUsd - a.tvlUsd);
