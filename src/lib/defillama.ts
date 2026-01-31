@@ -339,8 +339,8 @@ const CURATOR_CONFIG: Record<string, CuratorConfig> = {
     requiredProjects: MORPHO_PROJECTS
   },
   'mev-capital': {
-    symbolPrefixes: ['MC-', 'MC', 'MMEV', 'MEV'],
-    symbolContains: ['MEV'],
+    // Note: Do NOT use symbolContains: ['MEV'] - it matches false positives like PRIMEV2
+    symbolPrefixes: ['MC-', 'MC', 'MMEV', 'MEV', 'MEVF'],
     requiredProjects: MORPHO_PROJECTS
   },
   're7-labs': {
@@ -401,14 +401,6 @@ export async function getCuratorVaults(curatorSlug: string, prefetchedPools?: Va
   if (!config) {
     // Fallback: no config found, return empty
     console.log(`[getCuratorVaults] No config for curator: ${curatorSlug}`);
-    return [];
-  }
-
-  console.log(`[getCuratorVaults] Filtering for ${curatorSlug}, prefixes: ${config.symbolPrefixes?.join(', ')}`);
-
-  // TEMPORARY TEST: Return empty for mev-capital to verify deployment
-  if (curatorSlug === 'mev-capital') {
-    console.log('[getCuratorVaults] TEST: Returning empty for mev-capital');
     return [];
   }
 
