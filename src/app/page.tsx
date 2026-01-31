@@ -644,7 +644,7 @@ export default function Dashboard() {
             />
 
             {/* Credit Rating Methodology Explainer */}
-            <div className="mt-12 pt-8 border-t border-zinc-800/60">
+            <div id="methodology" className="mt-12 pt-8 border-t border-zinc-800/60">
               <h3 className="text-[15px] font-semibold text-zinc-100 mb-4">Credit Rating Methodology</h3>
               <div className="bg-zinc-900/30 border border-zinc-800/60 rounded-lg p-6">
                 <p className="text-[13px] text-zinc-400 mb-6">
