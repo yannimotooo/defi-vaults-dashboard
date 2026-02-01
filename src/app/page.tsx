@@ -658,13 +658,16 @@ export default function Dashboard() {
             {/* Featured Vaults - 2 per category with full details */}
             <div className="mb-8">
               <h3 className="text-[15px] font-semibold text-zinc-100 mb-4">Featured Vaults</h3>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
                 {/* Largest by TVL */}
-                <div className="min-h-[280px]">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-[14px]">🏦</span>
-                    <h4 className="text-[13px] font-medium text-zinc-300">Largest by TVL</h4>
-                  </div>
+                <Card className="flex flex-col">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[14px]">🏦</span>
+                      <CardTitle>Largest by TVL</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="flex-1">
                   <div className="space-y-3">
                     {[...topVaults]
                       .sort((a, b) => b.tvl - a.tvl)
@@ -709,14 +712,18 @@ export default function Dashboard() {
                         );
                       })}
                   </div>
-                </div>
+                  </CardContent>
+                </Card>
 
                 {/* Highest Incentives */}
-                <div className="min-h-[280px]">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-[14px]">🎁</span>
-                    <h4 className="text-[13px] font-medium text-zinc-300">Highest Incentives</h4>
-                  </div>
+                <Card className="flex flex-col">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[14px]">🎁</span>
+                      <CardTitle>Highest Incentives</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="flex-1">
                   <div className="space-y-3">
                     {[...topVaults]
                       .filter(v => v.apyReward > 0)
@@ -765,14 +772,18 @@ export default function Dashboard() {
                       <p className="text-[12px] text-zinc-500 py-4 text-center">No incentivized vaults</p>
                     )}
                   </div>
-                </div>
+                  </CardContent>
+                </Card>
 
                 {/* Highest APY */}
-                <div className="min-h-[280px]">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-[14px]">📈</span>
-                    <h4 className="text-[13px] font-medium text-zinc-300">Highest APY</h4>
-                  </div>
+                <Card className="flex flex-col">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[14px]">📈</span>
+                      <CardTitle>Highest APY</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="flex-1">
                   <div className="space-y-3">
                     {[...topVaults]
                       .filter(v => v.apy > 0 && v.tvl > 100000)
@@ -818,7 +829,8 @@ export default function Dashboard() {
                         );
                       })}
                   </div>
-                </div>
+                  </CardContent>
+                </Card>
               </div>
             </div>
 

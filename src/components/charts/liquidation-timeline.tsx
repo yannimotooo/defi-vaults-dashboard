@@ -45,6 +45,12 @@ export function LiquidationTimeline({
     );
   }
 
+  // Format date helper (defined before use)
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
   // Get all unique protocols across all days
   const allProtocols = new Set<string>();
   data.forEach(day => {
@@ -60,11 +66,6 @@ export function LiquidationTimeline({
     count: day.count,
     badDebt: day.badDebt,
   }));
-
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
 
   const CustomTooltip = ({ active, payload, label }: {
     active?: boolean;

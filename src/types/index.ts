@@ -17,8 +17,6 @@ export interface ProtocolTVL {
   tvl: number;
   change24h: number;
   change7d: number;
-  change30d?: number;
-  netFlow30d?: number;  // Positive = inflows, negative = outflows
   chains: string[];
   category: string;
 }
