@@ -13,6 +13,8 @@ export const DUNE_QUERIES = {
   MORPHO_LIQUIDATIONS_ETH: 4678263,
   // Morpho Liquidation Events - multi-chain (Ethereum, Base, etc.)
   MORPHO_LIQUIDATIONS_ALL: 4216704,
+  // Morpho Blue Liquidation History - comprehensive with repaid_usd
+  MORPHO_LIQUIDATION_HISTORY: 3431820,
   // Aave V3 Liquidation Aggregated - multi-chain with USD amounts
   AAVE_LIQUIDATIONS: 585720,
   // Kamino liquidation volume - Solana lending protocol
@@ -268,50 +270,92 @@ function calculateLiquidationTotals(
 }
 
 // Fetch Morpho liquidation data from Dune (official dashboard query)
-// Uses multi-chain query first, falls back to ETH-only
+// Tries multiple queries to get the most comprehensive data
 export async function getMorphoLiquidationsFromDune(): Promise<DuneLiquidationSummary> {
   try {
-    // Try multi-chain query first (4216704)
-    let result = await getLatestDuneResults(DUNE_QUERIES.MORPHO_LIQUIDATIONS_ALL).catch(() => null);
+    // Try multiple queries in parallel and use the one with highest volume
+    const [historyResult, allResult, ethResult] = await Promise.all([
+      getLatestDuneResults(DUNE_QUERIES.MORPHO_LIQUIDATION_HISTORY).catch(() => null),
+      getLatestDuneResults(DUNE_QUERIES.MORPHO_LIQUIDATIONS_ALL).catch(() => null),
+      getLatestDuneResults(DUNE_QUERIES.MORPHO_LIQUIDATIONS_ETH).catch(() => null),
+    ]);
 
-    // Fall back to ETH-only query if multi-chain fails
-    if (!result?.result?.rows || result.result.rows.length === 0) {
-      console.log('[Dune] Multi-chain Morpho query empty, trying ETH-only');
-      result = await getLatestDuneResults(DUNE_QUERIES.MORPHO_LIQUIDATIONS_ETH);
+    // Log what we got from each query
+    console.log('[Dune] Morpho query results:');
+    if (historyResult?.result?.rows) {
+      console.log(`  - History (3431820): ${historyResult.result.rows.length} rows`);
+      if (historyResult.result.rows[0]) {
+        console.log(`    Sample row keys: ${Object.keys(historyResult.result.rows[0]).join(', ')}`);
+      }
+    }
+    if (allResult?.result?.rows) {
+      console.log(`  - All (4216704): ${allResult.result.rows.length} rows`);
+      if (allResult.result.rows[0]) {
+        console.log(`    Sample row keys: ${Object.keys(allResult.result.rows[0]).join(', ')}`);
+      }
+    }
+    if (ethResult?.result?.rows) {
+      console.log(`  - ETH (4678263): ${ethResult.result.rows.length} rows`);
+      if (ethResult.result.rows[0]) {
+        console.log(`    Sample row keys: ${Object.keys(ethResult.result.rows[0]).join(', ')}`);
+      }
     }
 
-    if (!result?.result?.rows || result.result.rows.length === 0) {
-      console.log('[Dune] No Morpho liquidation data returned');
+    // Process each result and find the highest volume
+    const results: Array<{ source: string; summary: DuneLiquidationSummary }> = [];
+
+    for (const [name, result] of [
+      ['history', historyResult],
+      ['all', allResult],
+      ['eth', ethResult],
+    ] as const) {
+      if (!result?.result?.rows || result.result.rows.length === 0) continue;
+
+      const rows = result.result.rows;
+
+      // Parse - try multiple column name patterns
+      const dailyData: DuneLiquidationData[] = rows.map((row: Record<string, unknown>) => {
+        // Try to extract USD amount from various possible column names
+        const amount = Number(
+          row.repaid_usd ||
+          row.seized_usd ||
+          row.liquidation_usd ||
+          row.amount_usd ||
+          row.sum_seized_usd ||
+          row.seized_assets_usd ||
+          row.repaid_assets_usd ||
+          row.total_usd ||
+          row.usd_value ||
+          row.value_usd ||
+          0
+        );
+
+        return {
+          date: String(row.day || row.date || row.block_date || row.evt_block_time || row.block_time || ''),
+          seizedUsd: amount,
+          protocol: 'Morpho',
+          chain: String(row.chain || row.blockchain || row.network || 'Ethereum'),
+        };
+      });
+
+      const { totalVolume7d, totalVolume24h } = calculateLiquidationTotals(dailyData);
+      results.push({
+        source: name,
+        summary: { totalVolume7d, totalVolume24h, dailyData: dailyData.slice(0, 30) },
+      });
+      console.log(`[Dune] Morpho ${name}: 7d=$${(totalVolume7d / 1e6).toFixed(2)}M, 24h=$${(totalVolume24h / 1e6).toFixed(2)}M`);
+    }
+
+    // Use the result with highest 7d volume
+    if (results.length === 0) {
+      console.log('[Dune] No Morpho liquidation data from any query');
       return { totalVolume7d: 0, totalVolume24h: 0, dailyData: [] };
     }
 
-    const rows = result.result.rows;
-    console.log(`[Dune] Fetched ${rows.length} Morpho liquidation data points`);
+    const best = results.reduce((a, b) => a.summary.totalVolume7d > b.summary.totalVolume7d ? a : b);
+    console.log(`[Dune] Using Morpho ${best.source}: $${(best.summary.totalVolume7d / 1e6).toFixed(2)}M`);
 
-    // Parse the daily liquidation data - handle various column name formats
-    const dailyData: DuneLiquidationData[] = rows.map((row: Record<string, unknown>) => ({
-      date: String(row.day || row.date || row.block_date || row.evt_block_time || ''),
-      seizedUsd: Number(
-        row.seized_usd ||
-        row.liquidation_usd ||
-        row.amount_usd ||
-        row.sum_seized_usd ||
-        row.seized_assets_usd ||
-        row.repaid_assets_usd ||
-        0
-      ),
-      protocol: 'Morpho',
-      chain: String(row.chain || row.blockchain || 'Ethereum'),
-    }));
-
-    const { totalVolume7d, totalVolume24h } = calculateLiquidationTotals(dailyData);
-    console.log(`[Dune] Morpho liquidations - 24h: $${(totalVolume24h / 1e6).toFixed(2)}M, 7d: $${(totalVolume7d / 1e6).toFixed(2)}M`);
-
-    return {
-      totalVolume7d,
-      totalVolume24h,
-      dailyData: dailyData.slice(0, 30),
-    };
+    return best.summary;
   } catch (error) {
     console.error('[Dune] Failed to fetch Morpho liquidations:', error);
     return { totalVolume7d: 0, totalVolume24h: 0, dailyData: [] };

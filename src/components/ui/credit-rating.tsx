@@ -468,8 +468,8 @@ export function CompactRating({ rating, showPillars = false }: CompactRatingProp
         </div>
       )}
 
-      {/* Hover tooltip */}
-      <div className="absolute bottom-full left-0 mb-2 px-3 py-2.5 bg-zinc-900 border border-zinc-700 rounded-lg text-[11px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl min-w-[220px]">
+      {/* Hover tooltip - positioned below to avoid clipping */}
+      <div className="absolute top-full left-0 mt-2 px-3 py-2.5 bg-zinc-900 border border-zinc-700 rounded-lg text-[11px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl min-w-[220px]">
         <div className="flex items-center justify-between mb-2">
           <span className="text-white font-medium">
             {rating.compositeRating} - {RATING_LABELS[rating.compositeRating]}

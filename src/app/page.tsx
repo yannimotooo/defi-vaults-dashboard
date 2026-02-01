@@ -438,8 +438,8 @@ export default function Dashboard() {
                 <CardHeader>
                   <CardTitle>Market Share</CardTitle>
                 </CardHeader>
-                <CardContent className="flex-1 flex flex-col pt-0">
-                  <div className="space-y-3">
+                <CardContent className="flex-1 flex flex-col p-4 pt-0">
+                  <div className="flex-1 flex flex-col justify-between">
                     {curators.slice(0, 10).map((curator, index) => {
                       const totalTvl = curators.reduce((sum, c) => sum + c.totalTvl, 0);
                       const share = (curator.totalTvl / totalTvl) * 100;
