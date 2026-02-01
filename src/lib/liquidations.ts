@@ -2,7 +2,11 @@
 // Aggregates liquidation events from Morpho, Aave V3, Euler V2, Spark, and Kamino
 // Uses Dune Analytics for accurate volume totals (official Morpho dashboard data)
 
-import { getMorphoLiquidationsFromDune } from './dune';
+import {
+  getMorphoLiquidationsFromDune,
+  getAaveLiquidationsFromDune,
+  getKaminoLiquidationsFromDune,
+} from './dune';
 
 // ============================================
 // Types
@@ -532,6 +536,8 @@ export async function getMultiProtocolLiquidations(
   const [
     morphoEvents,
     duneMorphoData,
+    duneAaveData,
+    duneKaminoData,
     aaveEthEvents,
     aavePolyEvents,
     aaveArbEvents,
@@ -542,6 +548,8 @@ export async function getMultiProtocolLiquidations(
   ] = await Promise.all([
     fetchMorphoLiquidations(hours),
     getMorphoLiquidationsFromDune().catch(() => ({ totalVolume7d: 0, totalVolume24h: 0, dailyData: [] })),
+    getAaveLiquidationsFromDune().catch(() => ({ totalVolume7d: 0, totalVolume24h: 0, dailyData: [] })),
+    getKaminoLiquidationsFromDune().catch(() => ({ totalVolume7d: 0, totalVolume24h: 0, dailyData: [] })),
     fetchAaveLiquidations('ethereum', hours).catch(() => []),
     fetchAaveLiquidations('polygon', hours).catch(() => []),
     fetchAaveLiquidations('arbitrum', hours).catch(() => []),
@@ -552,8 +560,15 @@ export async function getMultiProtocolLiquidations(
   ]);
 
   // Log Dune data for debugging
+  console.log('[Liquidations] Dune data received:');
   if (duneMorphoData.totalVolume7d > 0) {
-    console.log(`[Liquidations] Dune Morpho data: 24h=$${(duneMorphoData.totalVolume24h / 1e6).toFixed(2)}M, 7d=$${(duneMorphoData.totalVolume7d / 1e6).toFixed(2)}M`);
+    console.log(`  Morpho: 24h=$${(duneMorphoData.totalVolume24h / 1e6).toFixed(2)}M, 7d=$${(duneMorphoData.totalVolume7d / 1e6).toFixed(2)}M`);
+  }
+  if (duneAaveData.totalVolume7d > 0) {
+    console.log(`  Aave: 24h=$${(duneAaveData.totalVolume24h / 1e6).toFixed(2)}M, 7d=$${(duneAaveData.totalVolume7d / 1e6).toFixed(2)}M`);
+  }
+  if (duneKaminoData.totalVolume7d > 0) {
+    console.log(`  Kamino: 24h=$${(duneKaminoData.totalVolume24h / 1e6).toFixed(2)}M, 7d=$${(duneKaminoData.totalVolume7d / 1e6).toFixed(2)}M`);
   }
 
   // Combine all events
@@ -604,32 +619,28 @@ export async function getMultiProtocolLiquidations(
         return { loanAsset, collateralAsset, volume7d: volume };
       });
 
-    // Use Dune data for Morpho if available and higher (more accurate)
-    if (protocol === 'Morpho' && duneMorphoData.totalVolume7d > 0) {
-      const duneVolume7d = duneMorphoData.totalVolume7d;
-      const duneVolume24h = duneMorphoData.totalVolume24h;
+    // Use Dune data for protocols if available and higher (more accurate)
+    let finalVolume24h = volume24h;
+    let finalVolume7d = volume7d;
 
-      // Use Dune data if it's higher than GraphQL data (Dune is more complete)
-      if (duneVolume7d > volume7d) {
-        console.log(`[Liquidations] Using Dune data for Morpho: $${(duneVolume7d / 1e6).toFixed(2)}M (GraphQL: $${(volume7d / 1e6).toFixed(2)}M)`);
-        protocolSummaries.push({
-          protocol,
-          volume24h: Math.max(duneVolume24h, volume24h),
-          volume7d: duneVolume7d,
-          count24h: events24h.length,
-          count7d: events.length,
-          badDebt24h,
-          badDebt7d,
-          topMarkets,
-        });
-        continue;
-      }
+    if (protocol === 'Morpho' && duneMorphoData.totalVolume7d > volume7d) {
+      console.log(`[Liquidations] Using Dune data for Morpho: $${(duneMorphoData.totalVolume7d / 1e6).toFixed(2)}M (GraphQL: $${(volume7d / 1e6).toFixed(2)}M)`);
+      finalVolume24h = Math.max(duneMorphoData.totalVolume24h, volume24h);
+      finalVolume7d = duneMorphoData.totalVolume7d;
+    } else if (protocol === 'Aave' && duneAaveData.totalVolume7d > volume7d) {
+      console.log(`[Liquidations] Using Dune data for Aave: $${(duneAaveData.totalVolume7d / 1e6).toFixed(2)}M (Subgraph: $${(volume7d / 1e6).toFixed(2)}M)`);
+      finalVolume24h = Math.max(duneAaveData.totalVolume24h, volume24h);
+      finalVolume7d = duneAaveData.totalVolume7d;
+    } else if (protocol === 'Kamino' && duneKaminoData.totalVolume7d > volume7d) {
+      console.log(`[Liquidations] Using Dune data for Kamino: $${(duneKaminoData.totalVolume7d / 1e6).toFixed(2)}M (RPC: $${(volume7d / 1e6).toFixed(2)}M)`);
+      finalVolume24h = Math.max(duneKaminoData.totalVolume24h, volume24h);
+      finalVolume7d = duneKaminoData.totalVolume7d;
     }
 
     protocolSummaries.push({
       protocol,
-      volume24h,
-      volume7d,
+      volume24h: finalVolume24h,
+      volume7d: finalVolume7d,
       count24h: events24h.length,
       count7d: events.length,
       badDebt24h,
@@ -638,28 +649,79 @@ export async function getMultiProtocolLiquidations(
     });
   }
 
+  // Add Dune-only protocol summaries if not already present
+  const hasKamino = protocolSummaries.some(p => p.protocol === 'Kamino');
+  const hasAave = protocolSummaries.some(p => p.protocol === 'Aave');
+
+  if (!hasKamino && duneKaminoData.totalVolume7d > 0) {
+    console.log(`[Liquidations] Adding Kamino from Dune (no RPC events): $${(duneKaminoData.totalVolume7d / 1e6).toFixed(2)}M`);
+    protocolSummaries.push({
+      protocol: 'Kamino',
+      volume24h: duneKaminoData.totalVolume24h,
+      volume7d: duneKaminoData.totalVolume7d,
+      count24h: 0,
+      count7d: 0,
+      badDebt24h: 0,
+      badDebt7d: 0,
+      topMarkets: [],
+    });
+  }
+
+  if (!hasAave && duneAaveData.totalVolume7d > 0) {
+    console.log(`[Liquidations] Adding Aave from Dune (no subgraph events): $${(duneAaveData.totalVolume7d / 1e6).toFixed(2)}M`);
+    protocolSummaries.push({
+      protocol: 'Aave',
+      volume24h: duneAaveData.totalVolume24h,
+      volume7d: duneAaveData.totalVolume7d,
+      count24h: 0,
+      count7d: 0,
+      badDebt24h: 0,
+      badDebt7d: 0,
+      topMarkets: [],
+    });
+  }
+
   // Sort by volume
   protocolSummaries.sort((a, b) => b.volume7d - a.volume7d);
 
-  // Calculate totals - use Dune data for Morpho portion if available
+  // Calculate totals - use Dune data for accurate totals
   const events24h = allEvents.filter(e => e.timestamp >= oneDayAgo);
 
   // Calculate base totals from events
   let totalVolume24h = events24h.reduce((sum, e) => sum + e.repaidUsd, 0);
   let totalVolume7d = allEvents.reduce((sum, e) => sum + e.repaidUsd, 0);
 
-  // If Dune has higher Morpho data, adjust totals
+  // Adjust totals with Dune data for each protocol (Dune is more complete)
   const morphoGraphQL7d = morphoEvents.reduce((sum, e) => sum + e.repaidUsd, 0);
-  if (duneMorphoData.totalVolume7d > morphoGraphQL7d) {
-    // Add the difference between Dune and GraphQL Morpho data
-    const volumeDiff7d = duneMorphoData.totalVolume7d - morphoGraphQL7d;
-    totalVolume7d += volumeDiff7d;
+  const morphoGraphQL24h = morphoEvents.filter(e => e.timestamp >= oneDayAgo).reduce((sum, e) => sum + e.repaidUsd, 0);
 
-    const morphoGraphQL24h = morphoEvents.filter(e => e.timestamp >= oneDayAgo).reduce((sum, e) => sum + e.repaidUsd, 0);
-    if (duneMorphoData.totalVolume24h > morphoGraphQL24h) {
-      const volumeDiff24h = duneMorphoData.totalVolume24h - morphoGraphQL24h;
-      totalVolume24h += volumeDiff24h;
-    }
+  if (duneMorphoData.totalVolume7d > morphoGraphQL7d) {
+    totalVolume7d += duneMorphoData.totalVolume7d - morphoGraphQL7d;
+  }
+  if (duneMorphoData.totalVolume24h > morphoGraphQL24h) {
+    totalVolume24h += duneMorphoData.totalVolume24h - morphoGraphQL24h;
+  }
+
+  // Add Aave Dune data adjustment
+  const aaveSubgraph7d = [...aaveEthEvents, ...aavePolyEvents, ...aaveArbEvents].reduce((sum, e) => sum + e.repaidUsd, 0);
+  const aaveSubgraph24h = [...aaveEthEvents, ...aavePolyEvents, ...aaveArbEvents].filter(e => e.timestamp >= oneDayAgo).reduce((sum, e) => sum + e.repaidUsd, 0);
+
+  if (duneAaveData.totalVolume7d > aaveSubgraph7d) {
+    totalVolume7d += duneAaveData.totalVolume7d - aaveSubgraph7d;
+  }
+  if (duneAaveData.totalVolume24h > aaveSubgraph24h) {
+    totalVolume24h += duneAaveData.totalVolume24h - aaveSubgraph24h;
+  }
+
+  // Add Kamino Dune data adjustment
+  const kaminoRpc7d = kaminoEvents.reduce((sum, e) => sum + e.repaidUsd, 0);
+  const kaminoRpc24h = kaminoEvents.filter(e => e.timestamp >= oneDayAgo).reduce((sum, e) => sum + e.repaidUsd, 0);
+
+  if (duneKaminoData.totalVolume7d > kaminoRpc7d) {
+    totalVolume7d += duneKaminoData.totalVolume7d - kaminoRpc7d;
+  }
+  if (duneKaminoData.totalVolume24h > kaminoRpc24h) {
+    totalVolume24h += duneKaminoData.totalVolume24h - kaminoRpc24h;
   }
 
   const totals = {

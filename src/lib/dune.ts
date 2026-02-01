@@ -9,8 +9,14 @@ export const DUNE_QUERIES = {
   MORPHO_CURATOR_VOLUME: 4806508,
   // All vaults TVL data (Euler, Morpho, Mellow, etc.)
   ALL_VAULTS_TVL: 5175774,
-  // Morpho liquidations - daily sum of seized USD on Ethereum
+  // Morpho liquidations - daily sum of seized USD on Ethereum only
   MORPHO_LIQUIDATIONS_ETH: 4678263,
+  // Morpho Liquidation Events - multi-chain (Ethereum, Base, etc.)
+  MORPHO_LIQUIDATIONS_ALL: 4216704,
+  // Aave V3 Liquidation Aggregated - multi-chain with USD amounts
+  AAVE_LIQUIDATIONS: 585720,
+  // Kamino liquidation volume - Solana lending protocol
+  KAMINO_LIQUIDATIONS: 5255801,
 };
 
 interface DuneQueryResult {
@@ -237,54 +243,161 @@ export interface DuneLiquidationSummary {
   dailyData: DuneLiquidationData[];
 }
 
+// Helper to calculate liquidation totals from daily data
+function calculateLiquidationTotals(
+  dailyData: DuneLiquidationData[]
+): { totalVolume7d: number; totalVolume24h: number } {
+  const now = new Date();
+  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+  let totalVolume24h = 0;
+  let totalVolume7d = 0;
+
+  for (const day of dailyData) {
+    const dayDate = new Date(day.date);
+    if (dayDate >= sevenDaysAgo) {
+      totalVolume7d += day.seizedUsd;
+    }
+    if (dayDate >= oneDayAgo) {
+      totalVolume24h += day.seizedUsd;
+    }
+  }
+
+  return { totalVolume7d, totalVolume24h };
+}
+
 // Fetch Morpho liquidation data from Dune (official dashboard query)
+// Uses multi-chain query first, falls back to ETH-only
 export async function getMorphoLiquidationsFromDune(): Promise<DuneLiquidationSummary> {
   try {
-    const result = await getLatestDuneResults(DUNE_QUERIES.MORPHO_LIQUIDATIONS_ETH);
+    // Try multi-chain query first (4216704)
+    let result = await getLatestDuneResults(DUNE_QUERIES.MORPHO_LIQUIDATIONS_ALL).catch(() => null);
 
-    if (!result.result?.rows || result.result.rows.length === 0) {
-      console.log('[Dune] No liquidation data returned');
+    // Fall back to ETH-only query if multi-chain fails
+    if (!result?.result?.rows || result.result.rows.length === 0) {
+      console.log('[Dune] Multi-chain Morpho query empty, trying ETH-only');
+      result = await getLatestDuneResults(DUNE_QUERIES.MORPHO_LIQUIDATIONS_ETH);
+    }
+
+    if (!result?.result?.rows || result.result.rows.length === 0) {
+      console.log('[Dune] No Morpho liquidation data returned');
       return { totalVolume7d: 0, totalVolume24h: 0, dailyData: [] };
     }
 
     const rows = result.result.rows;
-    console.log(`[Dune] Fetched ${rows.length} liquidation data points`);
+    console.log(`[Dune] Fetched ${rows.length} Morpho liquidation data points`);
 
-    // Parse the daily liquidation data
+    // Parse the daily liquidation data - handle various column name formats
     const dailyData: DuneLiquidationData[] = rows.map((row: Record<string, unknown>) => ({
-      date: String(row.day || row.date || row.block_date || ''),
-      seizedUsd: Number(row.seized_usd || row.liquidation_usd || row.amount_usd || row.sum_seized_usd || 0),
+      date: String(row.day || row.date || row.block_date || row.evt_block_time || ''),
+      seizedUsd: Number(
+        row.seized_usd ||
+        row.liquidation_usd ||
+        row.amount_usd ||
+        row.sum_seized_usd ||
+        row.seized_assets_usd ||
+        row.repaid_assets_usd ||
+        0
+      ),
       protocol: 'Morpho',
-      chain: String(row.chain || 'Ethereum'),
+      chain: String(row.chain || row.blockchain || 'Ethereum'),
     }));
 
-    // Calculate totals
-    const now = new Date();
-    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-
-    let totalVolume24h = 0;
-    let totalVolume7d = 0;
-
-    for (const day of dailyData) {
-      const dayDate = new Date(day.date);
-      if (dayDate >= sevenDaysAgo) {
-        totalVolume7d += day.seizedUsd;
-      }
-      if (dayDate >= oneDayAgo) {
-        totalVolume24h += day.seizedUsd;
-      }
-    }
-
+    const { totalVolume7d, totalVolume24h } = calculateLiquidationTotals(dailyData);
     console.log(`[Dune] Morpho liquidations - 24h: $${(totalVolume24h / 1e6).toFixed(2)}M, 7d: $${(totalVolume7d / 1e6).toFixed(2)}M`);
 
     return {
       totalVolume7d,
       totalVolume24h,
-      dailyData: dailyData.slice(0, 30), // Last 30 days
+      dailyData: dailyData.slice(0, 30),
     };
   } catch (error) {
     console.error('[Dune] Failed to fetch Morpho liquidations:', error);
+    return { totalVolume7d: 0, totalVolume24h: 0, dailyData: [] };
+  }
+}
+
+// Fetch Aave V3 liquidation data from Dune
+export async function getAaveLiquidationsFromDune(): Promise<DuneLiquidationSummary> {
+  try {
+    const result = await getLatestDuneResults(DUNE_QUERIES.AAVE_LIQUIDATIONS);
+
+    if (!result?.result?.rows || result.result.rows.length === 0) {
+      console.log('[Dune] No Aave liquidation data returned');
+      return { totalVolume7d: 0, totalVolume24h: 0, dailyData: [] };
+    }
+
+    const rows = result.result.rows;
+    console.log(`[Dune] Fetched ${rows.length} Aave liquidation data points`);
+
+    // Parse daily data - Aave query typically has date/day, amount_usd fields
+    const dailyData: DuneLiquidationData[] = rows.map((row: Record<string, unknown>) => ({
+      date: String(row.day || row.date || row.block_date || row.evt_block_time || ''),
+      seizedUsd: Number(
+        row.amount_usd ||
+        row.liquidation_usd ||
+        row.collateral_amount_usd ||
+        row.debt_to_cover_usd ||
+        row.total_usd ||
+        0
+      ),
+      protocol: 'Aave',
+      chain: String(row.chain || row.blockchain || row.network || 'Ethereum'),
+    }));
+
+    const { totalVolume7d, totalVolume24h } = calculateLiquidationTotals(dailyData);
+    console.log(`[Dune] Aave liquidations - 24h: $${(totalVolume24h / 1e6).toFixed(2)}M, 7d: $${(totalVolume7d / 1e6).toFixed(2)}M`);
+
+    return {
+      totalVolume7d,
+      totalVolume24h,
+      dailyData: dailyData.slice(0, 30),
+    };
+  } catch (error) {
+    console.error('[Dune] Failed to fetch Aave liquidations:', error);
+    return { totalVolume7d: 0, totalVolume24h: 0, dailyData: [] };
+  }
+}
+
+// Fetch Kamino liquidation data from Dune (Solana)
+export async function getKaminoLiquidationsFromDune(): Promise<DuneLiquidationSummary> {
+  try {
+    const result = await getLatestDuneResults(DUNE_QUERIES.KAMINO_LIQUIDATIONS);
+
+    if (!result?.result?.rows || result.result.rows.length === 0) {
+      console.log('[Dune] No Kamino liquidation data returned');
+      return { totalVolume7d: 0, totalVolume24h: 0, dailyData: [] };
+    }
+
+    const rows = result.result.rows;
+    console.log(`[Dune] Fetched ${rows.length} Kamino liquidation data points`);
+
+    // Parse daily data - Kamino query may have various column names
+    const dailyData: DuneLiquidationData[] = rows.map((row: Record<string, unknown>) => ({
+      date: String(row.day || row.date || row.block_date || row.block_time || ''),
+      seizedUsd: Number(
+        row.liquidation_usd ||
+        row.amount_usd ||
+        row.collateral_usd ||
+        row.total_liquidated_usd ||
+        row.value_usd ||
+        0
+      ),
+      protocol: 'Kamino',
+      chain: 'Solana',
+    }));
+
+    const { totalVolume7d, totalVolume24h } = calculateLiquidationTotals(dailyData);
+    console.log(`[Dune] Kamino liquidations - 24h: $${(totalVolume24h / 1e6).toFixed(2)}M, 7d: $${(totalVolume7d / 1e6).toFixed(2)}M`);
+
+    return {
+      totalVolume7d,
+      totalVolume24h,
+      dailyData: dailyData.slice(0, 30),
+    };
+  } catch (error) {
+    console.error('[Dune] Failed to fetch Kamino liquidations:', error);
     return { totalVolume7d: 0, totalVolume24h: 0, dailyData: [] };
   }
 }

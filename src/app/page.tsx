@@ -438,7 +438,7 @@ export default function Dashboard() {
                 <CardHeader>
                   <CardTitle>Market Share</CardTitle>
                 </CardHeader>
-                <CardContent className="flex-1 flex flex-col justify-center">
+                <CardContent className="flex-1 flex flex-col pt-0">
                   <div className="space-y-3">
                     {curators.slice(0, 10).map((curator, index) => {
                       const totalTvl = curators.reduce((sum, c) => sum + c.totalTvl, 0);
