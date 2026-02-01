@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { StatCard } from '@/components/ui/stat-card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { TvlByChainChart } from '@/components/charts/tvl-by-chain';
 import { TvlByProtocolChart } from '@/components/charts/tvl-by-protocol';
 import { ProtocolTable } from '@/components/charts/protocol-table';
@@ -13,11 +14,13 @@ import { YieldQualityChart } from '@/components/charts/yield-quality-chart';
 import { DataSourceBadge } from '@/components/ui/data-source-badge';
 import { DataFreshnessBadge } from '@/components/ui/data-freshness-badge';
 import { RiskSummaryCard } from '@/components/charts/risk-summary-card';
+import { LiquidationTable, ProtocolLiquidationSummary } from '@/components/charts/liquidation-table';
+import { LiquidationTimeline, LiquidationStats } from '@/components/charts/liquidation-timeline';
 import { formatTvl } from '@/lib/utils';
 import type { MarketOverview, Curator, DataValidation } from '@/types';
-import { RefreshCw, LayoutDashboard, Users, Layers, Vault } from 'lucide-react';
+import { RefreshCw, LayoutDashboard, Users, Layers, Vault, Zap } from 'lucide-react';
 
-type Tab = 'overview' | 'curators' | 'protocols' | 'vaults';
+type Tab = 'overview' | 'curators' | 'protocols' | 'vaults' | 'liquidations';
 
 interface HistoricalCuratorData {
   name: string;
@@ -42,12 +45,60 @@ interface VaultData {
   poolMeta: string | null;
 }
 
+interface LiquidationData {
+  recentEvents: Array<{
+    id: string;
+    hash: string;
+    timestamp: number;
+    protocol: string;
+    chain: string;
+    loanAsset: string;
+    collateralAsset: string;
+    repaidUsd: number;
+    seizedUsd: number;
+    badDebtUsd: number;
+    liquidator: string;
+    borrower?: string;
+    hasSignificantBadDebt: boolean;
+  }>;
+  protocolSummaries: Array<{
+    protocol: string;
+    volume24h: number;
+    volume7d: number;
+    count24h: number;
+    count7d: number;
+    badDebt24h: number;
+    badDebt7d: number;
+    topMarkets: Array<{
+      loanAsset: string;
+      collateralAsset: string;
+      volume7d: number;
+    }>;
+  }>;
+  totals: {
+    volume24h: number;
+    volume7d: number;
+    count24h: number;
+    count7d: number;
+    badDebt24h: number;
+    badDebt7d: number;
+  };
+  dailyVolume: Array<{
+    date: string;
+    volume: number;
+    count: number;
+    badDebt: number;
+    byProtocol: Record<string, number>;
+  }>;
+}
+
 export default function Dashboard() {
   const [overviewData, setOverviewData] = useState<MarketOverview | null>(null);
   const [curators, setCurators] = useState<Curator[]>([]);
   const [curatorValidation, setCuratorValidation] = useState<DataValidation | null>(null);
   const [historicalData, setHistoricalData] = useState<HistoricalCuratorData[]>([]);
   const [topVaults, setTopVaults] = useState<VaultData[]>([]);
+  const [liquidationData, setLiquidationData] = useState<LiquidationData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -93,6 +144,19 @@ export default function Dashboard() {
         .then(data => {
           if (data.vaults) {
             setTopVaults(data.vaults);
+          }
+        })
+        .catch(err => {
+          if (err.name !== 'AbortError') console.error(err);
+        });
+
+      // Fetch liquidation data (non-blocking)
+      const riskController = new AbortController();
+      fetch('/api/risk', { signal: riskController.signal })
+        .then(res => res.json())
+        .then(data => {
+          if (data.multiProtocolLiquidations) {
+            setLiquidationData(data.multiProtocolLiquidations);
           }
         })
         .catch(err => {
@@ -205,6 +269,12 @@ export default function Dashboard() {
               icon={<Vault className="h-3.5 w-3.5" />}
               label="Vaults"
             />
+            <TabButton
+              active={activeTab === 'liquidations'}
+              onClick={() => setActiveTab('liquidations')}
+              icon={<Zap className="h-3.5 w-3.5" />}
+              label="Liquidations"
+            />
           </div>
         </div>
       </header>
@@ -235,6 +305,12 @@ export default function Dashboard() {
             onClick={() => setActiveTab('vaults')}
             icon={<Vault className="h-5 w-5" />}
             label="Vaults"
+          />
+          <MobileTabButton
+            active={activeTab === 'liquidations'}
+            onClick={() => setActiveTab('liquidations')}
+            icon={<Zap className="h-5 w-5" />}
+            label="Liqs"
           />
         </div>
       </nav>
@@ -358,35 +434,39 @@ export default function Dashboard() {
             {/* Current TVL Breakdown */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
               <CuratorTvlChart curators={curators} />
-              <div className="space-y-4">
-                <h3 className="text-[15px] font-semibold text-zinc-100 px-1">Market Share</h3>
-                <div className="space-y-3">
-                  {curators.slice(0, 6).map((curator, index) => {
-                    const totalTvl = curators.reduce((sum, c) => sum + c.totalTvl, 0);
-                    const share = (curator.totalTvl / totalTvl) * 100;
-                    return (
-                      <div key={curator.slug} className="flex items-center gap-3">
-                        <span className="text-[12px] text-zinc-500 w-4">{index + 1}</span>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-[13px] text-zinc-300">{curator.name}</span>
-                            <span className="text-[13px] font-mono text-zinc-400">{share.toFixed(1)}%</span>
-                          </div>
-                          <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                            <div
-                              className="h-full rounded-full transition-all"
-                              style={{
-                                width: `${share}%`,
-                                backgroundColor: getCuratorColor(curator.name, index),
-                              }}
-                            />
+              <Card className="h-[380px] flex flex-col">
+                <CardHeader>
+                  <CardTitle>Market Share</CardTitle>
+                </CardHeader>
+                <CardContent className="flex-1 flex flex-col justify-center">
+                  <div className="space-y-3">
+                    {curators.slice(0, 6).map((curator, index) => {
+                      const totalTvl = curators.reduce((sum, c) => sum + c.totalTvl, 0);
+                      const share = (curator.totalTvl / totalTvl) * 100;
+                      return (
+                        <div key={curator.slug} className="flex items-center gap-3">
+                          <span className="text-[12px] text-zinc-500 w-4">{index + 1}</span>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-[13px] text-zinc-300">{curator.name}</span>
+                              <span className="text-[13px] font-mono text-zinc-400">{share.toFixed(1)}%</span>
+                            </div>
+                            <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                              <div
+                                className="h-full rounded-full transition-all"
+                                style={{
+                                  width: `${share}%`,
+                                  backgroundColor: getCuratorColor(curator.name, index),
+                                }}
+                              />
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
             {/* Curator Leaderboard */}
@@ -580,7 +660,7 @@ export default function Dashboard() {
               <h3 className="text-[15px] font-semibold text-zinc-100 mb-4">Featured Vaults</h3>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Largest by TVL */}
-                <div>
+                <div className="min-h-[280px]">
                   <div className="flex items-center gap-2 mb-3">
                     <span className="text-[14px]">🏦</span>
                     <h4 className="text-[13px] font-medium text-zinc-300">Largest by TVL</h4>
@@ -632,7 +712,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* Highest Incentives */}
-                <div>
+                <div className="min-h-[280px]">
                   <div className="flex items-center gap-2 mb-3">
                     <span className="text-[14px]">🎁</span>
                     <h4 className="text-[13px] font-medium text-zinc-300">Highest Incentives</h4>
@@ -688,7 +768,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* Highest APY */}
-                <div>
+                <div className="min-h-[280px]">
                   <div className="flex items-center gap-2 mb-3">
                     <span className="text-[14px]">📈</span>
                     <h4 className="text-[13px] font-medium text-zinc-300">Highest APY</h4>
@@ -901,6 +981,91 @@ export default function Dashboard() {
                   minimal risk. Most well-managed vaults receive A or AA ratings. Data sourced from Morpho Blue on-chain state.
                 </p>
               </div>
+            </div>
+          </>
+        )}
+
+        {activeTab === 'liquidations' && (
+          <>
+            {/* Liquidation Stats */}
+            {liquidationData && (
+              <div className="mb-8">
+                <LiquidationStats
+                  volume24h={liquidationData.totals.volume24h}
+                  volume7d={liquidationData.totals.volume7d}
+                  count24h={liquidationData.totals.count24h}
+                  count7d={liquidationData.totals.count7d}
+                  badDebt7d={liquidationData.totals.badDebt7d}
+                />
+              </div>
+            )}
+
+            {/* 7-Day Liquidation Timeline */}
+            <div className="bg-zinc-900/30 rounded-xl border border-zinc-800/60 p-6 mb-8">
+              <h3 className="text-[15px] font-semibold text-zinc-100 mb-4">
+                7-Day Liquidation Volume
+              </h3>
+              {liquidationData?.dailyVolume && liquidationData.dailyVolume.length > 0 ? (
+                <LiquidationTimeline
+                  data={liquidationData.dailyVolume}
+                  showByProtocol={true}
+                />
+              ) : (
+                <div className="h-[300px] flex items-center justify-center text-zinc-500">
+                  Loading liquidation data...
+                </div>
+              )}
+            </div>
+
+            {/* Two Column Layout: Recent Events + Protocol Summary */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Recent Liquidations (2/3 width) */}
+              <div className="lg:col-span-2 bg-zinc-900/30 rounded-xl border border-zinc-800/60 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-[15px] font-semibold text-zinc-100">
+                    Recent Liquidations
+                  </h3>
+                  <span className="text-[12px] text-zinc-500">
+                    24h events across all protocols
+                  </span>
+                </div>
+                {liquidationData?.recentEvents ? (
+                  <LiquidationTable
+                    events={liquidationData.recentEvents}
+                    maxItems={15}
+                    showProtocol={true}
+                  />
+                ) : (
+                  <div className="h-[300px] flex items-center justify-center text-zinc-500">
+                    Loading events...
+                  </div>
+                )}
+              </div>
+
+              {/* Protocol Summary (1/3 width) */}
+              <div className="bg-zinc-900/30 rounded-xl border border-zinc-800/60 p-6">
+                <h3 className="text-[15px] font-semibold text-zinc-100 mb-4">
+                  By Protocol
+                </h3>
+                {liquidationData?.protocolSummaries ? (
+                  <ProtocolLiquidationSummary
+                    summaries={liquidationData.protocolSummaries}
+                  />
+                ) : (
+                  <div className="h-[200px] flex items-center justify-center text-zinc-500">
+                    Loading protocols...
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Data Source Note */}
+            <div className="mt-8 p-4 bg-zinc-900/20 rounded-lg border border-zinc-800/40">
+              <p className="text-[11px] text-zinc-500">
+                <span className="text-zinc-400 font-medium">Data Sources:</span> Morpho GraphQL API, Aave V3 Subgraph, Euler V2 Subgraph (Goldsky), Spark Subgraph.
+                Kamino (Solana) liquidation data requires on-chain event parsing and may have limited historical depth.
+                Bad debt tracking is only available for Morpho protocol.
+              </p>
             </div>
           </>
         )}

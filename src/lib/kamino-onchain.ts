@@ -64,6 +64,9 @@ const OFFSETS = {
   discriminator: 0,
   vaultAdminAuthority: 8,
   tokenMint: 80,
+  tokenMintDecimals: 112,
+  tokenAvailable: 224,
+  sharesIssued: 232,
   performanceFeeBps: 256,
   managementFeeBps: 264,
   // Name field is at a variable offset due to the allocation strategy array
@@ -97,6 +100,11 @@ export interface KaminoVaultOnChain {
   performanceFeeBps: number;
   managementFeeBps: number;
   name: string;
+  // TVL fields
+  tokenAvailable: bigint;      // Raw token amount in vault
+  tokenMintDecimals: number;   // Decimals for the token
+  sharesIssued: bigint;        // Total shares issued
+  tvlUsd?: number;             // Calculated USD value (after price lookup)
 }
 
 export interface KaminoOnChainResult {
@@ -234,6 +242,11 @@ function parseVaultState(data: Buffer, address: string): KaminoVaultOnChain | nu
     const performanceFeeBps = Number(readU64(data, OFFSETS.performanceFeeBps));
     const managementFeeBps = Number(readU64(data, OFFSETS.managementFeeBps));
 
+    // Read TVL-related fields
+    const tokenMintDecimals = Number(readU64(data, OFFSETS.tokenMintDecimals));
+    const tokenAvailable = readU64(data, OFFSETS.tokenAvailable);
+    const sharesIssued = readU64(data, OFFSETS.sharesIssued);
+
     // Try to get name from known mapping first
     let name = KNOWN_VAULT_TO_CURATOR[address]?.name || '';
 
@@ -261,6 +274,9 @@ function parseVaultState(data: Buffer, address: string): KaminoVaultOnChain | nu
       performanceFeeBps,
       managementFeeBps,
       name,
+      tokenAvailable,
+      tokenMintDecimals,
+      sharesIssued,
     };
   } catch (error) {
     console.error(`Error parsing vault ${address}:`, error);
@@ -613,4 +629,226 @@ export function logUniqueAdmins(vaults: KaminoVaultOnChain[]): void {
     const curator = KNOWN_ADMIN_TO_CURATOR[admin] || 'Unknown';
     console.log(`  ${admin}: ${count} vaults (${curator})`);
   }
+}
+
+// ============================================
+// Token Price and TVL Calculation
+// ============================================
+
+// Cache for token prices (5 minute TTL)
+let tokenPriceCache: { prices: Map<string, number>; timestamp: number } | null = null;
+const PRICE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+// Fetch token prices from Jupiter Price API (free, no auth required)
+export async function fetchSolanaTokenPrices(mints: string[]): Promise<Map<string, number>> {
+  // Return cached prices if valid
+  if (tokenPriceCache && Date.now() - tokenPriceCache.timestamp < PRICE_CACHE_TTL) {
+    // Check if all requested mints are in cache
+    const allCached = mints.every(m => tokenPriceCache!.prices.has(m));
+    if (allCached) {
+      return tokenPriceCache.prices;
+    }
+  }
+
+  const prices = new Map<string, number>();
+
+  try {
+    // Jupiter Price API V2 - supports batch queries
+    const uniqueMints = [...new Set(mints)];
+    const mintParam = uniqueMints.join(',');
+
+    const response = await fetch(
+      `https://api.jup.ag/price/v2?ids=${mintParam}`,
+      {
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(10000),
+      }
+    );
+
+    if (response.ok) {
+      const data = await response.json();
+
+      // Jupiter returns { data: { [mint]: { price: number } } }
+      for (const [mint, priceData] of Object.entries(data.data || {})) {
+        const price = (priceData as { price?: number })?.price;
+        if (typeof price === 'number' && price > 0) {
+          prices.set(mint, price);
+        }
+      }
+
+      console.log(`[Kamino] Fetched prices for ${prices.size}/${uniqueMints.length} tokens from Jupiter`);
+    }
+  } catch (error) {
+    console.error('[Kamino] Error fetching token prices:', error);
+  }
+
+  // Add known stablecoin prices as fallback
+  const STABLECOIN_MINTS = [
+    'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', // USDC
+    'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB', // USDT
+    'USDSwr9ApdHk5bvJKMjzff41FfuX8bSxdKcR81vTwcA', // USDS
+    '2u1tszSeqZ3qBWF3uNGPFc8TzMk2tdiwknnRMWGWjGWH', // wBTC (not stablecoin but known)
+  ];
+
+  for (const mint of STABLECOIN_MINTS) {
+    if (!prices.has(mint)) {
+      // USDC, USDT, USDS are ~$1
+      if (mint !== '2u1tszSeqZ3qBWF3uNGPFc8TzMk2tdiwknnRMWGWjGWH') {
+        prices.set(mint, 1.0);
+      }
+    }
+  }
+
+  // Cache the results
+  tokenPriceCache = {
+    prices,
+    timestamp: Date.now(),
+  };
+
+  return prices;
+}
+
+// Calculate TVL for a single vault given token price
+export function calculateVaultTvlUsd(
+  vault: KaminoVaultOnChain,
+  tokenPrice: number
+): number {
+  // tokenAvailable is the raw amount in the vault
+  // Divide by 10^decimals to get human-readable amount
+  const decimals = vault.tokenMintDecimals || 6; // Default to 6 for stablecoins
+  const tokenAmount = Number(vault.tokenAvailable) / Math.pow(10, decimals);
+
+  return tokenAmount * tokenPrice;
+}
+
+// Fetch vaults with TVL calculated
+export async function fetchKaminoVaultsWithTvl(
+  rpcUrl?: string
+): Promise<KaminoOnChainResult & { totalTvlUsd: number }> {
+  // First fetch the raw vault data
+  const result = await fetchKaminoVaultsDirectly(rpcUrl);
+
+  if (result.vaults.length === 0) {
+    return { ...result, totalTvlUsd: 0 };
+  }
+
+  // Collect unique token mints
+  const uniqueMints = [...new Set(result.vaults.map(v => v.tokenMint))];
+
+  // Fetch token prices
+  const prices = await fetchSolanaTokenPrices(uniqueMints);
+
+  // Calculate TVL for each vault
+  let totalTvlUsd = 0;
+  for (const vault of result.vaults) {
+    const price = prices.get(vault.tokenMint);
+    if (price) {
+      vault.tvlUsd = calculateVaultTvlUsd(vault, price);
+      totalTvlUsd += vault.tvlUsd;
+    }
+  }
+
+  console.log(`[Kamino] Total TVL calculated: $${(totalTvlUsd / 1e6).toFixed(2)}M`);
+
+  return { ...result, totalTvlUsd };
+}
+
+// Get Kamino curator TVL data (aggregated by curator)
+export interface KaminoCuratorTvlData {
+  curatorName: string;
+  totalTvlUsd: number;
+  vaultCount: number;
+  vaults: Array<{
+    address: string;
+    name: string;
+    tvlUsd: number;
+    tokenMint: string;
+  }>;
+  avgPerformanceFeePct: number;
+  avgManagementFeePct: number;
+}
+
+export async function getKaminoCuratorsTvl(
+  rpcUrl?: string
+): Promise<KaminoCuratorTvlData[]> {
+  const result = await fetchKaminoVaultsWithTvl(rpcUrl);
+
+  // Group by curator and aggregate TVL
+  const curatorMap = new Map<string, {
+    curatorName: string;
+    totalTvlUsd: number;
+    vaults: Array<{
+      address: string;
+      name: string;
+      tvlUsd: number;
+      tokenMint: string;
+      performanceFeeBps: number;
+      managementFeeBps: number;
+    }>;
+  }>();
+
+  for (const vault of result.vaults) {
+    const curator = identifyKaminoCurator(vault);
+
+    // Skip "Other" and "Kamino Core" for curator attribution (these are protocol vaults)
+    if (curator === 'Other' || curator === 'Kamino Core') continue;
+
+    if (!curatorMap.has(curator)) {
+      curatorMap.set(curator, {
+        curatorName: curator,
+        totalTvlUsd: 0,
+        vaults: [],
+      });
+    }
+
+    const data = curatorMap.get(curator)!;
+    data.totalTvlUsd += vault.tvlUsd || 0;
+    data.vaults.push({
+      address: vault.address,
+      name: vault.name,
+      tvlUsd: vault.tvlUsd || 0,
+      tokenMint: vault.tokenMint,
+      performanceFeeBps: vault.performanceFeeBps,
+      managementFeeBps: vault.managementFeeBps,
+    });
+  }
+
+  // Convert to array and calculate averages
+  const curators: KaminoCuratorTvlData[] = [];
+
+  for (const [, data] of curatorMap) {
+    if (data.vaults.length === 0) continue;
+
+    // Calculate TVL-weighted average fees
+    let weightedPerfFee = 0;
+    let weightedMgmtFee = 0;
+    const totalTvl = data.totalTvlUsd || 1; // Avoid division by zero
+
+    for (const vault of data.vaults) {
+      const weight = vault.tvlUsd / totalTvl;
+      weightedPerfFee += bpsToPercent(vault.performanceFeeBps) * weight;
+      weightedMgmtFee += bpsToPercent(vault.managementFeeBps) * weight;
+    }
+
+    curators.push({
+      curatorName: data.curatorName,
+      totalTvlUsd: data.totalTvlUsd,
+      vaultCount: data.vaults.length,
+      vaults: data.vaults.map(v => ({
+        address: v.address,
+        name: v.name,
+        tvlUsd: v.tvlUsd,
+        tokenMint: v.tokenMint,
+      })),
+      avgPerformanceFeePct: weightedPerfFee,
+      avgManagementFeePct: weightedMgmtFee,
+    });
+  }
+
+  // Sort by TVL descending
+  curators.sort((a, b) => b.totalTvlUsd - a.totalTvlUsd);
+
+  console.log(`[Kamino] Aggregated TVL for ${curators.length} curators`);
+
+  return curators;
 }

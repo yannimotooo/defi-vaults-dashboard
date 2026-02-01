@@ -293,3 +293,100 @@ export async function getEulerCuratorFeeDataByName(curatorName: string): Promise
 
   return null;
 }
+
+// ============================================
+// Euler Curator TVL Data (Authoritative On-Chain Source)
+// ============================================
+
+export interface EulerCuratorTvlData {
+  curatorName: string;
+  totalTvlUsd: number;
+  vaultCount: number;
+  chains: string[];
+  vaults: Array<{
+    vaultName: string;
+    vaultSymbol: string;
+    tvlUsd: number;
+    chain: string;
+  }>;
+  avgPerformanceFee: number;
+}
+
+// Get TVL data aggregated by curator from Euler subgraph
+// This is the AUTHORITATIVE source for Euler vault TVL
+export async function getEulerCuratorsTvl(): Promise<EulerCuratorTvlData[]> {
+  const allVaults = await getAllEulerVaults();
+
+  // Group vaults by curator
+  const curatorVaultsMap = new Map<string, EulerVault[]>();
+
+  for (const vault of allVaults) {
+    const curatorName = getCuratorName(vault);
+
+    if (!curatorVaultsMap.has(curatorName)) {
+      curatorVaultsMap.set(curatorName, []);
+    }
+    curatorVaultsMap.get(curatorName)!.push(vault);
+  }
+
+  // Calculate metrics for each curator
+  const curatorTvlData: EulerCuratorTvlData[] = [];
+
+  for (const [curatorName, vaults] of curatorVaultsMap) {
+    if (vaults.length === 0) continue;
+
+    // Get unique chains
+    const chains = [...new Set(vaults.map(v => v.chain))];
+
+    // Calculate total TVL and collect vault details
+    let totalTvlUsd = 0;
+    const vaultDetails: EulerCuratorTvlData['vaults'] = [];
+
+    // Track TVL-weighted fee
+    let weightedFee = 0;
+
+    for (const vault of vaults) {
+      const tvl = parseTotalAssets(vault.totalAssets);
+      if (tvl < 1000) continue; // Skip dust vaults
+
+      totalTvlUsd += tvl;
+
+      vaultDetails.push({
+        vaultName: vault.name || vault.id,
+        vaultSymbol: vault.symbol || '',
+        tvlUsd: tvl,
+        chain: vault.chain,
+      });
+    }
+
+    // Skip very small curators
+    if (totalTvlUsd < 10000) continue;
+
+    // Calculate TVL-weighted average performance fee
+    for (const vault of vaults) {
+      const tvl = parseTotalAssets(vault.totalAssets);
+      const weight = totalTvlUsd > 0 ? tvl / totalTvlUsd : 0;
+      const performanceFee = parsePerformanceFee(vault.performanceFee);
+      weightedFee += performanceFee * weight;
+    }
+
+    // Sort vault details by TVL
+    vaultDetails.sort((a, b) => b.tvlUsd - a.tvlUsd);
+
+    curatorTvlData.push({
+      curatorName,
+      totalTvlUsd,
+      vaultCount: vaultDetails.length,
+      chains,
+      vaults: vaultDetails,
+      avgPerformanceFee: weightedFee,
+    });
+  }
+
+  // Sort by TVL
+  curatorTvlData.sort((a, b) => b.totalTvlUsd - a.totalTvlUsd);
+
+  console.log(`[Euler] Aggregated TVL for ${curatorTvlData.length} curators, total: $${(curatorTvlData.reduce((s, c) => s + c.totalTvlUsd, 0) / 1e6).toFixed(2)}M`);
+
+  return curatorTvlData;
+}

@@ -17,6 +17,8 @@ export interface ProtocolTVL {
   tvl: number;
   change24h: number;
   change7d: number;
+  change30d?: number;
+  netFlow30d?: number;  // Positive = inflows, negative = outflows
   chains: string[];
   category: string;
 }
@@ -32,13 +34,16 @@ export interface Curator {
   avgApy: number;
   netFlow7d: number;
   netFlow30d: number;
-  // TVL source tracking
-  tvlSource?: 'morpho' | 'defillama' | 'euler';
+  // TVL source tracking (authoritative on-chain sources when available)
+  tvlSource?: 'morpho' | 'kamino' | 'euler' | 'defillama';
   morphoTvl?: number;      // On-chain Morpho TVL (authoritative)
-  defillamaTvl?: number;   // DeFiLlama aggregated TVL
-  // Kamino (Solana) data
-  kaminoTvl?: number;      // Estimated Kamino TVL on Solana
+  defillamaTvl?: number;   // DeFiLlama aggregated TVL (fallback)
+  // Kamino (Solana) data - now with actual on-chain TVL
+  kaminoTvl?: number;      // On-chain Kamino TVL on Solana (authoritative)
   kaminoVaultCount?: number;  // Number of Kamino vaults managed
+  // Euler data
+  eulerTvl?: number;       // On-chain Euler TVL (authoritative)
+  eulerVaultCount?: number;  // Number of Euler vaults managed
   // Cross-reference validation
   dataConfidence?: 'high' | 'medium' | 'low';
   duneTvl?: number | null;

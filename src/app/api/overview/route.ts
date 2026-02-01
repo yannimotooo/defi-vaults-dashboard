@@ -52,6 +52,11 @@ export async function GET() {
         tvl: p.tvl || 0,
         change24h: p.change_1d || 0,
         change7d: p.change_7d || 0,
+        change30d: p.change_1m || undefined,
+        // Calculate net flow from 30d change (positive = inflows)
+        netFlow30d: p.change_1m !== undefined && p.change_1m !== 0
+          ? (p.tvl || 0) * (p.change_1m / 100)
+          : undefined,
         chains: p.chains || [],
         category: p.category || 'Vault',
       }))

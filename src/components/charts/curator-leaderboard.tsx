@@ -35,6 +35,7 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                 <th className="px-3 sm:px-5 py-3 text-left text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Curator</th>
                 <th className="px-3 sm:px-5 py-3 text-right text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">TVL</th>
                 <th className="hidden sm:table-cell px-3 sm:px-5 py-3 text-center text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Risk</th>
+                <th className="hidden lg:table-cell px-3 sm:px-5 py-3 text-right text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">7d Liqs</th>
                 <th className="hidden md:table-cell px-3 sm:px-5 py-3 text-right text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Vaults</th>
                 <th className="px-3 sm:px-5 py-3 text-right text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">APY</th>
                 <th className="hidden lg:table-cell px-3 sm:px-5 py-3 text-right text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">7d Flow</th>
@@ -118,6 +119,19 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                         />
                       ) : (
                         <span className="text-[11px] text-zinc-600">—</span>
+                      )}
+                    </td>
+                    <td className="hidden lg:table-cell px-3 sm:px-5 py-3 sm:py-4 text-right">
+                      {(curator.liquidationVolume7d ?? 0) > 0 ? (
+                        <span className={cn(
+                          'font-mono text-[12px]',
+                          curator.liquidationVolume7d! > 1_000_000 ? 'text-red-400' :
+                          curator.liquidationVolume7d! > 100_000 ? 'text-amber-400' : 'text-zinc-400'
+                        )}>
+                          {formatTvl(curator.liquidationVolume7d!)}
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-zinc-600">$0</span>
                       )}
                     </td>
                     <td className="hidden md:table-cell px-3 sm:px-5 py-3 sm:py-4 text-right">

@@ -3,6 +3,7 @@
 
 import { NextResponse } from 'next/server';
 import { getRiskMetrics, getCuratorRiskMetrics } from '@/lib/risk';
+import { getMultiProtocolLiquidations, aggregateLiquidationsByDay } from '@/lib/liquidations';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,32 +30,55 @@ export async function GET(request: Request) {
       });
     }
 
-    // Get all risk metrics
-    const riskData = await getRiskMetrics();
+    // Get all risk metrics and multi-protocol liquidations in parallel
+    const [riskData, liquidationData] = await Promise.all([
+      getRiskMetrics(),
+      getMultiProtocolLiquidations(168), // 7 days
+    ]);
+
+    // Aggregate liquidations by day for timeline chart
+    const dailyLiquidations = aggregateLiquidationsByDay(liquidationData.recentEvents, 7);
 
     return NextResponse.json({
-      // Curator risk rankings
+      // Curator risk rankings (Morpho-specific)
       curators: riskData.curators,
 
-      // Protocol-level summary
+      // Protocol-level summary (Morpho)
       protocolSummary: riskData.protocolSummary,
 
-      // Recent liquidation events
+      // Multi-protocol liquidations
+      multiProtocolLiquidations: {
+        // Recent events across all protocols
+        recentEvents: liquidationData.recentEvents,
+        // Per-protocol summaries
+        protocolSummaries: liquidationData.protocolSummaries,
+        // Totals
+        totals: liquidationData.totals,
+        // Daily aggregation for timeline chart
+        dailyVolume: dailyLiquidations,
+      },
+
+      // Legacy: Recent liquidation events (Morpho-only for backwards compatibility)
       recentLiquidations: riskData.recentLiquidations,
 
       // Markets with bad debt warnings
       marketsWithBadDebt: riskData.marketsWithBadDebt,
 
-      // Aggregated stats
+      // Aggregated stats (combined)
       stats: {
         totalCuratorsWithRiskData: riskData.curators.length,
         curatorsWithBadDebt: riskData.curators.filter(c => c.hasBadDebt).length,
         curatorsWithCriticalWarnings: riskData.curators.filter(c => c.criticalWarnings.length > 0).length,
-        totalLiquidationVolume24h: riskData.curators.reduce((sum, c) => sum + c.totalLiquidationVolume24h, 0),
-        totalLiquidationVolume7d: riskData.curators.reduce((sum, c) => sum + c.totalLiquidationVolume7d, 0),
+        // Use multi-protocol totals
+        totalLiquidationVolume24h: liquidationData.totals.volume24h,
+        totalLiquidationVolume7d: liquidationData.totals.volume7d,
+        totalLiquidationCount24h: liquidationData.totals.count24h,
+        totalLiquidationCount7d: liquidationData.totals.count7d,
+        totalBadDebt7d: liquidationData.totals.badDebt7d,
         avgRiskScore: riskData.curators.length > 0
           ? riskData.curators.reduce((sum, c) => sum + c.riskScore, 0) / riskData.curators.length
           : 0,
+        protocolCoverage: liquidationData.protocolSummaries.map(p => p.protocol),
       },
 
       // Risk level distribution
@@ -65,8 +89,8 @@ export async function GET(request: Request) {
         low: riskData.curators.filter(c => c.riskLevel === 'LOW').length,
       },
 
-      source: 'Morpho GraphQL API',
-      note: 'Risk scores are calculated based on bad debt, utilization, warnings, and liquidation volume. Higher score = higher risk.',
+      source: 'Multi-protocol: Morpho GraphQL + Aave Subgraph + Euler Subgraph + Spark Subgraph',
+      note: 'Risk scores are calculated based on bad debt, utilization, warnings, and liquidation volume. Higher score = higher risk. Liquidation data aggregated across Morpho, Aave V3, Euler V2, Spark, and Kamino.',
       timestamp: riskData.timestamp,
     });
   } catch (error) {

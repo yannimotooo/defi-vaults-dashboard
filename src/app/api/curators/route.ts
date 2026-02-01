@@ -2,26 +2,17 @@ import { NextResponse } from 'next/server';
 import { getAllProtocols, filterRiskCurators, extractChains, getYieldPools, filterCuratorVaultsFromPools, type VaultPool } from '@/lib/defillama';
 import { getMorphoCuratorData, crossReferenceCuratorData } from '@/lib/dune';
 import { getAllCuratorsFeeData, getMorphoCuratorsTvl } from '@/lib/morpho';
-import { getEulerCuratorFeeData } from '@/lib/euler';
+import { getEulerCuratorFeeData, getEulerCuratorsTvl } from '@/lib/euler';
 import { getRiskMetrics } from '@/lib/risk';
-import { fetchKaminoVaultsDirectly, aggregateByKaminoCurator, bpsToPercent } from '@/lib/kamino-onchain';
+import { getKaminoCuratorsTvl, type KaminoCuratorTvlData } from '@/lib/kamino-onchain';
 import type { Curator } from '@/types';
 
-// Kamino curator data interface
-interface KaminoCuratorData {
-  curatorName: string;
-  vaultCount: number;
-  avgPerformanceFeePct: number;
-  avgManagementFeePct: number;
-  estimatedTvlUsd: number;
-}
-
 // Simple in-memory cache for Kamino data (expensive Solana RPC call)
-let kaminoCache: { data: KaminoCuratorData[]; timestamp: number } | null = null;
+let kaminoCache: { data: KaminoCuratorTvlData[]; timestamp: number } | null = null;
 const KAMINO_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
-// Fetch Kamino curator data with TVL estimates (cached)
-async function getKaminoCuratorData(): Promise<KaminoCuratorData[]> {
+// Fetch Kamino curator data with actual on-chain TVL (cached)
+async function getKaminoCuratorData(): Promise<KaminoCuratorTvlData[]> {
   // Return cached data if valid
   if (kaminoCache && Date.now() - kaminoCache.timestamp < KAMINO_CACHE_TTL) {
     console.log('[Kamino] Using cached data');
@@ -29,50 +20,12 @@ async function getKaminoCuratorData(): Promise<KaminoCuratorData[]> {
   }
 
   try {
-    // Fetch on-chain vault data with timeout
     const rpcUrl = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
 
-    const result = await fetchKaminoVaultsDirectly(rpcUrl);
-    clearTimeout(timeoutId);
+    // Use the new getKaminoCuratorsTvl which reads ACTUAL on-chain TVL
+    const curators = await getKaminoCuratorsTvl(rpcUrl);
 
-    if (result.vaults.length === 0) {
-      console.log('[Kamino] No vaults found');
-      return [];
-    }
-
-    // Aggregate by curator
-    const curatorMap = aggregateByKaminoCurator(result.vaults);
-
-    // Get Kamino Lend TVL from DeFiLlama for proportional distribution
-    // Kamino Lend has ~$2B TVL
-    const KAMINO_TOTAL_TVL = 2_000_000_000; // $2B estimate
-
-    // Calculate total vaults for proportional TVL
-    const totalVaults = result.vaults.length;
-
-    // Convert to array with TVL estimates
-    const curators: KaminoCuratorData[] = [];
-    for (const [, data] of curatorMap) {
-      // Skip "Other" and "Kamino Core" for curator attribution
-      if (data.curatorName === 'Other' || data.curatorName === 'Kamino Core') continue;
-
-      // Estimate TVL proportionally based on vault count
-      // This is approximate - real TVL would need on-chain reads
-      const tvlShare = data.vaultCount / totalVaults;
-      const estimatedTvl = KAMINO_TOTAL_TVL * tvlShare;
-
-      curators.push({
-        curatorName: data.curatorName,
-        vaultCount: data.vaultCount,
-        avgPerformanceFeePct: data.avgPerformanceFeePct,
-        avgManagementFeePct: data.avgManagementFeePct,
-        estimatedTvlUsd: estimatedTvl,
-      });
-    }
-
-    console.log(`[Kamino] Processed ${curators.length} curators from ${result.vaults.length} vaults`);
+    console.log(`[Kamino] Fetched ${curators.length} curators with on-chain TVL`);
 
     // Cache the result
     kaminoCache = { data: curators, timestamp: Date.now() };
@@ -256,18 +209,20 @@ export async function GET() {
       morphoFeeData,
       eulerFeeData,
       allYieldPools,
-      morphoCuratorTvl,  // On-chain TVL (primary source)
+      morphoCuratorTvl,  // On-chain TVL (primary source for Morpho)
+      eulerCuratorTvl,   // On-chain TVL (primary source for Euler)
       riskData,          // Risk metrics
-      kaminoCuratorData, // Kamino Solana data
+      kaminoCuratorData, // Kamino Solana data with on-chain TVL
     ] = await Promise.all([
       getAllProtocols(),
       getMorphoCuratorData().catch(() => []),
       getAllCuratorsFeeData().catch(() => []),
       getEulerCuratorFeeData().catch(() => []),
       getYieldPools().catch(() => []),
-      getMorphoCuratorsTvl().catch(() => []),  // Authoritative on-chain TVL
+      getMorphoCuratorsTvl().catch(() => []),   // Authoritative Morpho TVL
+      getEulerCuratorsTvl().catch(() => []),    // Authoritative Euler TVL
       getRiskMetrics().catch(() => null),       // Risk data
-      getKaminoCuratorData().catch(() => []),   // Kamino Solana data
+      getKaminoCuratorData().catch(() => []),   // Kamino with on-chain TVL
     ]);
 
     // Create Morpho TVL lookup map (normalized curator name -> data)
@@ -276,16 +231,22 @@ export async function GET() {
       morphoCuratorTvl.map(c => [normalizeName(c.curatorName), c])
     );
 
+    // Create Euler TVL lookup map (authoritative for Euler curators)
+    const eulerTvlMap = new Map(
+      eulerCuratorTvl.map(c => [normalizeName(c.curatorName), c])
+    );
+    console.log(`[Curators] Euler TVL data available for ${eulerCuratorTvl.length} curators`);
+
     // Create risk data lookup map
     const riskMap = new Map(
       riskData?.curators.map(c => [normalizeName(c.curatorName), c]) || []
     );
 
-    // Create Kamino data lookup map (for Solana TVL and fee data)
+    // Create Kamino data lookup map (for Solana TVL - now with ACTUAL on-chain TVL)
     const kaminoMap = new Map(
       kaminoCuratorData.map(c => [normalizeName(c.curatorName), c])
     );
-    console.log(`[Curators] Kamino data available for ${kaminoCuratorData.length} curators`);
+    console.log(`[Curators] Kamino data available for ${kaminoCuratorData.length} curators (on-chain TVL)`);
 
     // Create a map of fee data by curator name (normalized)
     // Combine Morpho and Euler data
@@ -383,64 +344,114 @@ export async function GET() {
               ? CURATOR_NAME_VARIANTS[p.slug].map(v => riskMap.get(normalizeName(v))).find(Boolean)
               : undefined);
 
-        // Look up Kamino data (Solana vaults)
+        // Look up Kamino data (Solana vaults - NOW with actual on-chain TVL)
         const kaminoData = kaminoMap.get(normalizeName(p.name))
           || kaminoMap.get(normalizeName(formatCuratorName(p.name)))
           || (CURATOR_NAME_VARIANTS[p.slug]
               ? CURATOR_NAME_VARIANTS[p.slug].map(v => kaminoMap.get(normalizeName(v))).find(Boolean)
               : undefined);
 
-        // TVL: DeFiLlama is PRIMARY (aggregates all protocols)
-        // Morpho data is used for VERIFICATION and enhancement (APY, risk)
-        // Kamino data adds Solana TVL (not always in DeFiLlama)
+        // Look up Euler data (for Euler curators)
+        const eulerData = eulerTvlMap.get(normalizeName(p.name))
+          || eulerTvlMap.get(normalizeName(formatCuratorName(p.name)))
+          || (CURATOR_NAME_VARIANTS[p.slug]
+              ? CURATOR_NAME_VARIANTS[p.slug].map(v => eulerTvlMap.get(normalizeName(v))).find(Boolean)
+              : undefined);
+
+        // TVL Source Hierarchy (use authoritative on-chain data when available):
+        // 1. Morpho API TVL (authoritative for Morpho vaults)
+        // 2. Kamino on-chain TVL (authoritative for Solana/Kamino vaults)
+        // 3. Euler subgraph TVL (authoritative for Euler vaults)
+        // 4. DeFiLlama (fallback aggregator)
         const defillamaTvl = p.tvl;
         const morphoTvl = morphoData?.totalTvl || 0;
-        const kaminoTvl = kaminoData?.estimatedTvlUsd || 0;
+        const kaminoTvl = kaminoData?.totalTvlUsd || 0;  // Now using actual on-chain TVL!
+        const eulerTvl = eulerData?.totalTvlUsd || 0;
 
-        // Total TVL includes DeFiLlama + Kamino (if not already counted)
-        // DeFiLlama should include Kamino, but we add it as a separate field for visibility
-        const totalTvl = defillamaTvl;
+        // Determine TVL source and value based on hierarchy
+        let totalTvl = defillamaTvl;
+        let tvlSource: 'morpho' | 'kamino' | 'euler' | 'defillama' = 'defillama';
 
-        // Determine if Morpho data closely matches DeFiLlama (curator is primarily Morpho)
-        // If within 20%, consider it "verified" by on-chain data
-        const morphoMatchesDefillama = morphoTvl > 0 && defillamaTvl > 0
-          && Math.abs(morphoTvl - defillamaTvl) / defillamaTvl < 0.20;
+        // Priority 1: Morpho on-chain TVL (if significant)
+        if (morphoTvl > 10000) {
+          // Use Morpho TVL if it's the primary source (within 50% of DeFiLlama)
+          const morphoIsPrimary = defillamaTvl > 0 && morphoTvl / defillamaTvl > 0.5;
+          if (morphoIsPrimary) {
+            totalTvl = morphoTvl;
+            tvlSource = 'morpho';
+          }
+        }
 
-        // TVL source indicates where majority of TVL is tracked
-        const tvlSource = morphoMatchesDefillama ? 'morpho' as const : 'defillama' as const;
+        // Priority 2: Kamino on-chain TVL (for Solana curators)
+        if (kaminoTvl > 10000 && tvlSource === 'defillama') {
+          // Kamino TVL is authoritative for Solana vaults
+          // Add to total if significant and not already counted
+          if (kaminoTvl > defillamaTvl * 0.1) { // Kamino is >10% of total
+            totalTvl = Math.max(defillamaTvl, kaminoTvl);
+            tvlSource = 'kamino';
+          }
+        }
+
+        // Priority 3: Euler subgraph TVL (for Euler curators)
+        if (eulerTvl > 10000 && tvlSource === 'defillama') {
+          const eulerIsPrimary = defillamaTvl > 0 && eulerTvl / defillamaTvl > 0.5;
+          if (eulerIsPrimary) {
+            totalTvl = eulerTvl;
+            tvlSource = 'euler';
+          }
+        }
+
+        // If we have multiple authoritative sources, combine them
+        // This handles curators who operate across multiple protocols
+        const authoritativeTvl = morphoTvl + kaminoTvl + eulerTvl;
+        if (authoritativeTvl > totalTvl * 1.1) {
+          // Authoritative sources sum to more than current total - use the higher value
+          totalTvl = Math.max(totalTvl, authoritativeTvl);
+        }
 
         // Use real vault data when available, fallback to estimates
-        // Include Kamino vault count if available
+        // Include Kamino and Euler vault counts if available
         const morphoVaultCount = morphoData?.vaultCount || 0;
         const kaminoVaultCount = kaminoData?.vaultCount || 0;
-        const hasRealVaultCount = (morphoVaultCount + kaminoVaultCount) > 0 || (realMetrics?.vaultCount ?? 0) > 0;
-        const vaultCount = (morphoVaultCount + kaminoVaultCount) || realMetrics?.vaultCount || estimateVaultCount(totalTvl);
+        const eulerVaultCount = eulerData?.vaultCount || 0;
+        const hasRealVaultCount = (morphoVaultCount + kaminoVaultCount + eulerVaultCount) > 0 || (realMetrics?.vaultCount ?? 0) > 0;
+        const vaultCount = (morphoVaultCount + kaminoVaultCount + eulerVaultCount) || realMetrics?.vaultCount || estimateVaultCount(totalTvl);
         const vaultCountEstimated = !hasRealVaultCount;
 
         // APY Priority: 1) Fee data grossApy (from Morpho), 2) Morpho on-chain, 3) DefiLlama, 4) 0
         const avgApy = feeData?.avgGrossApy || feeData?.avgNetApy || morphoData?.avgApy || realMetrics?.avgApy || 0;
 
-        // Build protocols list - include Kamino if curator has Solana vaults
+        // Build protocols list - include Kamino/Euler if curator has those vaults
         let protocols = realMetrics?.protocols?.length
           ? [...realMetrics.protocols]
           : [...metadata.protocols];
         if (kaminoData && !protocols.includes('Kamino')) {
           protocols.push('Kamino');
         }
+        if (eulerData && !protocols.includes('Euler')) {
+          protocols.push('Euler');
+        }
 
-        // Build chains list - include Solana if curator has Kamino vaults
+        // Build chains list - include Solana if curator has Kamino vaults, add Euler chains
         let chains = realMetrics?.chains?.length
           ? [...realMetrics.chains]
           : (defillamaChains.length > 0 ? [...defillamaChains] : ['Ethereum']);
         if (kaminoData && !chains.includes('Solana')) {
           chains.push('Solana');
         }
+        if (eulerData?.chains) {
+          for (const chain of eulerData.chains) {
+            if (!chains.includes(chain)) {
+              chains.push(chain);
+            }
+          }
+        }
 
         // Data confidence based on data completeness:
-        // - High: Has on-chain data (Morpho or Kamino) AND has APY data
+        // - High: Has on-chain data (Morpho, Kamino, or Euler) AND has APY data
         // - Medium: Has some data but incomplete
         // - Low: Missing critical data
-        const hasOnChainData = morphoTvl > 0 || kaminoTvl > 0;
+        const hasOnChainData = morphoTvl > 0 || kaminoTvl > 0 || eulerTvl > 0;
         const hasApyData = avgApy > 0;
         const hasFeeData = feeData !== undefined;
 
@@ -465,13 +476,16 @@ export async function GET() {
           // Calculate net flow from change percentages (use DeFiLlama changes as Morpho doesn't have this)
           netFlow7d: p.change_7d ? (totalTvl * p.change_7d) / 100 : 0,
           netFlow30d: p.change_1m ? (totalTvl * p.change_1m) / 100 : 0,
-          // TVL source tracking (DeFiLlama is primary, Morpho is verification)
+          // TVL source tracking (use authoritative sources when available)
           tvlSource,
           morphoTvl: morphoTvl > 0 ? morphoTvl : undefined,
           defillamaTvl,
-          // Kamino (Solana) data
+          // Kamino (Solana) data - now with actual on-chain TVL
           kaminoTvl: kaminoTvl > 0 ? kaminoTvl : undefined,
           kaminoVaultCount: kaminoVaultCount > 0 ? kaminoVaultCount : undefined,
+          // Euler data
+          eulerTvl: eulerTvl > 0 ? eulerTvl : undefined,
+          eulerVaultCount: eulerVaultCount > 0 ? eulerVaultCount : undefined,
           // Data confidence
           dataConfidence,
           duneTvl: crossRef?.duneTvl,
@@ -498,9 +512,14 @@ export async function GET() {
     // Add comprehensive validation info
     const sources = [];
     const morphoTvlCount = curators.filter(c => c.tvlSource === 'morpho').length;
+    const kaminoTvlCount = curators.filter(c => c.tvlSource === 'kamino').length;
+    const eulerTvlCount = curators.filter(c => c.tvlSource === 'euler').length;
     const kaminoCuratorCount = curators.filter(c => c.kaminoTvl).length;
+    const eulerCuratorCount = curators.filter(c => c.eulerTvl).length;
+
     if (morphoTvlCount > 0) sources.push(`Morpho On-chain (${morphoTvlCount})`);
-    if (kaminoCuratorCount > 0) sources.push(`Kamino Solana (${kaminoCuratorCount})`);
+    if (kaminoTvlCount > 0) sources.push(`Kamino On-chain (${kaminoTvlCount})`);
+    if (eulerTvlCount > 0) sources.push(`Euler On-chain (${eulerTvlCount})`);
     sources.push('DeFiLlama');
     if (duneCuratorData.length > 0) sources.push('Dune');
     if (morphoFeeData.length > 0) sources.push('Morpho Fees');
@@ -512,19 +531,25 @@ export async function GET() {
       timestamp: new Date().toISOString(),
       curatorCount: curators.length,
       totalTvl: curators.reduce((sum, c) => sum + c.totalTvl, 0),
-      // TVL source breakdown
+      // TVL source breakdown (authoritative sources)
       morphoTvlCount,
+      kaminoTvlCount,
+      eulerTvlCount,
       defillamaTvlCount: curators.filter(c => c.tvlSource === 'defillama').length,
       // Data availability
       duneDataAvailable: duneCuratorData.length > 0,
       morphoFeeDataAvailable: morphoFeeData.length > 0,
       eulerFeeDataAvailable: eulerFeeData.length > 0,
+      kaminoDataAvailable: kaminoCuratorData.length > 0,
+      eulerTvlDataAvailable: eulerCuratorTvl.length > 0,
       riskDataAvailable: riskData !== null,
       // Quality metrics
       crossReferencedCount: crossReferenced.filter(c => c.dataSource === 'both').length,
       highConfidenceCount: curators.filter(c => c.dataConfidence === 'high').length,
       curatorsWithFeeData: curators.filter(c => c.avgPerformanceFee !== undefined).length,
       curatorsWithRiskData: curators.filter(c => c.riskLevel !== undefined).length,
+      curatorsWithKaminoData: kaminoCuratorCount,
+      curatorsWithEulerData: eulerCuratorCount,
     };
 
     return NextResponse.json({ curators, validation });
