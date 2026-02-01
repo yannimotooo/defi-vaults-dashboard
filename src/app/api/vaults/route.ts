@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCuratorVaults, getTopVaults } from '@/lib/defillama';
 import { getAllVaultsTvl } from '@/lib/dune';
 import { getVaultRiskWithCreditRatings, type VaultWithCreditRating } from '@/lib/risk';
+import { getVaultToCuratorMap } from '@/lib/morpho';
 
 // Morpho vault APY data interface
 interface MorphoVaultApy {
@@ -88,11 +89,12 @@ export async function GET(request: NextRequest) {
     const includeRisk = searchParams.get('risk') !== 'false'; // Include risk by default
 
     // Fetch from all sources in parallel
-    const [vaults, duneVaults, vaultRiskData, morphoApyData] = await Promise.all([
+    const [vaults, duneVaults, vaultRiskData, morphoApyData, curatorMap] = await Promise.all([
       curatorSlug ? getCuratorVaults(curatorSlug) : getTopVaults(limit),
       getAllVaultsTvl().catch(() => []),
       includeRisk ? getVaultRiskWithCreditRatings().catch(() => []) : Promise.resolve([]),
       getMorphoVaultApyData().catch(() => []), // Morpho API APY data
+      getVaultToCuratorMap().catch(() => new Map<string, string>()), // Vault-to-curator mapping
     ]);
 
     // Create lookup maps
@@ -157,6 +159,15 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      // Look up curator from multiple sources (priority order):
+      // 1. Morpho vault-to-curator map (most reliable for Morpho vaults)
+      // 2. Risk data curator field
+      // 3. poolMeta as fallback
+      const curatorFromMap = curatorMap.get(normalizedSymbol)
+        || curatorMap.get(normalizeName(vault.poolMeta || ''))
+        || curatorMap.get(normalizeName(vault.symbol));
+      const curator = curatorFromMap || riskData?.curator || vault.poolMeta || null;
+
       return {
         id: vault.pool,
         name: formatVaultName(vault),
@@ -172,8 +183,8 @@ export async function GET(request: NextRequest) {
         stablecoin: vault.stablecoin,
         exposure: vault.exposure,
         poolMeta: vault.poolMeta,
-        // Curator from Morpho on-chain data (authoritative) or fallback to poolMeta
-        curator: riskData?.curator || vault.poolMeta || null,
+        // Curator from Morpho API (authoritative), risk data, or poolMeta fallback
+        curator,
         // Dune cross-reference data
         duneTvl: duneVault?.tvl || null,
         dataVerified: duneVault ? Math.abs((vault.tvlUsd - duneVault.tvl) / vault.tvlUsd) < 0.15 : false,
@@ -235,6 +246,9 @@ export async function GET(request: NextRequest) {
 
     // Count how many vaults got APY from Morpho
     const vaultsWithMorphoApy = transformedVaults.filter(v => v.apySource === 'morpho').length;
+    // Count how many vaults have curator attribution
+    const vaultsWithCurator = transformedVaults.filter(v => v.curator && v.curator !== '—').length;
+    console.log(`[Vaults] ${vaultsWithCurator}/${transformedVaults.length} vaults have curator attribution`);
 
     return NextResponse.json({
       vaults: transformedVaults.slice(0, limit),
@@ -243,11 +257,13 @@ export async function GET(request: NextRequest) {
       dataSource: [
         'DeFiLlama',
         morphoApyData.length > 0 ? `Morpho APY (${vaultsWithMorphoApy})` : null,
+        curatorMap.size > 0 ? `Curators (${vaultsWithCurator})` : null,
         vaultRiskData.length > 0 ? 'Morpho Risk' : null,
         duneVaults.length > 0 ? 'Dune' : null,
       ].filter(Boolean).join(' + '),
       vaultsWithRiskData: transformedVaults.filter(v => v.riskScore !== undefined).length,
       vaultsWithMorphoApy,
+      vaultsWithCurator,
     });
   } catch (error) {
     console.error('Error fetching vaults:', error);

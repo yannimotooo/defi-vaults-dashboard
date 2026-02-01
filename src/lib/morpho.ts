@@ -534,3 +534,110 @@ export async function getMorphoCuratorsTvl(): Promise<MorphoCuratorTvl[]> {
     return [];
   }
 }
+
+// ============================================
+// Vault-to-Curator Mapping
+// ============================================
+
+export interface MorphoVaultWithCurator {
+  address: string;
+  name: string;
+  symbol: string;
+  curator: string;
+  tvlUsd: number;
+  apy: number;
+}
+
+// In-memory cache for vault-curator mappings
+let vaultCuratorCache: { data: MorphoVaultWithCurator[]; timestamp: number } | null = null;
+const VAULT_CURATOR_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+// Fetch all Morpho vaults with their curators
+// This is used to attribute vaults to curators in the dashboard
+export async function getMorphoVaultsWithCurators(): Promise<MorphoVaultWithCurator[]> {
+  // Return cached data if valid
+  if (vaultCuratorCache && Date.now() - vaultCuratorCache.timestamp < VAULT_CURATOR_CACHE_TTL) {
+    return vaultCuratorCache.data;
+  }
+
+  const query = `
+    query GetVaultCurators {
+      vaults(first: 500, orderBy: TotalAssets, orderDirection: Desc) {
+        items {
+          address
+          name
+          symbol
+          state {
+            totalAssetsUsd
+            apy
+            curators { name }
+          }
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await fetch(MORPHO_BLUE_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query }),
+      next: { revalidate: 300 },
+    });
+
+    if (!response.ok) {
+      console.error('[Morpho Vaults] API error:', response.status);
+      return vaultCuratorCache?.data || [];
+    }
+
+    const data = await response.json();
+    const vaults = data?.data?.vaults?.items || [];
+
+    const result: MorphoVaultWithCurator[] = [];
+
+    for (const vault of vaults) {
+      const curators = vault.state?.curators || [];
+      const curatorName = curators[0]?.name || null;
+      const tvl = vault.state?.totalAssetsUsd || 0;
+
+      // Skip vaults without curators or very small TVL
+      if (!curatorName || tvl < 1000) continue;
+
+      result.push({
+        address: vault.address.toLowerCase(),
+        name: vault.name,
+        symbol: vault.symbol,
+        curator: curatorName,
+        tvlUsd: tvl,
+        apy: (vault.state?.apy || 0) * 100,
+      });
+    }
+
+    console.log(`[Morpho Vaults] Fetched ${result.length} vaults with curators`);
+
+    // Cache the result
+    vaultCuratorCache = { data: result, timestamp: Date.now() };
+    return result;
+  } catch (error) {
+    console.error('[Morpho Vaults] Error:', error);
+    return vaultCuratorCache?.data || [];
+  }
+}
+
+// Create a lookup map from vault symbol/name to curator
+export async function getVaultToCuratorMap(): Promise<Map<string, string>> {
+  const vaults = await getMorphoVaultsWithCurators();
+  const map = new Map<string, string>();
+
+  // Normalize function
+  const normalize = (s: string) => s.toLowerCase().replace(/[\s\-_]/g, '');
+
+  for (const vault of vaults) {
+    // Map by multiple keys for better matching
+    map.set(normalize(vault.symbol), vault.curator);
+    map.set(normalize(vault.name), vault.curator);
+    map.set(vault.address.toLowerCase(), vault.curator);
+  }
+
+  return map;
+}
