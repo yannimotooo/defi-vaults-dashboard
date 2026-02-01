@@ -17,6 +17,7 @@ export interface ProtocolTVL {
   tvl: number;
   change24h: number;
   change7d: number;
+  change30d?: number;  // Calculated from historical TVL data
   chains: string[];
   category: string;
 }

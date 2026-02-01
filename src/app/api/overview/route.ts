@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAllProtocols, filterVaultProtocols, calculateEcosystemTvl } from '@/lib/defillama';
+import { getAllProtocols, filterVaultProtocols, calculateEcosystemTvl, getProtocol30dChange } from '@/lib/defillama';
 import type { MarketOverview, ChainTVL, ProtocolTVL } from '@/types';
 
 export const dynamic = 'force-dynamic';
@@ -44,19 +44,26 @@ export async function GET() {
       .slice(0, 10);
 
     // Protocol breakdown - clean up names and sort
-    const tvlByProtocol: ProtocolTVL[] = vaultProtocols
+    const topProtocols = vaultProtocols
       .filter(p => p.tvl > 0)
-      .map(p => ({
-        name: cleanProtocolName(p.name),
-        slug: p.slug,
-        tvl: p.tvl || 0,
-        change24h: p.change_1d || 0,
-        change7d: p.change_7d || 0,
-        chains: p.chains || [],
-        category: p.category || 'Vault',
-      }))
-      .sort((a, b) => b.tvl - a.tvl)
+      .sort((a, b) => (b.tvl || 0) - (a.tvl || 0))
       .slice(0, 12);
+
+    // Fetch 30d changes in parallel for top protocols
+    const change30dResults = await Promise.all(
+      topProtocols.map(p => getProtocol30dChange(p.slug).catch(() => undefined))
+    );
+
+    const tvlByProtocol: ProtocolTVL[] = topProtocols.map((p, i) => ({
+      name: cleanProtocolName(p.name),
+      slug: p.slug,
+      tvl: p.tvl || 0,
+      change24h: p.change_1d || 0,
+      change7d: p.change_7d || 0,
+      change30d: change30dResults[i],
+      chains: p.chains || [],
+      category: p.category || 'Vault',
+    }));
 
     // Weighted average change (by TVL)
     const totalWeight = vaultProtocols.reduce((sum, p) => sum + (p.tvl || 0), 0);

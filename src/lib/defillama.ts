@@ -151,6 +151,34 @@ export async function getProtocolHistoricalTvl(slug: string): Promise<Historical
   }
 }
 
+// Calculate 30d change from historical TVL data
+export function calculate30dChange(historicalTvl: HistoricalTvlPoint[]): number | undefined {
+  if (!historicalTvl || historicalTvl.length < 2) return undefined;
+
+  const now = Date.now() / 1000;
+  const day30Ago = now - (30 * 24 * 3600);
+
+  // Get current TVL (most recent point)
+  const current = historicalTvl[historicalTvl.length - 1];
+  if (!current || current.tvl <= 0) return undefined;
+
+  // Find point closest to 30 days ago
+  const closest = historicalTvl.reduce((prev, curr) => {
+    return Math.abs(curr.date - day30Ago) < Math.abs(prev.date - day30Ago) ? curr : prev;
+  });
+
+  if (!closest || closest.tvl <= 0) return undefined;
+
+  // Calculate percentage change
+  return ((current.tvl - closest.tvl) / closest.tvl) * 100;
+}
+
+// Get 30d change for a protocol (fetches historical data and calculates)
+export async function getProtocol30dChange(slug: string): Promise<number | undefined> {
+  const historicalTvl = await getProtocolHistoricalTvl(slug);
+  return calculate30dChange(historicalTvl);
+}
+
 // Get historical TVL for multiple protocols (for comparison charts)
 export async function getMultipleProtocolsHistoricalTvl(
   slugs: string[]
