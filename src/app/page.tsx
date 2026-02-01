@@ -575,90 +575,168 @@ export default function Dashboard() {
               </div>
             )}
 
-            {/* Top Vaults by Category */}
+            {/* Featured Vaults - 2 per category with full details */}
             <div className="mb-8">
               <h3 className="text-[15px] font-semibold text-zinc-100 mb-4">Featured Vaults</h3>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Largest Vaults */}
-                <div className="bg-zinc-900/30 border border-zinc-800/60 rounded-lg p-4">
+                {/* Largest by TVL */}
+                <div>
                   <div className="flex items-center gap-2 mb-3">
-                    <span className="text-[13px]">🏦</span>
-                    <h4 className="text-[13px] font-medium text-zinc-200">Largest by TVL</h4>
+                    <span className="text-[14px]">🏦</span>
+                    <h4 className="text-[13px] font-medium text-zinc-300">Largest by TVL</h4>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {[...topVaults]
                       .sort((a, b) => b.tvl - a.tvl)
-                      .slice(0, 4)
-                      .map((vault: any, idx) => (
-                        <div key={vault.id} className="flex items-center justify-between py-1.5 border-b border-zinc-800/40 last:border-0">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="text-[10px] text-zinc-600 w-3">{idx + 1}</span>
-                            <span className="text-[12px] text-white truncate">{vault.symbol}</span>
-                            {vault.creditRating?.compositeRating && (
-                              <span className="text-[9px] text-zinc-500 font-mono">{vault.creditRating.compositeRating}</span>
+                      .slice(0, 2)
+                      .map((vault: any) => {
+                        const rating = vault.creditRating?.compositeRating || 'NR';
+                        const ratingColors: Record<string, string> = {
+                          'AAA': 'text-emerald-400 bg-emerald-500/10',
+                          'AA': 'text-emerald-400 bg-emerald-500/10',
+                          'A': 'text-green-400 bg-green-500/10',
+                          'BBB': 'text-yellow-400 bg-yellow-500/10',
+                          'BB': 'text-amber-400 bg-amber-500/10',
+                          'NR': 'text-zinc-400 bg-zinc-800',
+                        };
+                        return (
+                          <div key={vault.id} className="bg-zinc-900/50 border border-zinc-800/60 rounded-lg p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[14px] text-white font-medium">{vault.symbol}</span>
+                                <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${ratingColors[rating] || ratingColors['NR']}`}>
+                                  {rating}
+                                </span>
+                              </div>
+                              <span className="text-[14px] text-white font-mono">{formatTvl(vault.tvl)}</span>
+                            </div>
+                            <div className="flex items-center justify-between text-[12px] mb-2">
+                              <span className="text-zinc-500">{vault.chain}</span>
+                              <span className="text-emerald-400 font-mono">{vault.apy.toFixed(2)}% APY</span>
+                            </div>
+                            <div className="flex items-center justify-between text-[11px] text-zinc-500">
+                              <span>Base: <span className="text-emerald-400/80">{(vault.apyBase || vault.apy).toFixed(1)}%</span></span>
+                              <span>Rewards: <span className="text-amber-400/80">{(vault.apyReward || 0).toFixed(1)}%</span></span>
+                            </div>
+                            {vault.maxUtilization !== undefined && (
+                              <div className="mt-2 pt-2 border-t border-zinc-800/60 flex items-center justify-between text-[10px]">
+                                <span className="text-zinc-600">Util: {(vault.maxUtilization * 100).toFixed(0)}%</span>
+                                <span className="text-zinc-600">LLTV: {((vault.avgLltv || 0) * 100).toFixed(0)}%</span>
+                                {vault.hasBadDebt && <span className="text-red-400">Bad Debt</span>}
+                              </div>
                             )}
                           </div>
-                          <span className="text-[12px] text-zinc-300 font-mono ml-2">{formatTvl(vault.tvl)}</span>
-                        </div>
-                      ))}
+                        );
+                      })}
                   </div>
                 </div>
 
                 {/* Highest Incentives */}
-                <div className="bg-zinc-900/30 border border-zinc-800/60 rounded-lg p-4">
+                <div>
                   <div className="flex items-center gap-2 mb-3">
-                    <span className="text-[13px]">🎁</span>
-                    <h4 className="text-[13px] font-medium text-zinc-200">Highest Incentives</h4>
+                    <span className="text-[14px]">🎁</span>
+                    <h4 className="text-[13px] font-medium text-zinc-300">Highest Incentives</h4>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {[...topVaults]
                       .filter(v => v.apyReward > 0)
                       .sort((a, b) => b.apyReward - a.apyReward)
-                      .slice(0, 4)
-                      .map((vault: any, idx) => (
-                        <div key={vault.id} className="flex items-center justify-between py-1.5 border-b border-zinc-800/40 last:border-0">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="text-[10px] text-zinc-600 w-3">{idx + 1}</span>
-                            <span className="text-[12px] text-white truncate">{vault.symbol}</span>
+                      .slice(0, 2)
+                      .map((vault: any) => {
+                        const rating = vault.creditRating?.compositeRating || 'NR';
+                        const ratingColors: Record<string, string> = {
+                          'AAA': 'text-emerald-400 bg-emerald-500/10',
+                          'AA': 'text-emerald-400 bg-emerald-500/10',
+                          'A': 'text-green-400 bg-green-500/10',
+                          'BBB': 'text-yellow-400 bg-yellow-500/10',
+                          'BB': 'text-amber-400 bg-amber-500/10',
+                          'NR': 'text-zinc-400 bg-zinc-800',
+                        };
+                        return (
+                          <div key={vault.id} className="bg-zinc-900/50 border border-zinc-800/60 rounded-lg p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[14px] text-white font-medium">{vault.symbol}</span>
+                                <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${ratingColors[rating] || ratingColors['NR']}`}>
+                                  {rating}
+                                </span>
+                              </div>
+                              <span className="text-[14px] text-amber-400 font-mono">+{vault.apyReward.toFixed(1)}%</span>
+                            </div>
+                            <div className="flex items-center justify-between text-[12px] mb-2">
+                              <span className="text-zinc-500">{vault.chain}</span>
+                              <span className="text-zinc-400 font-mono">{formatTvl(vault.tvl)}</span>
+                            </div>
+                            <div className="flex items-center justify-between text-[11px] text-zinc-500">
+                              <span>Base: <span className="text-emerald-400/80">{(vault.apyBase || vault.apy).toFixed(1)}%</span></span>
+                              <span>Total: <span className="text-emerald-400">{vault.apy.toFixed(1)}%</span></span>
+                            </div>
+                            {vault.maxUtilization !== undefined && (
+                              <div className="mt-2 pt-2 border-t border-zinc-800/60 flex items-center justify-between text-[10px]">
+                                <span className="text-zinc-600">Util: {(vault.maxUtilization * 100).toFixed(0)}%</span>
+                                <span className="text-zinc-600">LLTV: {((vault.avgLltv || 0) * 100).toFixed(0)}%</span>
+                                {vault.hasBadDebt && <span className="text-red-400">Bad Debt</span>}
+                              </div>
+                            )}
                           </div>
-                          <div className="flex items-center gap-2 ml-2">
-                            <span className="text-[11px] text-zinc-500">{formatTvl(vault.tvl)}</span>
-                            <span className="text-[12px] text-amber-400 font-mono">+{vault.apyReward.toFixed(1)}%</span>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     {topVaults.filter(v => v.apyReward > 0).length === 0 && (
-                      <p className="text-[11px] text-zinc-500 py-2">No incentivized vaults</p>
+                      <p className="text-[12px] text-zinc-500 py-4 text-center">No incentivized vaults</p>
                     )}
                   </div>
                 </div>
 
                 {/* Highest APY */}
-                <div className="bg-zinc-900/30 border border-zinc-800/60 rounded-lg p-4">
+                <div>
                   <div className="flex items-center gap-2 mb-3">
-                    <span className="text-[13px]">📈</span>
-                    <h4 className="text-[13px] font-medium text-zinc-200">Highest APY</h4>
+                    <span className="text-[14px]">📈</span>
+                    <h4 className="text-[13px] font-medium text-zinc-300">Highest APY</h4>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {[...topVaults]
-                      .filter(v => v.apy > 0 && v.tvl > 100000) // Min $100k TVL to filter noise
+                      .filter(v => v.apy > 0 && v.tvl > 100000)
                       .sort((a, b) => b.apy - a.apy)
-                      .slice(0, 4)
-                      .map((vault: any, idx) => (
-                        <div key={vault.id} className="flex items-center justify-between py-1.5 border-b border-zinc-800/40 last:border-0">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="text-[10px] text-zinc-600 w-3">{idx + 1}</span>
-                            <span className="text-[12px] text-white truncate">{vault.symbol}</span>
-                            {vault.creditRating?.compositeRating && (
-                              <span className="text-[9px] text-zinc-500 font-mono">{vault.creditRating.compositeRating}</span>
+                      .slice(0, 2)
+                      .map((vault: any) => {
+                        const rating = vault.creditRating?.compositeRating || 'NR';
+                        const ratingColors: Record<string, string> = {
+                          'AAA': 'text-emerald-400 bg-emerald-500/10',
+                          'AA': 'text-emerald-400 bg-emerald-500/10',
+                          'A': 'text-green-400 bg-green-500/10',
+                          'BBB': 'text-yellow-400 bg-yellow-500/10',
+                          'BB': 'text-amber-400 bg-amber-500/10',
+                          'NR': 'text-zinc-400 bg-zinc-800',
+                        };
+                        return (
+                          <div key={vault.id} className="bg-zinc-900/50 border border-zinc-800/60 rounded-lg p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[14px] text-white font-medium">{vault.symbol}</span>
+                                <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${ratingColors[rating] || ratingColors['NR']}`}>
+                                  {rating}
+                                </span>
+                              </div>
+                              <span className="text-[14px] text-emerald-400 font-mono">{vault.apy.toFixed(2)}%</span>
+                            </div>
+                            <div className="flex items-center justify-between text-[12px] mb-2">
+                              <span className="text-zinc-500">{vault.chain}</span>
+                              <span className="text-zinc-400 font-mono">{formatTvl(vault.tvl)}</span>
+                            </div>
+                            <div className="flex items-center justify-between text-[11px] text-zinc-500">
+                              <span>Base: <span className="text-emerald-400/80">{(vault.apyBase || vault.apy).toFixed(1)}%</span></span>
+                              <span>Rewards: <span className="text-amber-400/80">{(vault.apyReward || 0).toFixed(1)}%</span></span>
+                            </div>
+                            {vault.maxUtilization !== undefined && (
+                              <div className="mt-2 pt-2 border-t border-zinc-800/60 flex items-center justify-between text-[10px]">
+                                <span className="text-zinc-600">Util: {(vault.maxUtilization * 100).toFixed(0)}%</span>
+                                <span className="text-zinc-600">LLTV: {((vault.avgLltv || 0) * 100).toFixed(0)}%</span>
+                                {vault.hasBadDebt && <span className="text-red-400">Bad Debt</span>}
+                              </div>
                             )}
                           </div>
-                          <div className="flex items-center gap-2 ml-2">
-                            <span className="text-[11px] text-zinc-500">{formatTvl(vault.tvl)}</span>
-                            <span className="text-[12px] text-emerald-400 font-mono">{vault.apy.toFixed(1)}%</span>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                   </div>
                 </div>
               </div>

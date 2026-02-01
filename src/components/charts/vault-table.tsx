@@ -176,7 +176,16 @@ export function VaultTable({
       </CardHeader>
       <CardContent className="p-0">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full table-fixed">
+            <colgroup>
+              <col className="w-[35%] sm:w-[30%]" /> {/* Vault */}
+              <col className="hidden sm:table-column w-[12%]" /> {/* Chain */}
+              {showProject && <col className="hidden lg:table-column w-[10%]" />} {/* Protocol */}
+              <col className="w-[18%] sm:w-[12%]" /> {/* TVL */}
+              <col className="w-[15%] sm:w-[12%]" /> {/* Rating */}
+              <col className="w-[18%] sm:w-[14%]" /> {/* APY */}
+              <col className="hidden md:table-column w-[10%]" /> {/* Buffer */}
+            </colgroup>
             <thead>
               <tr className="border-b border-zinc-800/60">
                 <th className="px-3 sm:px-5 py-3 text-left text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
@@ -190,19 +199,18 @@ export function VaultTable({
                     Protocol
                   </th>
                 )}
-                {showProject && (
-                  <th className="hidden xl:table-cell px-3 sm:px-5 py-3 text-left text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
-                    Curator
-                  </th>
-                )}
-                <th className="px-3 sm:px-5 py-3 text-right text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider w-24 sm:w-28">
-                  <SortButton columnKey="tvl" label="TVL" />
+                <th className="px-3 sm:px-5 py-3 text-right text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
+                  <div className="flex justify-end">
+                    <SortButton columnKey="tvl" label="TVL" />
+                  </div>
                 </th>
                 <th className="px-3 sm:px-5 py-3 text-center text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
                   <SortButton columnKey="rating" label="Rating" />
                 </th>
                 <th className="px-3 sm:px-5 py-3 text-right text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
-                  <SortButton columnKey="apy" label="APY" />
+                  <div className="flex justify-end">
+                    <SortButton columnKey="apy" label="APY" />
+                  </div>
                 </th>
                 <th className="hidden md:table-cell px-3 sm:px-5 py-3 text-right text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
                   Buffer
@@ -277,18 +285,11 @@ export function VaultTable({
                               className="w-2 h-2 rounded-full flex-shrink-0"
                               style={{ backgroundColor: getProtocolColor(vault.project) }}
                             />
-                            <span className="text-[13px] text-zinc-400">{vault.project}</span>
+                            <span className="text-[13px] text-zinc-400 truncate">{vault.project}</span>
                           </div>
                         </td>
                       )}
-                      {showProject && (
-                        <td className="hidden xl:table-cell px-3 sm:px-5 py-3">
-                          <span className="text-[13px] text-zinc-400 truncate max-w-[120px] block">
-                            {vault.poolMeta || '—'}
-                          </span>
-                        </td>
-                      )}
-                      <td className="px-3 sm:px-5 py-3 text-right w-24 sm:w-28">
+                      <td className="px-3 sm:px-5 py-3 text-right">
                         <span className="font-mono text-white text-[12px] sm:text-[14px]">
                           {formatTvl(vault.tvl)}
                         </span>
