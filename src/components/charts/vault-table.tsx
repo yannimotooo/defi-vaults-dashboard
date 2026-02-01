@@ -51,6 +51,7 @@ interface Vault {
   stablecoin: boolean;
   exposure: string;
   poolMeta: string | null;
+  curator?: string | null; // Curator from Morpho on-chain data
   // Risk metrics (legacy)
   riskScore?: number;
   riskLevel?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
@@ -178,13 +179,14 @@ export function VaultTable({
         <div className="overflow-x-auto">
           <table className="w-full table-fixed">
             <colgroup>
-              <col className="w-[35%] sm:w-[30%]" /> {/* Vault */}
-              <col className="hidden sm:table-column w-[12%]" /> {/* Chain */}
-              {showProject && <col className="hidden lg:table-column w-[10%]" />} {/* Protocol */}
-              <col className="w-[18%] sm:w-[12%]" /> {/* TVL */}
-              <col className="w-[15%] sm:w-[12%]" /> {/* Rating */}
-              <col className="w-[18%] sm:w-[14%]" /> {/* APY */}
-              <col className="hidden md:table-column w-[10%]" /> {/* Buffer */}
+              <col className="w-[28%] sm:w-[22%]" /> {/* Vault */}
+              <col className="hidden sm:table-column w-[10%]" /> {/* Chain */}
+              {showProject && <col className="hidden lg:table-column w-[9%]" />} {/* Protocol */}
+              {showProject && <col className="hidden xl:table-column w-[12%]" />} {/* Curator */}
+              <col className="w-[16%] sm:w-[11%]" /> {/* TVL */}
+              <col className="w-[14%] sm:w-[10%]" /> {/* Rating */}
+              <col className="w-[16%] sm:w-[12%]" /> {/* APY */}
+              <col className="hidden md:table-column w-[9%]" /> {/* Buffer */}
             </colgroup>
             <thead>
               <tr className="border-b border-zinc-800/60">
@@ -197,6 +199,11 @@ export function VaultTable({
                 {showProject && (
                   <th className="hidden lg:table-cell px-3 sm:px-5 py-3 text-left text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
                     Protocol
+                  </th>
+                )}
+                {showProject && (
+                  <th className="hidden xl:table-cell px-3 sm:px-5 py-3 text-left text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
+                    Curator
                   </th>
                 )}
                 <th className="px-3 sm:px-5 py-3 text-right text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
@@ -287,6 +294,13 @@ export function VaultTable({
                             />
                             <span className="text-[13px] text-zinc-400 truncate">{vault.project}</span>
                           </div>
+                        </td>
+                      )}
+                      {showProject && (
+                        <td className="hidden xl:table-cell px-3 sm:px-5 py-3">
+                          <span className="text-[13px] text-zinc-400 truncate block max-w-[140px]">
+                            {vault.curator || vault.poolMeta || '—'}
+                          </span>
                         </td>
                       )}
                       <td className="px-3 sm:px-5 py-3 text-right">

@@ -172,6 +172,8 @@ export async function GET(request: NextRequest) {
         stablecoin: vault.stablecoin,
         exposure: vault.exposure,
         poolMeta: vault.poolMeta,
+        // Curator from Morpho on-chain data (authoritative) or fallback to poolMeta
+        curator: riskData?.curator || vault.poolMeta || null,
         // Dune cross-reference data
         duneTvl: duneVault?.tvl || null,
         dataVerified: duneVault ? Math.abs((vault.tvlUsd - duneVault.tvl) / vault.tvlUsd) < 0.15 : false,
@@ -211,6 +213,7 @@ export async function GET(request: NextRequest) {
             stablecoin: false,
             exposure: 'single',
             poolMeta: riskVault.curator,
+            curator: riskVault.curator, // Curator from Morpho on-chain data
             duneTvl: null,
             dataVerified: true, // On-chain data
             riskScore: riskVault.riskScore,
