@@ -7,18 +7,22 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 // Format large numbers (e.g., 1.5B, 420M)
-export function formatTvl(value: number): string {
+// compact: true for shorter format on chart axes (e.g., $1B instead of $1.00B)
+export function formatTvl(value: number, compact: boolean = false): string {
   const absValue = Math.abs(value);
   const sign = value < 0 ? '-' : '';
 
   if (absValue >= 1_000_000_000) {
-    return `${sign}$${(absValue / 1_000_000_000).toFixed(2)}B`;
+    const formatted = compact ? (absValue / 1_000_000_000).toFixed(1) : (absValue / 1_000_000_000).toFixed(2);
+    return `${sign}$${formatted.replace(/\.0$/, '')}B`;
   }
   if (absValue >= 1_000_000) {
-    return `${sign}$${(absValue / 1_000_000).toFixed(2)}M`;
+    const formatted = compact ? (absValue / 1_000_000).toFixed(1) : (absValue / 1_000_000).toFixed(2);
+    return `${sign}$${formatted.replace(/\.0$/, '')}M`;
   }
   if (absValue >= 1_000) {
-    return `${sign}$${(absValue / 1_000).toFixed(1)}K`;
+    const formatted = compact ? (absValue / 1_000).toFixed(0) : (absValue / 1_000).toFixed(1);
+    return `${sign}$${formatted}K`;
   }
   return `${sign}$${absValue.toFixed(0)}`;
 }

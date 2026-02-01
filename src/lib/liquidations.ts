@@ -470,22 +470,24 @@ async function fetchSparkLiquidations(hours: number = 168): Promise<LiquidationE
 // Kamino Liquidations (Solana RPC)
 // ============================================
 
-import { Connection, PublicKey } from '@solana/web3.js';
-
-// Kamino Lend program ID
-const KAMINO_LEND_PROGRAM = new PublicKey('KLend2g3cP87fffoy8q1mQqGKjrxjC8boSyAYavgmjDZ');
+// Kamino Lend program ID (lazy initialization to avoid build-time errors)
+const KAMINO_LEND_PROGRAM_ID = 'KLend2g3cP87fffoy8q1mQqGKjrxjC8boSyAYavgmjDZ';
 
 async function fetchKaminoLiquidations(hours: number = 168): Promise<LiquidationEvent[]> {
   const rpcUrl = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
 
   try {
+    // Dynamic import to avoid build-time initialization issues
+    const { Connection, PublicKey } = await import('@solana/web3.js');
+    const kaminoProgram = new PublicKey(KAMINO_LEND_PROGRAM_ID);
+
     const connection = new Connection(rpcUrl, 'confirmed');
     const cutoffTimestamp = Math.floor(Date.now() / 1000) - (hours * 3600);
 
     // Get recent signatures for the Kamino Lend program
     // Note: This is limited by RPC history depth (typically 1000 transactions)
     const signatures = await connection.getSignaturesForAddress(
-      KAMINO_LEND_PROGRAM,
+      kaminoProgram,
       { limit: 1000 },
       'confirmed'
     );

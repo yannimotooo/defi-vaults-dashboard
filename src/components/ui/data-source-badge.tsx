@@ -30,7 +30,7 @@ export function DataSourceBadge({ source, verified = true, url }: DataSourceBadg
 // Data confidence indicator for cross-referenced data
 interface DataConfidenceBadgeProps {
   confidence: 'high' | 'medium' | 'low' | undefined;
-  tvlSource?: 'morpho' | 'defillama' | 'euler';
+  tvlSource?: 'morpho' | 'defillama' | 'euler' | 'kamino';
   duneTvl?: number | null;
   defillamaTvl?: number;
   morphoTvl?: number;
@@ -50,7 +50,7 @@ export function DataConfidenceBadge({
   if (!confidence) return null;
 
   // On-chain sources get special treatment
-  const isOnChain = tvlSource === 'morpho' || tvlSource === 'euler';
+  const isOnChain = tvlSource === 'morpho' || tvlSource === 'euler' || tvlSource === 'kamino';
   const hasOnChainData = (morphoTvl ?? 0) > 0;
 
   // Determine the reason for low confidence
@@ -88,7 +88,7 @@ export function DataConfidenceBadge({
       textColor: 'text-emerald-400',
       label: isOnChain ? 'On-chain' : 'Verified',
       description: isOnChain
-        ? `Authoritative ${tvlSource === 'morpho' ? 'Morpho' : 'Euler'} smart contract data`
+        ? `Authoritative ${tvlSource === 'morpho' ? 'Morpho' : tvlSource === 'euler' ? 'Euler' : 'Kamino'} smart contract data`
         : 'On-chain TVL verified with APY data available',
     },
     medium: {
