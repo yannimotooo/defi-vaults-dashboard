@@ -1,5 +1,8 @@
 // Multi-Protocol Liquidation Data Module
 // Aggregates liquidation events from Morpho, Aave V3, Euler V2, Spark, and Kamino
+// Uses Dune Analytics for accurate volume totals (official Morpho dashboard data)
+
+import { getMorphoLiquidationsFromDune } from './dune';
 
 // ============================================
 // Types
@@ -525,9 +528,10 @@ export async function getMultiProtocolLiquidations(
   const now = Math.floor(Date.now() / 1000);
   const oneDayAgo = now - 86400;
 
-  // Fetch from all protocols in parallel
+  // Fetch from all protocols in parallel, including Dune for accurate totals
   const [
     morphoEvents,
+    duneMorphoData,
     aaveEthEvents,
     aavePolyEvents,
     aaveArbEvents,
@@ -537,6 +541,7 @@ export async function getMultiProtocolLiquidations(
     kaminoEvents,
   ] = await Promise.all([
     fetchMorphoLiquidations(hours),
+    getMorphoLiquidationsFromDune().catch(() => ({ totalVolume7d: 0, totalVolume24h: 0, dailyData: [] })),
     fetchAaveLiquidations('ethereum', hours).catch(() => []),
     fetchAaveLiquidations('polygon', hours).catch(() => []),
     fetchAaveLiquidations('arbitrum', hours).catch(() => []),
@@ -545,6 +550,11 @@ export async function getMultiProtocolLiquidations(
     fetchSparkLiquidations(hours).catch(() => []),
     fetchKaminoLiquidations(hours).catch(() => []),
   ]);
+
+  // Log Dune data for debugging
+  if (duneMorphoData.totalVolume7d > 0) {
+    console.log(`[Liquidations] Dune Morpho data: 24h=$${(duneMorphoData.totalVolume24h / 1e6).toFixed(2)}M, 7d=$${(duneMorphoData.totalVolume7d / 1e6).toFixed(2)}M`);
+  }
 
   // Combine all events
   const allEvents: LiquidationEvent[] = [
@@ -594,6 +604,28 @@ export async function getMultiProtocolLiquidations(
         return { loanAsset, collateralAsset, volume7d: volume };
       });
 
+    // Use Dune data for Morpho if available and higher (more accurate)
+    if (protocol === 'Morpho' && duneMorphoData.totalVolume7d > 0) {
+      const duneVolume7d = duneMorphoData.totalVolume7d;
+      const duneVolume24h = duneMorphoData.totalVolume24h;
+
+      // Use Dune data if it's higher than GraphQL data (Dune is more complete)
+      if (duneVolume7d > volume7d) {
+        console.log(`[Liquidations] Using Dune data for Morpho: $${(duneVolume7d / 1e6).toFixed(2)}M (GraphQL: $${(volume7d / 1e6).toFixed(2)}M)`);
+        protocolSummaries.push({
+          protocol,
+          volume24h: Math.max(duneVolume24h, volume24h),
+          volume7d: duneVolume7d,
+          count24h: events24h.length,
+          count7d: events.length,
+          badDebt24h,
+          badDebt7d,
+          topMarkets,
+        });
+        continue;
+      }
+    }
+
     protocolSummaries.push({
       protocol,
       volume24h,
@@ -609,11 +641,30 @@ export async function getMultiProtocolLiquidations(
   // Sort by volume
   protocolSummaries.sort((a, b) => b.volume7d - a.volume7d);
 
-  // Calculate totals
+  // Calculate totals - use Dune data for Morpho portion if available
   const events24h = allEvents.filter(e => e.timestamp >= oneDayAgo);
+
+  // Calculate base totals from events
+  let totalVolume24h = events24h.reduce((sum, e) => sum + e.repaidUsd, 0);
+  let totalVolume7d = allEvents.reduce((sum, e) => sum + e.repaidUsd, 0);
+
+  // If Dune has higher Morpho data, adjust totals
+  const morphoGraphQL7d = morphoEvents.reduce((sum, e) => sum + e.repaidUsd, 0);
+  if (duneMorphoData.totalVolume7d > morphoGraphQL7d) {
+    // Add the difference between Dune and GraphQL Morpho data
+    const volumeDiff7d = duneMorphoData.totalVolume7d - morphoGraphQL7d;
+    totalVolume7d += volumeDiff7d;
+
+    const morphoGraphQL24h = morphoEvents.filter(e => e.timestamp >= oneDayAgo).reduce((sum, e) => sum + e.repaidUsd, 0);
+    if (duneMorphoData.totalVolume24h > morphoGraphQL24h) {
+      const volumeDiff24h = duneMorphoData.totalVolume24h - morphoGraphQL24h;
+      totalVolume24h += volumeDiff24h;
+    }
+  }
+
   const totals = {
-    volume24h: events24h.reduce((sum, e) => sum + e.repaidUsd, 0),
-    volume7d: allEvents.reduce((sum, e) => sum + e.repaidUsd, 0),
+    volume24h: totalVolume24h,
+    volume7d: totalVolume7d,
     count24h: events24h.length,
     count7d: allEvents.length,
     badDebt24h: events24h.reduce((sum, e) => sum + e.badDebtUsd, 0),

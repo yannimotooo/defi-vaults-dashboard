@@ -440,7 +440,7 @@ export default function Dashboard() {
                 </CardHeader>
                 <CardContent className="flex-1 flex flex-col justify-center">
                   <div className="space-y-3">
-                    {curators.slice(0, 6).map((curator, index) => {
+                    {curators.slice(0, 10).map((curator, index) => {
                       const totalTvl = curators.reduce((sum, c) => sum + c.totalTvl, 0);
                       const share = (curator.totalTvl / totalTvl) * 100;
                       return (
