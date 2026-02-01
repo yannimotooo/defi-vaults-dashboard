@@ -332,10 +332,14 @@ export default function Dashboard() {
               <div className="bg-[#0a0a0a]">
                 <StatCard
                   title="Avg APY"
-                  value={curators.length > 0
-                    ? curators.reduce((sum, c) => sum + c.avgApy, 0) / curators.length
-                    : 0}
+                  value={(() => {
+                    const totalTvl = curators.reduce((sum, c) => sum + c.totalTvl, 0);
+                    return totalTvl > 0
+                      ? curators.reduce((sum, c) => sum + c.avgApy * c.totalTvl, 0) / totalTvl
+                      : 0;
+                  })()}
                   format="percent"
+                  subtitle="TVL-weighted"
                 />
               </div>
             </div>
@@ -445,8 +449,9 @@ export default function Dashboard() {
                 v.creditRating?.investmentGrade
               );
               const stablecoinVaults = topVaults.filter(v => v.stablecoin);
-              const stablecoinAvgApy = stablecoinVaults.length > 0
-                ? stablecoinVaults.reduce((sum, v) => sum + v.apy, 0) / stablecoinVaults.length
+              const stablecoinTotalTvl = stablecoinVaults.reduce((sum, v) => sum + v.tvl, 0);
+              const stablecoinAvgApy = stablecoinTotalTvl > 0
+                ? stablecoinVaults.reduce((sum, v) => sum + v.apy * v.tvl, 0) / stablecoinTotalTvl
                 : 0;
               const vaultsWithBadDebt = topVaults.filter((v: any) => v.hasBadDebt);
               const ratedTvl = vaultsWithRating.reduce((sum: number, v: any) => sum + v.tvl, 0);
@@ -471,10 +476,10 @@ export default function Dashboard() {
                   </div>
                   <div className="bg-[#0a0a0a]">
                     <StatCard
-                      title="Stablecoin Avg APY"
+                      title="Stablecoin APY"
                       value={stablecoinAvgApy}
                       format="percent"
-                      subtitle={`${stablecoinVaults.length} vaults`}
+                      subtitle={`TVL-weighted • ${stablecoinVaults.length} vaults`}
                     />
                   </div>
                   <div className="bg-[#0a0a0a]">
@@ -482,7 +487,7 @@ export default function Dashboard() {
                       title="Investment Grade"
                       value={investmentGrade.length}
                       format="number"
-                      subtitle={vaultsWithBadDebt.length > 0 ? `${vaultsWithBadDebt.length} with bad debt` : 'No bad debt detected'}
+                      subtitle={`BBB+ rated${vaultsWithBadDebt.length > 0 ? ` • ${vaultsWithBadDebt.length} bad debt` : ''}`}
                     />
                   </div>
                 </div>
@@ -570,69 +575,93 @@ export default function Dashboard() {
               </div>
             )}
 
-            {/* Top Investment-Grade Vaults by APY */}
+            {/* Top Vaults by Category */}
             <div className="mb-8">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-[15px] font-semibold text-zinc-100">Top Rated Vaults</h3>
-                  <p className="text-[12px] text-zinc-500">Investment-grade vaults (BBB or better) with highest APY</p>
+              <h3 className="text-[15px] font-semibold text-zinc-100 mb-4">Featured Vaults</h3>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Largest Vaults */}
+                <div className="bg-zinc-900/30 border border-zinc-800/60 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-[13px]">🏦</span>
+                    <h4 className="text-[13px] font-medium text-zinc-200">Largest by TVL</h4>
+                  </div>
+                  <div className="space-y-2">
+                    {[...topVaults]
+                      .sort((a, b) => b.tvl - a.tvl)
+                      .slice(0, 4)
+                      .map((vault: any, idx) => (
+                        <div key={vault.id} className="flex items-center justify-between py-1.5 border-b border-zinc-800/40 last:border-0">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-[10px] text-zinc-600 w-3">{idx + 1}</span>
+                            <span className="text-[12px] text-white truncate">{vault.symbol}</span>
+                            {vault.creditRating?.compositeRating && (
+                              <span className="text-[9px] text-zinc-500 font-mono">{vault.creditRating.compositeRating}</span>
+                            )}
+                          </div>
+                          <span className="text-[12px] text-zinc-300 font-mono ml-2">{formatTvl(vault.tvl)}</span>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+
+                {/* Highest Incentives */}
+                <div className="bg-zinc-900/30 border border-zinc-800/60 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-[13px]">🎁</span>
+                    <h4 className="text-[13px] font-medium text-zinc-200">Highest Incentives</h4>
+                  </div>
+                  <div className="space-y-2">
+                    {[...topVaults]
+                      .filter(v => v.apyReward > 0)
+                      .sort((a, b) => b.apyReward - a.apyReward)
+                      .slice(0, 4)
+                      .map((vault: any, idx) => (
+                        <div key={vault.id} className="flex items-center justify-between py-1.5 border-b border-zinc-800/40 last:border-0">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-[10px] text-zinc-600 w-3">{idx + 1}</span>
+                            <span className="text-[12px] text-white truncate">{vault.symbol}</span>
+                          </div>
+                          <div className="flex items-center gap-2 ml-2">
+                            <span className="text-[11px] text-zinc-500">{formatTvl(vault.tvl)}</span>
+                            <span className="text-[12px] text-amber-400 font-mono">+{vault.apyReward.toFixed(1)}%</span>
+                          </div>
+                        </div>
+                      ))}
+                    {topVaults.filter(v => v.apyReward > 0).length === 0 && (
+                      <p className="text-[11px] text-zinc-500 py-2">No incentivized vaults</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Highest APY */}
+                <div className="bg-zinc-900/30 border border-zinc-800/60 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-[13px]">📈</span>
+                    <h4 className="text-[13px] font-medium text-zinc-200">Highest APY</h4>
+                  </div>
+                  <div className="space-y-2">
+                    {[...topVaults]
+                      .filter(v => v.apy > 0 && v.tvl > 100000) // Min $100k TVL to filter noise
+                      .sort((a, b) => b.apy - a.apy)
+                      .slice(0, 4)
+                      .map((vault: any, idx) => (
+                        <div key={vault.id} className="flex items-center justify-between py-1.5 border-b border-zinc-800/40 last:border-0">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-[10px] text-zinc-600 w-3">{idx + 1}</span>
+                            <span className="text-[12px] text-white truncate">{vault.symbol}</span>
+                            {vault.creditRating?.compositeRating && (
+                              <span className="text-[9px] text-zinc-500 font-mono">{vault.creditRating.compositeRating}</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 ml-2">
+                            <span className="text-[11px] text-zinc-500">{formatTvl(vault.tvl)}</span>
+                            <span className="text-[12px] text-emerald-400 font-mono">{vault.apy.toFixed(1)}%</span>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[...topVaults]
-                  .filter((v: any) => v.creditRating?.investmentGrade && v.tvl > 1000000) // Only IG vaults with >$1M TVL
-                  .sort((a, b) => b.apy - a.apy)
-                  .slice(0, 6)
-                  .map((vault: any) => {
-                    const rating = vault.creditRating?.compositeRating || 'NR';
-                    const ratingColors: Record<string, string> = {
-                      'AAA': 'text-emerald-400 bg-emerald-500/10',
-                      'AA': 'text-emerald-400 bg-emerald-500/10',
-                      'A': 'text-green-400 bg-green-500/10',
-                      'BBB': 'text-yellow-400 bg-yellow-500/10',
-                    };
-                    return (
-                      <div
-                        key={vault.id}
-                        className="bg-zinc-900/50 border border-zinc-800/60 rounded-lg p-4"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[14px] text-white font-medium">{vault.symbol}</span>
-                            <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${ratingColors[rating] || 'text-zinc-400 bg-zinc-800'}`}>
-                              {rating}
-                            </span>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-[13px] text-emerald-400 font-mono">
-                              {vault.apy.toFixed(2)}%
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between text-[12px] mb-2">
-                          <span className="text-zinc-500">{vault.chain}</span>
-                          <span className="text-zinc-400 font-mono">{formatTvl(vault.tvl)}</span>
-                        </div>
-                        {/* APY breakdown */}
-                        <div className="flex items-center justify-between text-[11px] text-zinc-500">
-                          <span>Base: <span className="text-emerald-400/80">{(vault.apyBase || vault.apy).toFixed(1)}%</span></span>
-                          <span>Rewards: <span className="text-amber-400/80">{(vault.apyReward || 0).toFixed(1)}%</span></span>
-                        </div>
-                        {/* Risk metrics */}
-                        {vault.maxUtilization !== undefined && (
-                          <div className="mt-2 pt-2 border-t border-zinc-800/60 flex items-center justify-between text-[10px]">
-                            <span className="text-zinc-600">Util: {(vault.maxUtilization * 100).toFixed(0)}%</span>
-                            <span className="text-zinc-600">LLTV: {((vault.avgLltv || 0) * 100).toFixed(0)}%</span>
-                            {vault.hasBadDebt && <span className="text-red-400">Bad Debt</span>}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-              </div>
-              {topVaults.filter((v: any) => v.creditRating?.investmentGrade && v.tvl > 1000000).length === 0 && (
-                <p className="text-[13px] text-zinc-500 text-center py-8">No investment-grade vaults found. Check the full table below.</p>
-              )}
             </div>
 
             {/* Full Vault Table */}
@@ -648,8 +677,8 @@ export default function Dashboard() {
               <h3 className="text-[15px] font-semibold text-zinc-100 mb-4">Credit Rating Methodology</h3>
               <div className="bg-zinc-900/30 border border-zinc-800/60 rounded-lg p-6">
                 <p className="text-[13px] text-zinc-400 mb-6">
-                  Our three-pillar credit rating system is inspired by S&P, Moody's, and Fitch methodologies,
-                  adapted for DeFi vault risk assessment. Lower scores indicate higher quality.
+                  Our three-pillar credit rating system assesses vault risk across capital safety, liquidity health,
+                  and curator quality. Lower scores indicate higher quality.
                 </p>
 
                 {/* Rating Scale */}

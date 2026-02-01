@@ -190,7 +190,12 @@ export function VaultTable({
                     Protocol
                   </th>
                 )}
-                <th className="px-3 sm:px-5 py-3 text-right text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
+                {showProject && (
+                  <th className="hidden xl:table-cell px-3 sm:px-5 py-3 text-left text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
+                    Curator
+                  </th>
+                )}
+                <th className="px-3 sm:px-5 py-3 text-right text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider w-24 sm:w-28">
                   <SortButton columnKey="tvl" label="TVL" />
                 </th>
                 <th className="px-3 sm:px-5 py-3 text-center text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
@@ -276,7 +281,14 @@ export function VaultTable({
                           </div>
                         </td>
                       )}
-                      <td className="px-3 sm:px-5 py-3 text-right">
+                      {showProject && (
+                        <td className="hidden xl:table-cell px-3 sm:px-5 py-3">
+                          <span className="text-[13px] text-zinc-400 truncate max-w-[120px] block">
+                            {vault.poolMeta || '—'}
+                          </span>
+                        </td>
+                      )}
+                      <td className="px-3 sm:px-5 py-3 text-right w-24 sm:w-28">
                         <span className="font-mono text-white text-[12px] sm:text-[14px]">
                           {formatTvl(vault.tvl)}
                         </span>
