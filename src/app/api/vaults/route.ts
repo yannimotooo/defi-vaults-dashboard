@@ -4,6 +4,30 @@ import { getAllVaultsTvl } from '@/lib/dune';
 import { getVaultRiskWithCreditRatings, type VaultWithCreditRating } from '@/lib/risk';
 import { getVaultToCuratorMap } from '@/lib/morpho';
 
+// Symbol prefix to curator mapping for DeFiLlama data
+// This catches vaults where the symbol encodes the curator name
+const SYMBOL_PREFIX_TO_CURATOR: Record<string, string> = {
+  'steak': 'Steakhouse Financial',
+  'bbq': 'Steakhouse Financial',  // Steakhouse High Yield
+  'gt': 'Gauntlet',               // gtUSDC, gtWETH, etc.
+  'mw': 'Moonwell',               // mwUSDC, mwETH
+  'sm': 'Seamless',               // smUSDC, smWETH
+  're7': 'RE7 Labs',
+  'sen': 'Sentora',               // senPYUSD
+  'mev': 'MEV Capital',
+  'spark': 'SparkDAO',
+  'vb': 'Gauntlet',               // Vault Bridge (Gauntlet managed)
+  'yog': 'Yearn',                 // Yearn OG vaults
+  'ymv': 'Yearn',                 // Yearn vaults
+  'exm': 'Gauntlet',              // Extrafi (Gauntlet curated)
+  'ap': 'Apostro',                // Apostro vaults
+  'hyper': 'Hyperithm',
+  'p': 'Pangolins',               // pUSDC
+  '9s': '9Summits',
+  'cs': 'Clearstar',
+  'kd': 'Kedao',
+};
+
 // Morpho vault APY data interface
 interface MorphoVaultApy {
   symbol: string;
@@ -16,6 +40,33 @@ interface MorphoVaultApy {
 // In-memory cache for Morpho APY data
 let morphoApyCache: { data: MorphoVaultApy[]; timestamp: number } | null = null;
 const MORPHO_APY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+// Infer curator from symbol prefix
+function getCuratorFromSymbol(symbol: string): string | null {
+  const lowerSymbol = symbol.toLowerCase();
+
+  // Check prefixes in order of specificity (longer prefixes first)
+  const sortedPrefixes = Object.keys(SYMBOL_PREFIX_TO_CURATOR)
+    .sort((a, b) => b.length - a.length);
+
+  for (const prefix of sortedPrefixes) {
+    if (lowerSymbol.startsWith(prefix)) {
+      return SYMBOL_PREFIX_TO_CURATOR[prefix];
+    }
+  }
+
+  return null;
+}
+
+// Check if this is a raw lending market (no curator) vs a vault
+// Raw markets are identified by simple asset symbols with 0% APY
+function isRawLendingMarket(vault: { symbol: string; apy: number | null }): boolean {
+  const rawAssetSymbols = ['cbbtc', 'wbtc', 'lbtc', 'weth', 'wsteth', 'usdc', 'usdt', 'dai', 'eth'];
+  const lowerSymbol = vault.symbol.toLowerCase();
+
+  // If the symbol is a raw asset (not a vault token) and has 0 APY, it's likely a raw market
+  return rawAssetSymbols.includes(lowerSymbol) && (vault.apy === 0 || vault.apy === null);
+}
 
 // Fetch APY data directly from Morpho GraphQL API (cached)
 async function getMorphoVaultApyData(): Promise<MorphoVaultApy[]> {
@@ -162,11 +213,22 @@ export async function GET(request: NextRequest) {
       // Look up curator from multiple sources (priority order):
       // 1. Morpho vault-to-curator map (most reliable for Morpho vaults)
       // 2. Risk data curator field
-      // 3. poolMeta as fallback
+      // 3. Symbol prefix inference (STEAKUSDC → Steakhouse, GTUSDCP → Gauntlet)
+      // 4. poolMeta as fallback
       const curatorFromMap = curatorMap.get(normalizedSymbol)
         || curatorMap.get(normalizeName(vault.poolMeta || ''))
         || curatorMap.get(normalizeName(vault.symbol));
-      const curator = curatorFromMap || riskData?.curator || vault.poolMeta || null;
+
+      // Check if this is a raw lending market (no curator possible)
+      const isRawMarket = isRawLendingMarket(vault);
+
+      // Infer curator from symbol prefix if Morpho API didn't have it
+      const curatorFromSymbol = getCuratorFromSymbol(vault.symbol);
+
+      // Final curator determination
+      const curator = isRawMarket
+        ? null  // Raw markets have no curator
+        : curatorFromMap || riskData?.curator || curatorFromSymbol || vault.poolMeta || null;
 
       return {
         id: vault.pool,
@@ -185,6 +247,8 @@ export async function GET(request: NextRequest) {
         poolMeta: vault.poolMeta,
         // Curator from Morpho API (authoritative), risk data, or poolMeta fallback
         curator,
+        // Type: raw lending market (no curator) vs curated vault
+        isRawMarket,
         // Dune cross-reference data
         duneTvl: duneVault?.tvl || null,
         dataVerified: duneVault ? Math.abs((vault.tvlUsd - duneVault.tvl) / vault.tvlUsd) < 0.15 : false,
@@ -225,6 +289,7 @@ export async function GET(request: NextRequest) {
             exposure: 'single',
             poolMeta: riskVault.curator,
             curator: riskVault.curator, // Curator from Morpho on-chain data
+            isRawMarket: false, // Risk data only includes vaults, not raw markets
             duneTvl: null,
             dataVerified: true, // On-chain data
             riskScore: riskVault.riskScore,
@@ -248,7 +313,9 @@ export async function GET(request: NextRequest) {
     const vaultsWithMorphoApy = transformedVaults.filter(v => v.apySource === 'morpho').length;
     // Count how many vaults have curator attribution
     const vaultsWithCurator = transformedVaults.filter(v => v.curator && v.curator !== '—').length;
-    console.log(`[Vaults] ${vaultsWithCurator}/${transformedVaults.length} vaults have curator attribution`);
+    // Count raw lending markets (no curator)
+    const rawMarketCount = transformedVaults.filter(v => v.isRawMarket).length;
+    console.log(`[Vaults] ${vaultsWithCurator}/${transformedVaults.length} vaults have curator attribution, ${rawMarketCount} are raw markets`);
 
     return NextResponse.json({
       vaults: transformedVaults.slice(0, limit),
@@ -264,6 +331,7 @@ export async function GET(request: NextRequest) {
       vaultsWithRiskData: transformedVaults.filter(v => v.riskScore !== undefined).length,
       vaultsWithMorphoApy,
       vaultsWithCurator,
+      rawMarketCount,
     });
   } catch (error) {
     console.error('Error fetching vaults:', error);

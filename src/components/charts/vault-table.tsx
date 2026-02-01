@@ -52,6 +52,7 @@ interface Vault {
   exposure: string;
   poolMeta: string | null;
   curator?: string | null; // Curator from Morpho on-chain data
+  isRawMarket?: boolean; // True if this is a raw lending market (no curator)
   // Risk metrics (legacy)
   riskScore?: number;
   riskLevel?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
@@ -298,9 +299,15 @@ export function VaultTable({
                       )}
                       {showProject && (
                         <td className="hidden xl:table-cell px-3 sm:px-5 py-3">
-                          <span className="text-[13px] text-zinc-400 truncate block max-w-[140px]">
-                            {vault.curator || vault.poolMeta || '—'}
-                          </span>
+                          {vault.isRawMarket ? (
+                            <span className="text-[11px] text-zinc-500 bg-zinc-800/50 px-1.5 py-0.5 rounded">
+                              Market
+                            </span>
+                          ) : (
+                            <span className="text-[13px] text-zinc-400 truncate block max-w-[140px]">
+                              {vault.curator || vault.poolMeta || '—'}
+                            </span>
+                          )}
                         </td>
                       )}
                       <td className="px-3 sm:px-5 py-3 text-right">
