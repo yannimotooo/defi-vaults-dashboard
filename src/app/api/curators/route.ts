@@ -9,7 +9,7 @@ import type { Curator } from '@/types';
 
 // Simple in-memory cache for Kamino data (expensive Solana RPC call)
 let kaminoCache: { data: KaminoCuratorTvlData[]; timestamp: number } | null = null;
-const KAMINO_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+const KAMINO_CACHE_TTL = 20 * 60 * 1000; // 20 minutes (Solana RPC is expensive)
 
 // Fetch Kamino curator data with actual on-chain TVL (cached)
 async function getKaminoCuratorData(): Promise<KaminoCuratorTvlData[]> {
@@ -42,7 +42,7 @@ async function getKaminoCuratorData(): Promise<KaminoCuratorTvlData[]> {
   }
 }
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300; // 5 minutes
 
 // Fallback curator metadata - only used when vault data is unavailable
 const CURATOR_METADATA: Record<string, { protocols: string[] }> = {

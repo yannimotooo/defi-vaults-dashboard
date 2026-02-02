@@ -1,12 +1,6 @@
 // Multi-Protocol Liquidation Data Module
 // Aggregates liquidation events from Morpho, Aave V3, Euler V2, Spark, and Kamino
-// Uses Dune Analytics for accurate volume totals (official Morpho dashboard data)
-
-import {
-  getMorphoLiquidationsFromDune,
-  getAaveLiquidationsFromDune,
-  getKaminoLiquidationsFromDune,
-} from './dune';
+// Uses free APIs only: Morpho GraphQL (paginated), The Graph, Euler Goldsky, CoinGecko for prices
 
 // ============================================
 // Types
@@ -69,14 +63,15 @@ export interface MultiProtocolLiquidationData {
 
 const MORPHO_GRAPHQL_API = 'https://blue-api.morpho.org/graphql';
 
-// Aave V3 Subgraphs (The Graph hosted)
+// Aave V3 Subgraphs (The Graph Decentralized Network - free tier 5000 queries/month)
+// Note: These are the official Aave subgraphs migrated to decentralized network
 const AAVE_V3_SUBGRAPHS: Record<string, string> = {
-  ethereum: 'https://api.thegraph.com/subgraphs/name/aave/protocol-v3',
-  polygon: 'https://api.thegraph.com/subgraphs/name/aave/protocol-v3-polygon',
-  arbitrum: 'https://api.thegraph.com/subgraphs/name/aave/protocol-v3-arbitrum',
-  optimism: 'https://api.thegraph.com/subgraphs/name/aave/protocol-v3-optimism',
-  avalanche: 'https://api.thegraph.com/subgraphs/name/aave/protocol-v3-avalanche',
-  base: 'https://api.thegraph.com/subgraphs/name/aave/protocol-v3-base',
+  ethereum: 'https://gateway.thegraph.com/api/subgraphs/id/HB1Z2EAw4rtPRYVb2Nz8QGFLHCpym6ByBX6vbCViuE9F',
+  base: 'https://gateway.thegraph.com/api/subgraphs/id/GQFbb95cE6d8mV989mL5figjaGaKCQB3xqYrr1bRyXqF',
+  arbitrum: 'https://gateway.thegraph.com/api/subgraphs/id/8mxYLSwDrKccQmVhQwizMjwCtfXdpxqTsKbopqVnqUaE',
+  polygon: 'https://gateway.thegraph.com/api/subgraphs/id/Co2URyXjM1mXfGM6GbQv6S6pioS1E1BHXyzJXwGVeNND',
+  optimism: 'https://gateway.thegraph.com/api/subgraphs/id/DSfLz8oQBUeU5atALgUFQKMTSYV9mZAVYp4noLSXAfvb',
+  avalanche: 'https://gateway.thegraph.com/api/subgraphs/id/EZvK18pMhwiCjxwesRLTg81fP33WnR6BnZe5Cvma3H1C',
 };
 
 // Euler V2 Subgraphs (Goldsky hosted)
@@ -101,104 +96,232 @@ const CHAIN_IDS: Record<string, number> = {
 };
 
 // ============================================
-// Morpho Liquidations (Already Implemented)
+// CoinGecko Price Conversion (Free API)
+// ============================================
+
+// Token symbol to CoinGecko ID mapping
+const SYMBOL_TO_COINGECKO_ID: Record<string, string> = {
+  'WETH': 'ethereum',
+  'ETH': 'ethereum',
+  'USDC': 'usd-coin',
+  'USDT': 'tether',
+  'DAI': 'dai',
+  'WBTC': 'wrapped-bitcoin',
+  'BTC': 'bitcoin',
+  'CBBTC': 'coinbase-wrapped-btc',
+  'STETH': 'staked-ether',
+  'WSTETH': 'wrapped-steth',
+  'RETH': 'rocket-pool-eth',
+  'CBETH': 'coinbase-wrapped-staked-eth',
+  'WEETH': 'wrapped-eeth',
+  'EZETH': 'renzo-restaked-eth',
+  'RSETH': 'kelp-dao-restaked-eth',
+  'OSETH': 'stakewise-staked-eth',
+  'METH': 'mantle-staked-ether',
+  'SFRXETH': 'staked-frax-ether',
+  'FRXETH': 'frax-ether',
+  'LINK': 'chainlink',
+  'UNI': 'uniswap',
+  'AAVE': 'aave',
+  'CRV': 'curve-dao-token',
+  'MKR': 'maker',
+  'SNX': 'havven',
+  'COMP': 'compound-governance-token',
+  'SUSHI': 'sushi',
+  'YFI': 'yearn-finance',
+  'GRT': 'the-graph',
+  'BAL': 'balancer',
+  'LDO': 'lido-dao',
+  'RPL': 'rocket-pool',
+  'APE': 'apecoin',
+  'SHIB': 'shiba-inu',
+  'PEPE': 'pepe',
+  'ARB': 'arbitrum',
+  'OP': 'optimism',
+  'MATIC': 'matic-network',
+  'SOL': 'solana',
+  'AVAX': 'avalanche-2',
+};
+
+// CoinGecko price cache (5 min TTL)
+let priceCache: { prices: Record<string, number>; timestamp: number } | null = null;
+const PRICE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+async function getTokenPrices(symbols: string[]): Promise<Record<string, number>> {
+  // Return cached if fresh
+  if (priceCache && Date.now() - priceCache.timestamp < PRICE_CACHE_TTL) {
+    return priceCache.prices;
+  }
+
+  try {
+    // Get unique CoinGecko IDs
+    const ids = [...new Set(
+      symbols
+        .map(s => SYMBOL_TO_COINGECKO_ID[s.toUpperCase()])
+        .filter(Boolean)
+    )].join(',');
+
+    if (!ids) {
+      console.log('[CoinGecko] No matching token IDs found');
+      return {};
+    }
+
+    // CoinGecko free API (no key required, 10-30 calls/min)
+    const response = await fetch(
+      `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`,
+      { next: { revalidate: 300 } }
+    );
+
+    if (!response.ok) {
+      console.error('[CoinGecko] API error:', response.status);
+      return priceCache?.prices || {};
+    }
+
+    const data = await response.json();
+    const prices: Record<string, number> = {};
+
+    // Map back from CoinGecko IDs to symbols
+    for (const [symbol, cgId] of Object.entries(SYMBOL_TO_COINGECKO_ID)) {
+      if (data[cgId]?.usd) {
+        prices[symbol] = data[cgId].usd;
+      }
+    }
+
+    priceCache = { prices, timestamp: Date.now() };
+    console.log(`[CoinGecko] Fetched prices for ${Object.keys(prices).length} tokens`);
+
+    return prices;
+  } catch (error) {
+    console.error('[CoinGecko] Error fetching prices:', error);
+    return priceCache?.prices || {};
+  }
+}
+
+// ============================================
+// Morpho Liquidations (Paginated for full data)
 // ============================================
 
 async function fetchMorphoLiquidations(hours: number = 168): Promise<LiquidationEvent[]> {
   const cutoffTimestamp = Math.floor(Date.now() / 1000) - (hours * 3600);
+  const allEvents: LiquidationEvent[] = [];
+  let hasMore = true;
+  let skip = 0;
+  const batchSize = 1000;
+  const maxEvents = 10000; // Safety limit
 
-  const query = `
-    query GetLiquidations($timestamp: Int!) {
-      transactions(
-        first: 500
-        where: {
-          type_in: [MarketLiquidation]
-          timestamp_gte: $timestamp
-        }
-        orderBy: Timestamp
-        orderDirection: Desc
-      ) {
-        items {
-          hash
-          timestamp
-          data {
-            ... on MarketLiquidationTransactionData {
-              seizedAssetsUsd
-              repaidAssetsUsd
-              badDebtAssetsUsd
-              liquidator
-              market {
-                uniqueKey
-                loanAsset { symbol }
-                collateralAsset { symbol }
-                morphoBlue { chain { id } }
+  console.log(`[Liquidations] Fetching Morpho liquidations (paginated) since ${new Date(cutoffTimestamp * 1000).toISOString()}`);
+
+  while (hasMore && allEvents.length < maxEvents) {
+    const query = `
+      query GetLiquidations($timestamp: Int!, $skip: Int!) {
+        transactions(
+          first: ${batchSize}
+          skip: $skip
+          where: {
+            type_in: [MarketLiquidation]
+            timestamp_gte: $timestamp
+          }
+          orderBy: Timestamp
+          orderDirection: Desc
+        ) {
+          items {
+            hash
+            timestamp
+            data {
+              ... on MarketLiquidationTransactionData {
+                seizedAssetsUsd
+                repaidAssetsUsd
+                badDebtAssetsUsd
+                liquidator
+                market {
+                  uniqueKey
+                  loanAsset { symbol }
+                  collateralAsset { symbol }
+                  morphoBlue { chain { id } }
+                }
               }
             }
           }
         }
       }
-    }
-  `;
+    `;
 
-  try {
-    const response = await fetch(MORPHO_GRAPHQL_API, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        query,
-        variables: { timestamp: cutoffTimestamp }
-      }),
-      next: { revalidate: 300 },
-    });
+    try {
+      const response = await fetch(MORPHO_GRAPHQL_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query,
+          variables: { timestamp: cutoffTimestamp, skip }
+        }),
+        next: { revalidate: 300 },
+      });
 
-    if (!response.ok) {
-      console.error('[Liquidations] Morpho API error:', response.status);
-      return [];
-    }
+      if (!response.ok) {
+        console.error('[Liquidations] Morpho API error:', response.status);
+        break;
+      }
 
-    const data = await response.json();
-    const transactions = data?.data?.transactions?.items || [];
+      const data = await response.json();
+      const transactions = data?.data?.transactions?.items || [];
 
-    return transactions.map((tx: {
-      hash: string;
-      timestamp: number;
-      data: {
-        seizedAssetsUsd: number | null;
-        repaidAssetsUsd: number;
-        badDebtAssetsUsd: number;
-        liquidator: string;
-        market: {
-          uniqueKey: string;
-          loanAsset?: { symbol?: string };
-          collateralAsset?: { symbol?: string };
-          morphoBlue?: { chain?: { id?: number } };
+      if (transactions.length === 0) {
+        hasMore = false;
+        break;
+      }
+
+      const events = transactions.map((tx: {
+        hash: string;
+        timestamp: number;
+        data: {
+          seizedAssetsUsd: number | null;
+          repaidAssetsUsd: number;
+          badDebtAssetsUsd: number;
+          liquidator: string;
+          market: {
+            uniqueKey: string;
+            loanAsset?: { symbol?: string };
+            collateralAsset?: { symbol?: string };
+            morphoBlue?: { chain?: { id?: number } };
+          };
         };
-      };
-    }) => {
-      const chainId = tx.data?.market?.morphoBlue?.chain?.id || 1;
-      const badDebt = tx.data?.badDebtAssetsUsd || 0;
+      }) => {
+        const chainId = tx.data?.market?.morphoBlue?.chain?.id || 1;
+        const badDebt = tx.data?.badDebtAssetsUsd || 0;
 
-      return {
-        id: `morpho-${tx.hash}`,
-        hash: tx.hash,
-        timestamp: tx.timestamp,
-        protocol: 'Morpho' as const,
-        chain: chainId === 1 ? 'Ethereum' : chainId === 8453 ? 'Base' : `Chain ${chainId}`,
-        chainId,
-        loanAsset: tx.data?.market?.loanAsset?.symbol || 'Unknown',
-        collateralAsset: tx.data?.market?.collateralAsset?.symbol || 'Unknown',
-        marketKey: tx.data?.market?.uniqueKey,
-        repaidUsd: tx.data?.repaidAssetsUsd || 0,
-        seizedUsd: tx.data?.seizedAssetsUsd || 0,
-        badDebtUsd: badDebt,
-        liquidator: tx.data?.liquidator || '',
-        hasSignificantBadDebt: badDebt > 1000,
-      };
-    });
-  } catch (error) {
-    console.error('[Liquidations] Error fetching Morpho:', error);
-    return [];
+        return {
+          id: `morpho-${tx.hash}`,
+          hash: tx.hash,
+          timestamp: tx.timestamp,
+          protocol: 'Morpho' as const,
+          chain: chainId === 1 ? 'Ethereum' : chainId === 8453 ? 'Base' : `Chain ${chainId}`,
+          chainId,
+          loanAsset: tx.data?.market?.loanAsset?.symbol || 'Unknown',
+          collateralAsset: tx.data?.market?.collateralAsset?.symbol || 'Unknown',
+          marketKey: tx.data?.market?.uniqueKey,
+          repaidUsd: tx.data?.repaidAssetsUsd || 0,
+          seizedUsd: tx.data?.seizedAssetsUsd || 0,
+          badDebtUsd: badDebt,
+          liquidator: tx.data?.liquidator || '',
+          hasSignificantBadDebt: badDebt > 1000,
+        };
+      });
+
+      allEvents.push(...events);
+      skip += batchSize;
+      hasMore = transactions.length === batchSize;
+
+      console.log(`[Liquidations] Morpho: fetched ${transactions.length} events (total: ${allEvents.length})`);
+    } catch (error) {
+      console.error('[Liquidations] Error fetching Morpho page:', error);
+      break;
+    }
   }
+
+  const totalVolume = allEvents.reduce((sum, e) => sum + e.repaidUsd, 0);
+  console.log(`[Liquidations] Morpho total: ${allEvents.length} events, $${(totalVolume / 1e6).toFixed(2)}M volume`);
+
+  return allEvents;
 }
 
 // ============================================
@@ -532,53 +655,56 @@ export async function getMultiProtocolLiquidations(
   const now = Math.floor(Date.now() / 1000);
   const oneDayAgo = now - 86400;
 
-  // Fetch from all protocols in parallel, including Dune for accurate totals
+  console.log('[Liquidations] Fetching multi-protocol liquidations (free APIs only)...');
+
+  // Fetch from all protocols in parallel (no Dune - free APIs only)
   const [
     morphoEvents,
-    duneMorphoData,
-    duneAaveData,
-    duneKaminoData,
     aaveEthEvents,
-    aavePolyEvents,
+    aaveBaseEvents,
     aaveArbEvents,
+    aavePolyEvents,
+    aaveOpEvents,
     eulerEthEvents,
     eulerBaseEvents,
+    eulerArbEvents,
     sparkEvents,
     kaminoEvents,
   ] = await Promise.all([
     fetchMorphoLiquidations(hours),
-    getMorphoLiquidationsFromDune().catch(() => ({ totalVolume7d: 0, totalVolume24h: 0, dailyData: [] })),
-    getAaveLiquidationsFromDune().catch(() => ({ totalVolume7d: 0, totalVolume24h: 0, dailyData: [] })),
-    getKaminoLiquidationsFromDune().catch(() => ({ totalVolume7d: 0, totalVolume24h: 0, dailyData: [] })),
     fetchAaveLiquidations('ethereum', hours).catch(() => []),
-    fetchAaveLiquidations('polygon', hours).catch(() => []),
+    fetchAaveLiquidations('base', hours).catch(() => []),
     fetchAaveLiquidations('arbitrum', hours).catch(() => []),
+    fetchAaveLiquidations('polygon', hours).catch(() => []),
+    fetchAaveLiquidations('optimism', hours).catch(() => []),
     fetchEulerLiquidations('ethereum', hours).catch(() => []),
     fetchEulerLiquidations('base', hours).catch(() => []),
+    fetchEulerLiquidations('arbitrum', hours).catch(() => []),
     fetchSparkLiquidations(hours).catch(() => []),
     fetchKaminoLiquidations(hours).catch(() => []),
   ]);
 
-  // Log Dune data for debugging
-  console.log('[Liquidations] Dune data received:');
-  if (duneMorphoData.totalVolume7d > 0) {
-    console.log(`  Morpho: 24h=$${(duneMorphoData.totalVolume24h / 1e6).toFixed(2)}M, 7d=$${(duneMorphoData.totalVolume7d / 1e6).toFixed(2)}M`);
-  }
-  if (duneAaveData.totalVolume7d > 0) {
-    console.log(`  Aave: 24h=$${(duneAaveData.totalVolume24h / 1e6).toFixed(2)}M, 7d=$${(duneAaveData.totalVolume7d / 1e6).toFixed(2)}M`);
-  }
-  if (duneKaminoData.totalVolume7d > 0) {
-    console.log(`  Kamino: 24h=$${(duneKaminoData.totalVolume24h / 1e6).toFixed(2)}M, 7d=$${(duneKaminoData.totalVolume7d / 1e6).toFixed(2)}M`);
-  }
+  // Log fetched data
+  console.log('[Liquidations] Fetched from free APIs:');
+  console.log(`  Morpho: ${morphoEvents.length} events`);
+  const aaveTotal = aaveEthEvents.length + aaveBaseEvents.length + aaveArbEvents.length + aavePolyEvents.length + aaveOpEvents.length;
+  console.log(`  Aave: ${aaveTotal} events (ETH:${aaveEthEvents.length}, Base:${aaveBaseEvents.length}, Arb:${aaveArbEvents.length}, Poly:${aavePolyEvents.length}, OP:${aaveOpEvents.length})`);
+  const eulerTotal = eulerEthEvents.length + eulerBaseEvents.length + eulerArbEvents.length;
+  console.log(`  Euler: ${eulerTotal} events (ETH:${eulerEthEvents.length}, Base:${eulerBaseEvents.length}, Arb:${eulerArbEvents.length})`);
+  console.log(`  Spark: ${sparkEvents.length} events`);
+  console.log(`  Kamino: ${kaminoEvents.length} events (Solana RPC parsing not implemented)`);
 
   // Combine all events
   const allEvents: LiquidationEvent[] = [
     ...morphoEvents,
     ...aaveEthEvents,
-    ...aavePolyEvents,
+    ...aaveBaseEvents,
     ...aaveArbEvents,
+    ...aavePolyEvents,
+    ...aaveOpEvents,
     ...eulerEthEvents,
     ...eulerBaseEvents,
+    ...eulerArbEvents,
     ...sparkEvents,
     ...kaminoEvents,
   ];
@@ -619,110 +745,27 @@ export async function getMultiProtocolLiquidations(
         return { loanAsset, collateralAsset, volume7d: volume };
       });
 
-    // Use Dune data for protocols if available and higher (more accurate)
-    let finalVolume24h = volume24h;
-    let finalVolume7d = volume7d;
-
-    if (protocol === 'Morpho' && duneMorphoData.totalVolume7d > volume7d) {
-      console.log(`[Liquidations] Using Dune data for Morpho: $${(duneMorphoData.totalVolume7d / 1e6).toFixed(2)}M (GraphQL: $${(volume7d / 1e6).toFixed(2)}M)`);
-      finalVolume24h = Math.max(duneMorphoData.totalVolume24h, volume24h);
-      finalVolume7d = duneMorphoData.totalVolume7d;
-    } else if (protocol === 'Aave' && duneAaveData.totalVolume7d > volume7d) {
-      console.log(`[Liquidations] Using Dune data for Aave: $${(duneAaveData.totalVolume7d / 1e6).toFixed(2)}M (Subgraph: $${(volume7d / 1e6).toFixed(2)}M)`);
-      finalVolume24h = Math.max(duneAaveData.totalVolume24h, volume24h);
-      finalVolume7d = duneAaveData.totalVolume7d;
-    } else if (protocol === 'Kamino' && duneKaminoData.totalVolume7d > volume7d) {
-      console.log(`[Liquidations] Using Dune data for Kamino: $${(duneKaminoData.totalVolume7d / 1e6).toFixed(2)}M (RPC: $${(volume7d / 1e6).toFixed(2)}M)`);
-      finalVolume24h = Math.max(duneKaminoData.totalVolume24h, volume24h);
-      finalVolume7d = duneKaminoData.totalVolume7d;
-    }
-
     protocolSummaries.push({
       protocol,
-      volume24h: finalVolume24h,
-      volume7d: finalVolume7d,
+      volume24h,
+      volume7d,
       count24h: events24h.length,
       count7d: events.length,
       badDebt24h,
       badDebt7d,
       topMarkets,
     });
-  }
 
-  // Add Dune-only protocol summaries if not already present
-  const hasKamino = protocolSummaries.some(p => p.protocol === 'Kamino');
-  const hasAave = protocolSummaries.some(p => p.protocol === 'Aave');
-
-  if (!hasKamino && duneKaminoData.totalVolume7d > 0) {
-    console.log(`[Liquidations] Adding Kamino from Dune (no RPC events): $${(duneKaminoData.totalVolume7d / 1e6).toFixed(2)}M`);
-    protocolSummaries.push({
-      protocol: 'Kamino',
-      volume24h: duneKaminoData.totalVolume24h,
-      volume7d: duneKaminoData.totalVolume7d,
-      count24h: 0,
-      count7d: 0,
-      badDebt24h: 0,
-      badDebt7d: 0,
-      topMarkets: [],
-    });
-  }
-
-  if (!hasAave && duneAaveData.totalVolume7d > 0) {
-    console.log(`[Liquidations] Adding Aave from Dune (no subgraph events): $${(duneAaveData.totalVolume7d / 1e6).toFixed(2)}M`);
-    protocolSummaries.push({
-      protocol: 'Aave',
-      volume24h: duneAaveData.totalVolume24h,
-      volume7d: duneAaveData.totalVolume7d,
-      count24h: 0,
-      count7d: 0,
-      badDebt24h: 0,
-      badDebt7d: 0,
-      topMarkets: [],
-    });
+    console.log(`[Liquidations] ${protocol}: $${(volume7d / 1e6).toFixed(2)}M (7d), ${events.length} events`);
   }
 
   // Sort by volume
   protocolSummaries.sort((a, b) => b.volume7d - a.volume7d);
 
-  // Calculate totals - use Dune data for accurate totals
+  // Calculate totals
   const events24h = allEvents.filter(e => e.timestamp >= oneDayAgo);
-
-  // Calculate base totals from events
-  let totalVolume24h = events24h.reduce((sum, e) => sum + e.repaidUsd, 0);
-  let totalVolume7d = allEvents.reduce((sum, e) => sum + e.repaidUsd, 0);
-
-  // Adjust totals with Dune data for each protocol (Dune is more complete)
-  const morphoGraphQL7d = morphoEvents.reduce((sum, e) => sum + e.repaidUsd, 0);
-  const morphoGraphQL24h = morphoEvents.filter(e => e.timestamp >= oneDayAgo).reduce((sum, e) => sum + e.repaidUsd, 0);
-
-  if (duneMorphoData.totalVolume7d > morphoGraphQL7d) {
-    totalVolume7d += duneMorphoData.totalVolume7d - morphoGraphQL7d;
-  }
-  if (duneMorphoData.totalVolume24h > morphoGraphQL24h) {
-    totalVolume24h += duneMorphoData.totalVolume24h - morphoGraphQL24h;
-  }
-
-  // Add Aave Dune data adjustment
-  const aaveSubgraph7d = [...aaveEthEvents, ...aavePolyEvents, ...aaveArbEvents].reduce((sum, e) => sum + e.repaidUsd, 0);
-  const aaveSubgraph24h = [...aaveEthEvents, ...aavePolyEvents, ...aaveArbEvents].filter(e => e.timestamp >= oneDayAgo).reduce((sum, e) => sum + e.repaidUsd, 0);
-
-  if (duneAaveData.totalVolume7d > aaveSubgraph7d) {
-    totalVolume7d += duneAaveData.totalVolume7d - aaveSubgraph7d;
-  }
-  if (duneAaveData.totalVolume24h > aaveSubgraph24h) {
-    totalVolume24h += duneAaveData.totalVolume24h - aaveSubgraph24h;
-  }
-
-  // Add Kamino Dune data adjustment
-  const kaminoRpc7d = kaminoEvents.reduce((sum, e) => sum + e.repaidUsd, 0);
-  const kaminoRpc24h = kaminoEvents.filter(e => e.timestamp >= oneDayAgo).reduce((sum, e) => sum + e.repaidUsd, 0);
-
-  if (duneKaminoData.totalVolume7d > kaminoRpc7d) {
-    totalVolume7d += duneKaminoData.totalVolume7d - kaminoRpc7d;
-  }
-  if (duneKaminoData.totalVolume24h > kaminoRpc24h) {
-    totalVolume24h += duneKaminoData.totalVolume24h - kaminoRpc24h;
-  }
+  const totalVolume24h = events24h.reduce((sum, e) => sum + e.repaidUsd, 0);
+  const totalVolume7d = allEvents.reduce((sum, e) => sum + e.repaidUsd, 0);
 
   const totals = {
     volume24h: totalVolume24h,
@@ -733,7 +776,7 @@ export async function getMultiProtocolLiquidations(
     badDebt7d: allEvents.reduce((sum, e) => sum + e.badDebtUsd, 0),
   };
 
-  console.log(`[Liquidations] Total: ${allEvents.length} events across ${protocolSummaries.length} protocols`);
+  console.log(`[Liquidations] Total: ${allEvents.length} events, $${(totalVolume7d / 1e6).toFixed(2)}M (7d) across ${protocolSummaries.length} protocols`);
 
   return {
     recentEvents: allEvents.slice(0, 100), // Top 100 most recent

@@ -9,7 +9,7 @@ import {
 } from '@/lib/veda';
 import { getConcreteData } from '@/lib/concrete';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 600; // 10 minutes
 
 export async function GET() {
   try {

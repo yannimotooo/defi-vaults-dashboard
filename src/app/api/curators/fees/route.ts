@@ -8,7 +8,7 @@ import {
 } from '@/lib/kamino';
 import { getVedaCuratorFeeData, type VedaCuratorFeeData } from '@/lib/veda';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300; // 5 minutes
 
 const DISCLAIMER = `Fee data sources:
 • Morpho (V1 + V2): On-chain data via GraphQL API

@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server';
 import { getRiskMetrics, getCuratorRiskMetrics } from '@/lib/risk';
 import { getMultiProtocolLiquidations, aggregateLiquidationsByDay } from '@/lib/liquidations';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300; // 5 minutes
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);

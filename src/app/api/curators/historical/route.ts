@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getProtocolHistoricalTvl, RISK_CURATOR_SLUGS } from '@/lib/defillama';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 600; // 10 minutes
 
 // Top curators to fetch historical data for
 const TOP_CURATOR_SLUGS = [
