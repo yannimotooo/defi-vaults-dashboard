@@ -693,8 +693,8 @@ async function fetchSparkLiquidations(hours: number = 168): Promise<LiquidationE
 // Requires HELIUS_API_KEY environment variable
 // ============================================
 
-// Kamino Lend program ID
-const KAMINO_LEND_PROGRAM_ID = 'KLend2g3cP87fffoy8q1mQqGKjrxjC8boSyAYavgmjDZ';
+// Kamino Lend program ID (from https://github.com/Kamino-Finance/klend)
+const KAMINO_LEND_PROGRAM_ID = 'KLend2g3cP87fffoy8q1mQqGKjrxjC8boSyAYavgmjD';
 
 // Well-known Solana token mints to symbols
 const SOLANA_TOKEN_MINTS: Record<string, { symbol: string; decimals: number }> = {
