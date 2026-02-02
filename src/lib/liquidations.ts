@@ -334,15 +334,31 @@ async function fetchMorphoLiquidations(hours: number = 168): Promise<Liquidation
 }
 
 // ============================================
-// Aave V3 Liquidations
+// Aave V3 Liquidations (The Graph Decentralized Network)
+// Requires GRAPH_API_KEY env variable for authentication
 // ============================================
 
 async function fetchAaveLiquidations(
   network: string,
   hours: number = 168
 ): Promise<LiquidationEvent[]> {
-  const endpoint = AAVE_V3_SUBGRAPHS[network];
-  if (!endpoint) return [];
+  const baseEndpoint = AAVE_V3_SUBGRAPHS[network];
+  if (!baseEndpoint) return [];
+
+  // The Graph Decentralized Network requires an API key
+  const apiKey = process.env.GRAPH_API_KEY;
+  if (!apiKey) {
+    // Only log once per session, not for every network
+    if (network === 'ethereum') {
+      console.log('[Liquidations] Aave: GRAPH_API_KEY not set, skipping Aave liquidations');
+    }
+    return [];
+  }
+
+  // Add API key to endpoint
+  const endpoint = baseEndpoint.includes('?')
+    ? `${baseEndpoint}&api_key=${apiKey}`
+    : `${baseEndpoint}?api_key=${apiKey}`;
 
   const cutoffTimestamp = Math.floor(Date.now() / 1000) - (hours * 3600);
 
@@ -374,7 +390,10 @@ async function fetchAaveLiquidations(
   try {
     const response = await fetch(endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
       body: JSON.stringify({
         query,
         variables: { timestamp: cutoffTimestamp }
@@ -383,12 +402,30 @@ async function fetchAaveLiquidations(
     });
 
     if (!response.ok) {
-      console.error(`[Liquidations] Aave ${network} error:`, response.status);
+      const text = await response.text();
+      console.error(`[Liquidations] Aave ${network} error:`, response.status, text.slice(0, 200));
       return [];
     }
 
     const data = await response.json();
+
+    if (data.errors) {
+      console.error(`[Liquidations] Aave ${network} GraphQL errors:`, data.errors);
+      return [];
+    }
+
     const liquidations = data?.data?.liquidationCalls || [];
+    console.log(`[Liquidations] Aave ${network}: fetched ${liquidations.length} events`);
+
+    // Get token prices for USD conversion
+    const symbols = liquidations
+      .map((liq: { collateralAsset?: { symbol?: string }; principalAsset?: { symbol?: string } }) => [
+        liq.principalAsset?.symbol,
+        liq.collateralAsset?.symbol,
+      ])
+      .flat()
+      .filter(Boolean);
+    const prices = await getTokenPrices(symbols);
 
     return liquidations.map((liq: {
       id: string;
@@ -401,9 +438,19 @@ async function fetchAaveLiquidations(
       liquidator: string;
       user: string;
     }) => {
-      // Convert amounts to USD (rough estimate - would need price oracle for accuracy)
-      const repaidUsd = parseFloat(liq.principalAmount) || 0;
-      const seizedUsd = parseFloat(liq.collateralAmount) || 0;
+      const loanSymbol = liq.principalAsset?.symbol?.toUpperCase() || 'Unknown';
+      const collateralSymbol = liq.collateralAsset?.symbol?.toUpperCase() || 'Unknown';
+
+      // Convert raw amounts to USD using CoinGecko prices
+      const rawPrincipal = parseFloat(liq.principalAmount) || 0;
+      const rawCollateral = parseFloat(liq.collateralAmount) || 0;
+
+      const loanPrice = prices[loanSymbol] || 0;
+      const collateralPrice = prices[collateralSymbol] || 0;
+
+      // Assume 18 decimals for most tokens
+      const repaidUsd = (rawPrincipal / 1e18) * loanPrice;
+      const seizedUsd = (rawCollateral / 1e18) * collateralPrice;
 
       return {
         id: `aave-${network}-${liq.id}`,
@@ -412,11 +459,11 @@ async function fetchAaveLiquidations(
         protocol: 'Aave' as const,
         chain: network.charAt(0).toUpperCase() + network.slice(1),
         chainId: CHAIN_IDS[network] || 1,
-        loanAsset: liq.principalAsset?.symbol || 'Unknown',
-        collateralAsset: liq.collateralAsset?.symbol || 'Unknown',
+        loanAsset: loanSymbol,
+        collateralAsset: collateralSymbol,
         repaidUsd,
         seizedUsd,
-        badDebtUsd: 0, // Aave doesn't track bad debt in subgraph
+        badDebtUsd: 0,
         liquidator: liq.liquidator,
         borrower: liq.user,
         hasSignificantBadDebt: false,
@@ -429,7 +476,7 @@ async function fetchAaveLiquidations(
 }
 
 // ============================================
-// Euler V2 Liquidations
+// Euler V2 Liquidations (Goldsky subgraph)
 // ============================================
 
 async function fetchEulerLiquidations(
@@ -441,24 +488,30 @@ async function fetchEulerLiquidations(
 
   const cutoffTimestamp = Math.floor(Date.now() / 1000) - (hours * 3600);
 
+  // Euler Goldsky schema uses 'liquidates' with different field names
   const query = `
-    query GetLiquidations($timestamp: Int!) {
-      liquidations(
+    query GetLiquidations($timestamp: BigInt!) {
+      liquidates(
         first: 500
-        where: { timestamp_gte: $timestamp }
-        orderBy: timestamp
+        where: { blockTimestamp_gte: $timestamp }
+        orderBy: blockTimestamp
         orderDirection: desc
       ) {
         id
         transactionHash
-        timestamp
+        blockTimestamp
         liquidator
         violator
-        repay
-        repayUsd
-        yieldUsd
-        healthScore
-        discount
+        repayAssets
+        yieldBalance
+        vault {
+          id
+          symbol
+        }
+        collateral {
+          id
+          symbol
+        }
       }
     }
   `;
@@ -469,7 +522,7 @@ async function fetchEulerLiquidations(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         query,
-        variables: { timestamp: cutoffTimestamp }
+        variables: { timestamp: cutoffTimestamp.toString() }
       }),
       next: { revalidate: 300 },
     });
@@ -480,32 +533,61 @@ async function fetchEulerLiquidations(
     }
 
     const data = await response.json();
-    const liquidations = data?.data?.liquidations || [];
+
+    if (data.errors) {
+      console.error(`[Liquidations] Euler ${network} GraphQL errors:`, data.errors);
+      return [];
+    }
+
+    const liquidations = data?.data?.liquidates || [];
+    console.log(`[Liquidations] Euler ${network}: fetched ${liquidations.length} events`);
+
+    // Get token prices for USD conversion
+    const symbols = liquidations
+      .map((liq: { vault?: { symbol?: string }; collateral?: { symbol?: string } }) => [
+        liq.vault?.symbol,
+        liq.collateral?.symbol,
+      ])
+      .flat()
+      .filter(Boolean);
+    const prices = await getTokenPrices(symbols);
 
     return liquidations.map((liq: {
       id: string;
       transactionHash: string;
-      timestamp: string;
+      blockTimestamp: string;
       liquidator: string;
       violator: string;
-      repay: string;
-      repayUsd: string;
-      yieldUsd: string;
-      healthScore: string;
-      discount: string;
+      repayAssets: string;
+      yieldBalance: string;
+      vault?: { id: string; symbol?: string };
+      collateral?: { id: string; symbol?: string };
     }) => {
-      const repaidUsd = parseFloat(liq.repayUsd) || 0;
-      const seizedUsd = repaidUsd * (1 + parseFloat(liq.discount) / 100); // Estimate seized from discount
+      const loanSymbol = liq.vault?.symbol?.toUpperCase() || 'Unknown';
+      const collateralSymbol = liq.collateral?.symbol?.toUpperCase() || 'Unknown';
+
+      // Convert raw amounts to USD using CoinGecko prices
+      // repayAssets is in raw token units (needs decimal adjustment)
+      const rawRepay = parseFloat(liq.repayAssets) || 0;
+      const rawYield = parseFloat(liq.yieldBalance) || 0;
+
+      // Assume 18 decimals for most tokens, apply price
+      const loanPrice = prices[loanSymbol] || 0;
+      const collateralPrice = prices[collateralSymbol] || 0;
+
+      // Rough USD estimate (may be off due to decimal differences)
+      const repaidUsd = (rawRepay / 1e18) * loanPrice;
+      const seizedUsd = (rawYield / 1e18) * collateralPrice;
 
       return {
         id: `euler-${network}-${liq.id}`,
         hash: liq.transactionHash,
-        timestamp: parseInt(liq.timestamp),
+        timestamp: parseInt(liq.blockTimestamp),
         protocol: 'Euler' as const,
         chain: network.charAt(0).toUpperCase() + network.slice(1),
         chainId: CHAIN_IDS[network] || 1,
-        loanAsset: 'Unknown', // Euler subgraph doesn't include asset symbols directly
-        collateralAsset: 'Unknown',
+        loanAsset: loanSymbol,
+        collateralAsset: collateralSymbol,
         repaidUsd,
         seizedUsd,
         badDebtUsd: 0,
