@@ -696,10 +696,6 @@ async function fetchSparkLiquidations(hours: number = 168): Promise<LiquidationE
 // Kamino Lend program ID
 const KAMINO_LEND_PROGRAM_ID = 'KLend2g3cP87fffoy8q1mQqGKjrxjC8boSyAYavgmjDZ';
 
-// Liquidation instruction discriminator (first 8 bytes of SHA256("global:liquidate_obligation_and_redeem_reserve_collateral"))
-// This is how Anchor identifies instructions
-const LIQUIDATION_DISCRIMINATOR = Buffer.from([224, 204, 112, 25, 178, 44, 116, 212]);
-
 // Well-known Solana token mints to symbols
 const SOLANA_TOKEN_MINTS: Record<string, { symbol: string; decimals: number }> = {
   'So11111111111111111111111111111111111111112': { symbol: 'SOL', decimals: 9 },
@@ -804,20 +800,17 @@ async function fetchKaminoFromRpc(
 
         if (!tx || !tx.meta) return null;
 
-        // Check if this is a liquidation by looking for the discriminator in instruction data
-        const isLiquidation = checkForLiquidationInstruction(tx, programId.toBase58());
-
-        if (!isLiquidation) return null;
-
-        // Extract token balance changes to determine liquidation amounts
+        // Extract token balance changes to determine if this looks like a liquidation
         const balanceChanges = extractTokenBalanceChanges(tx);
 
-        if (balanceChanges.length === 0) return null;
+        // Liquidations typically have multiple token movements
+        if (balanceChanges.length < 2) return null;
 
-        // Find the largest token movements (likely the liquidation amounts)
+        // Find significant token movements
         const sortedChanges = balanceChanges.sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount));
 
         // Get the repay (negative change) and seized (positive change) amounts
+        // In a liquidation: liquidator repays debt (negative) and receives collateral (positive)
         const repayChange = sortedChanges.find(c => c.amount < 0);
         const seizedChange = sortedChanges.find(c => c.amount > 0 && c.mint !== repayChange?.mint);
 
@@ -842,7 +835,8 @@ async function fetchKaminoFromRpc(
           : repaidUsd;
 
         // Skip tiny amounts (likely not real liquidations)
-        if (repaidUsd < 10) return null;
+        // Use $100 threshold to filter noise but catch real liquidations
+        if (repaidUsd < 100) return null;
 
         return {
           id: `kamino-${sig.signature}`,
@@ -873,56 +867,9 @@ async function fetchKaminoFromRpc(
     }
   }
 
-  console.log(`[Liquidations] Kamino: Found ${liquidationEvents.length} liquidation events`);
+  const totalVolume = liquidationEvents.reduce((sum, e) => sum + e.repaidUsd, 0);
+  console.log(`[Liquidations] Kamino: Found ${liquidationEvents.length} liquidation events, $${(totalVolume / 1e6).toFixed(2)}M volume`);
   return liquidationEvents;
-}
-
-// Check if transaction contains a liquidation instruction
-function checkForLiquidationInstruction(
-  tx: { transaction: { message: { compiledInstructions?: Array<{ programIdIndex: number; data: Uint8Array }>; instructions?: Array<{ programIdIndex: number; data: string }> }; accountKeys?: Array<{ pubkey: { toBase58: () => string } }> }; meta: unknown },
-  programId: string
-): boolean {
-  const message = tx.transaction.message;
-
-  // Handle versioned transactions
-  if ('compiledInstructions' in message && message.compiledInstructions) {
-    for (const ix of message.compiledInstructions) {
-      // Check if instruction is for Kamino program
-      const accounts = tx.transaction.accountKeys || [];
-      if (accounts[ix.programIdIndex]?.pubkey?.toBase58() === programId) {
-        // Check discriminator (first 8 bytes)
-        if (ix.data.length >= 8) {
-          const discriminator = Buffer.from(ix.data.slice(0, 8));
-          if (discriminator.equals(LIQUIDATION_DISCRIMINATOR)) {
-            return true;
-          }
-        }
-      }
-    }
-  }
-
-  // Handle legacy transactions
-  if ('instructions' in message && message.instructions) {
-    for (const ix of message.instructions) {
-      const accounts = tx.transaction.accountKeys || [];
-      if (accounts[ix.programIdIndex]?.pubkey?.toBase58() === programId) {
-        // Data is base58 encoded in legacy format
-        try {
-          const data = Buffer.from(ix.data, 'base64');
-          if (data.length >= 8) {
-            const discriminator = data.slice(0, 8);
-            if (discriminator.equals(LIQUIDATION_DISCRIMINATOR)) {
-              return true;
-            }
-          }
-        } catch {
-          // Continue if decoding fails
-        }
-      }
-    }
-  }
-
-  return false;
 }
 
 // Extract token balance changes from a transaction
