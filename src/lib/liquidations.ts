@@ -688,9 +688,9 @@ async function fetchSparkLiquidations(hours: number = 168): Promise<LiquidationE
 }
 
 // ============================================
-// Kamino Liquidations (Public Solana RPC)
-// Decodes liquidation transactions from Kamino Lend program
-// No API key required - uses public RPC endpoints
+// Kamino Liquidations (Helius API)
+// Uses Helius enhanced transaction API for reliable liquidation detection
+// Requires HELIUS_API_KEY environment variable
 // ============================================
 
 // Kamino Lend program ID
@@ -713,208 +713,245 @@ const SOLANA_TOKEN_MINTS: Record<string, { symbol: string; decimals: number }> =
   'rndrizKT3MK1iimdxRdWabcF7Zg7AR5T4nud4EkHBof': { symbol: 'RENDER', decimals: 8 },
 };
 
-// List of public Solana RPC endpoints to try (in order of reliability)
-const SOLANA_RPC_ENDPOINTS = [
-  'https://api.mainnet-beta.solana.com',
-  'https://solana-mainnet.g.alchemy.com/v2/demo',
-  'https://rpc.ankr.com/solana',
-];
-
 async function fetchKaminoLiquidations(hours: number = 168): Promise<LiquidationEvent[]> {
-  // Use custom RPC if provided, otherwise try public endpoints
-  const customRpc = process.env.SOLANA_RPC_URL;
-  const rpcEndpoints = customRpc ? [customRpc, ...SOLANA_RPC_ENDPOINTS] : SOLANA_RPC_ENDPOINTS;
+  const heliusApiKey = process.env.HELIUS_API_KEY;
 
-  const cutoffTimestamp = Math.floor(Date.now() / 1000) - (hours * 3600);
-
-  console.log(`[Liquidations] Kamino: Fetching from public RPC (last ${hours}h)...`);
-
-  // Try each RPC endpoint until one works
-  for (const rpcUrl of rpcEndpoints) {
-    try {
-      const events = await fetchKaminoFromRpc(rpcUrl, cutoffTimestamp);
-      if (events.length > 0 || rpcUrl === rpcEndpoints[rpcEndpoints.length - 1]) {
-        return events;
-      }
-    } catch {
-      console.log(`[Liquidations] Kamino: RPC ${rpcUrl} failed, trying next...`);
-      continue;
-    }
-  }
-
-  console.log('[Liquidations] Kamino: All RPC endpoints failed');
-  return [];
-}
-
-// Helper function to fetch Kamino liquidations from a specific RPC
-async function fetchKaminoFromRpc(
-  rpcUrl: string,
-  cutoffTimestamp: number
-): Promise<LiquidationEvent[]> {
-  // Dynamic import to avoid build-time issues
-  const { Connection, PublicKey } = await import('@solana/web3.js');
-
-  const connection = new Connection(rpcUrl, {
-    commitment: 'confirmed',
-    confirmTransactionInitialTimeout: 30000,
-  });
-  const programId = new PublicKey(KAMINO_LEND_PROGRAM_ID);
-
-  // Get recent signatures for the Kamino Lend program
-  // Public RPCs limit to ~1000 signatures
-  const signatures = await connection.getSignaturesForAddress(
-    programId,
-    { limit: 1000 },
-    'confirmed'
-  );
-
-  // Filter to recent timeframe
-  const recentSignatures = signatures.filter(sig =>
-    sig.blockTime && sig.blockTime >= cutoffTimestamp
-  );
-
-  console.log(`[Liquidations] Kamino: Found ${recentSignatures.length} recent transactions on ${rpcUrl}`);
-
-  if (recentSignatures.length === 0) {
+  if (!heliusApiKey) {
+    console.log('[Liquidations] Kamino: HELIUS_API_KEY not set, skipping Kamino liquidations');
     return [];
   }
 
-  // Fetch transactions in batches to avoid rate limits
-  const batchSize = 50;
-  const liquidationEvents: LiquidationEvent[] = [];
-  const prices = await getTokenPrices(Object.values(SOLANA_TOKEN_MINTS).map(t => t.symbol));
+  const cutoffTimestamp = Math.floor(Date.now() / 1000) - (hours * 3600);
+  console.log(`[Liquidations] Kamino: Fetching via Helius API (last ${hours}h)...`);
 
-  for (let i = 0; i < Math.min(recentSignatures.length, 500); i += batchSize) {
-    const batch = recentSignatures.slice(i, i + batchSize);
+  try {
+    // Use Helius RPC for getSignaturesForAddress with better history
+    const heliusRpc = `https://mainnet.helius-rpc.com/?api-key=${heliusApiKey}`;
 
-    // Add delay between batches to avoid rate limits
-    if (i > 0) {
-      await new Promise(resolve => setTimeout(resolve, 200));
-    }
-
-    const txPromises = batch.map(async (sig) => {
-      try {
-        const tx = await connection.getTransaction(sig.signature, {
-          maxSupportedTransactionVersion: 0,
-        });
-
-        if (!tx || !tx.meta) return null;
-
-        // Extract token balance changes to determine if this looks like a liquidation
-        const balanceChanges = extractTokenBalanceChanges(tx);
-
-        // Liquidations typically have multiple token movements
-        if (balanceChanges.length < 2) return null;
-
-        // Find significant token movements
-        const sortedChanges = balanceChanges.sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount));
-
-        // Get the repay (negative change) and seized (positive change) amounts
-        // In a liquidation: liquidator repays debt (negative) and receives collateral (positive)
-        const repayChange = sortedChanges.find(c => c.amount < 0);
-        const seizedChange = sortedChanges.find(c => c.amount > 0 && c.mint !== repayChange?.mint);
-
-        if (!repayChange) return null;
-
-        const repayToken = SOLANA_TOKEN_MINTS[repayChange.mint];
-        const seizedToken = seizedChange ? SOLANA_TOKEN_MINTS[seizedChange.mint] : null;
-
-        const repaySymbol = repayToken?.symbol || 'Unknown';
-        const seizedSymbol = seizedToken?.symbol || 'Unknown';
-
-        // Convert to USD
-        const repayPrice = prices[repaySymbol] || 0;
-        const seizedPrice = seizedToken ? (prices[seizedSymbol] || 0) : 0;
-
-        const repayDecimals = repayToken?.decimals || 9;
-        const seizedDecimals = seizedToken?.decimals || 9;
-
-        const repaidUsd = (Math.abs(repayChange.amount) / Math.pow(10, repayDecimals)) * repayPrice;
-        const seizedUsd = seizedChange
-          ? (Math.abs(seizedChange.amount) / Math.pow(10, seizedDecimals)) * seizedPrice
-          : repaidUsd;
-
-        // Skip tiny amounts (likely not real liquidations)
-        // Use $100 threshold to filter noise but catch real liquidations
-        if (repaidUsd < 100) return null;
-
-        return {
-          id: `kamino-${sig.signature}`,
-          hash: sig.signature,
-          timestamp: sig.blockTime || Math.floor(Date.now() / 1000),
-          protocol: 'Kamino' as const,
-          chain: 'Solana',
-          chainId: 0,
-          loanAsset: repaySymbol,
-          collateralAsset: seizedSymbol,
-          repaidUsd,
-          seizedUsd,
-          badDebtUsd: 0,
-          liquidator: '', // Would need more parsing to extract
-          borrower: '',
-          hasSignificantBadDebt: false,
-        };
-      } catch {
-        return null;
-      }
+    // First, get transaction signatures for Kamino program
+    const signaturesResponse = await fetch(heliusRpc, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'getSignaturesForAddress',
+        params: [
+          KAMINO_LEND_PROGRAM_ID,
+          { limit: 1000 }
+        ]
+      }),
     });
 
-    const results = await Promise.all(txPromises);
-    for (const event of results) {
-      if (event !== null) {
-        liquidationEvents.push(event);
+    const signaturesData = await signaturesResponse.json();
+    const signatures = signaturesData?.result || [];
+
+    // Filter by timestamp
+    const recentSignatures = signatures.filter((sig: { blockTime?: number }) =>
+      sig.blockTime && sig.blockTime >= cutoffTimestamp
+    );
+
+    console.log(`[Liquidations] Kamino: Found ${recentSignatures.length} recent transactions`);
+
+    if (recentSignatures.length === 0) {
+      return [];
+    }
+
+    // Get token prices for USD conversion
+    const prices = await getTokenPrices(Object.values(SOLANA_TOKEN_MINTS).map(t => t.symbol));
+
+    // Use Helius enhanced transactions API to get parsed transaction data
+    // Process in batches of 100 (Helius limit)
+    const liquidationEvents: LiquidationEvent[] = [];
+    const batchSize = 100;
+
+    for (let i = 0; i < Math.min(recentSignatures.length, 500); i += batchSize) {
+      const batch = recentSignatures.slice(i, i + batchSize);
+      const txSignatures = batch.map((s: { signature: string }) => s.signature);
+
+      // Use Helius parsed transaction history API
+      const parsedTxResponse = await fetch(
+        `https://api.helius.xyz/v0/transactions?api-key=${heliusApiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ transactions: txSignatures }),
+        }
+      );
+
+      if (!parsedTxResponse.ok) {
+        console.error(`[Liquidations] Kamino: Helius API error: ${parsedTxResponse.status}`);
+        continue;
+      }
+
+      const parsedTxs = await parsedTxResponse.json();
+
+      for (const tx of parsedTxs) {
+        // Look for liquidation-related instructions or token transfers
+        const event = parseKaminoTransaction(tx, prices);
+        if (event) {
+          liquidationEvents.push(event);
+        }
+      }
+
+      // Small delay between batches
+      if (i + batchSize < recentSignatures.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+
+    const totalVolume = liquidationEvents.reduce((sum, e) => sum + e.repaidUsd, 0);
+    console.log(`[Liquidations] Kamino: Found ${liquidationEvents.length} liquidation events, $${(totalVolume / 1e6).toFixed(2)}M volume`);
+    return liquidationEvents;
+  } catch (error) {
+    console.error('[Liquidations] Kamino: Error fetching via Helius:', error);
+    return [];
+  }
+}
+
+// Parse a Helius-enhanced transaction for liquidation data
+function parseKaminoTransaction(
+  tx: {
+    signature: string;
+    timestamp?: number;
+    type?: string;
+    description?: string;
+    source?: string;
+    tokenTransfers?: Array<{
+      mint: string;
+      tokenAmount: number;
+      fromUserAccount?: string;
+      toUserAccount?: string;
+    }>;
+    nativeTransfers?: Array<{
+      amount: number;
+      fromUserAccount?: string;
+      toUserAccount?: string;
+    }>;
+    accountData?: Array<{
+      account: string;
+      nativeBalanceChange?: number;
+      tokenBalanceChanges?: Array<{
+        mint: string;
+        rawTokenAmount: { tokenAmount: string; decimals: number };
+        userAccount: string;
+      }>;
+    }>;
+    instructions?: Array<{
+      programId: string;
+      data?: string;
+      accounts?: string[];
+      innerInstructions?: Array<unknown>;
+    }>;
+  },
+  prices: Record<string, number>
+): LiquidationEvent | null {
+  // Check if this involves Kamino Lend program
+  const involvesKamino = tx.instructions?.some(
+    (ix: { programId: string }) => ix.programId === KAMINO_LEND_PROGRAM_ID
+  );
+
+  if (!involvesKamino) return null;
+
+  // Look for liquidation indicators:
+  // 1. Transaction type or description mentioning liquidation
+  // 2. Multiple significant token transfers (repay debt + seize collateral)
+  const isLiquidationType = tx.type?.toLowerCase().includes('liquidat') ||
+    tx.description?.toLowerCase().includes('liquidat');
+
+  // Analyze token transfers
+  const tokenTransfers = tx.tokenTransfers || [];
+  const significantTransfers = tokenTransfers.filter(t => {
+    const tokenInfo = SOLANA_TOKEN_MINTS[t.mint];
+    if (!tokenInfo) return false;
+    const price = prices[tokenInfo.symbol] || 0;
+    const usdValue = (t.tokenAmount / Math.pow(10, tokenInfo.decimals)) * price;
+    return usdValue > 100; // Filter noise
+  });
+
+  // For liquidation, we expect at least 2 significant transfers
+  // (one for repaying debt, one for seizing collateral)
+  if (significantTransfers.length < 2 && !isLiquidationType) {
+    return null;
+  }
+
+  // Calculate repaid and seized amounts
+  let repaidUsd = 0;
+  let seizedUsd = 0;
+  let loanAsset = 'Unknown';
+  let collateralAsset = 'Unknown';
+
+  // Sort by value to find main transfers
+  const sortedTransfers = [...significantTransfers].sort((a, b) => {
+    const aInfo = SOLANA_TOKEN_MINTS[a.mint];
+    const bInfo = SOLANA_TOKEN_MINTS[b.mint];
+    const aPrice = prices[aInfo?.symbol || ''] || 0;
+    const bPrice = prices[bInfo?.symbol || ''] || 0;
+    const aValue = (a.tokenAmount / Math.pow(10, aInfo?.decimals || 9)) * aPrice;
+    const bValue = (b.tokenAmount / Math.pow(10, bInfo?.decimals || 9)) * bPrice;
+    return Math.abs(bValue) - Math.abs(aValue);
+  });
+
+  if (sortedTransfers.length >= 1) {
+    const firstTransfer = sortedTransfers[0];
+    const tokenInfo = SOLANA_TOKEN_MINTS[firstTransfer.mint];
+    if (tokenInfo) {
+      loanAsset = tokenInfo.symbol;
+      repaidUsd = (Math.abs(firstTransfer.tokenAmount) / Math.pow(10, tokenInfo.decimals)) *
+        (prices[tokenInfo.symbol] || 0);
+    }
+  }
+
+  if (sortedTransfers.length >= 2) {
+    const secondTransfer = sortedTransfers[1];
+    const tokenInfo = SOLANA_TOKEN_MINTS[secondTransfer.mint];
+    if (tokenInfo) {
+      collateralAsset = tokenInfo.symbol;
+      seizedUsd = (Math.abs(secondTransfer.tokenAmount) / Math.pow(10, tokenInfo.decimals)) *
+        (prices[tokenInfo.symbol] || 0);
+    }
+  }
+
+  // If we couldn't determine significant value, check accountData
+  if (repaidUsd < 100 && tx.accountData) {
+    for (const account of tx.accountData) {
+      if (account.tokenBalanceChanges) {
+        for (const change of account.tokenBalanceChanges) {
+          const tokenInfo = SOLANA_TOKEN_MINTS[change.mint];
+          if (!tokenInfo) continue;
+
+          const amount = Math.abs(parseFloat(change.rawTokenAmount.tokenAmount));
+          const decimals = change.rawTokenAmount.decimals || tokenInfo.decimals;
+          const usdValue = (amount / Math.pow(10, decimals)) * (prices[tokenInfo.symbol] || 0);
+
+          if (usdValue > repaidUsd) {
+            repaidUsd = usdValue;
+            loanAsset = tokenInfo.symbol;
+          }
+        }
       }
     }
   }
 
-  const totalVolume = liquidationEvents.reduce((sum, e) => sum + e.repaidUsd, 0);
-  console.log(`[Liquidations] Kamino: Found ${liquidationEvents.length} liquidation events, $${(totalVolume / 1e6).toFixed(2)}M volume`);
-  return liquidationEvents;
-}
+  // Skip if value too low
+  if (repaidUsd < 100) return null;
 
-// Extract token balance changes from a transaction
-function extractTokenBalanceChanges(
-  tx: { meta: { preTokenBalances?: Array<{ mint: string; uiTokenAmount: { amount: string } }> | null; postTokenBalances?: Array<{ mint: string; uiTokenAmount: { amount: string } }> | null } | null }
-): Array<{ mint: string; amount: number }> {
-  if (!tx.meta) return [];
-
-  const preBalances = tx.meta.preTokenBalances ?? [];
-  const postBalances = tx.meta.postTokenBalances ?? [];
-
-  const changes: Array<{ mint: string; amount: number }> = [];
-
-  // Create a map of pre-balances by account index
-  const preMap = new Map<string, bigint>();
-  for (const balance of preBalances) {
-    const key = balance.mint;
-    const existing = preMap.get(key) || BigInt(0);
-    preMap.set(key, existing + BigInt(balance.uiTokenAmount.amount));
-  }
-
-  // Calculate changes from post-balances
-  const postMap = new Map<string, bigint>();
-  for (const balance of postBalances) {
-    const key = balance.mint;
-    const existing = postMap.get(key) || BigInt(0);
-    postMap.set(key, existing + BigInt(balance.uiTokenAmount.amount));
-  }
-
-  // Calculate differences
-  const allMints = new Set([...preMap.keys(), ...postMap.keys()]);
-  for (const mint of allMints) {
-    const pre = preMap.get(mint) || BigInt(0);
-    const post = postMap.get(mint) || BigInt(0);
-    const diff = post - pre;
-
-    if (diff !== BigInt(0)) {
-      changes.push({
-        mint,
-        amount: Number(diff),
-      });
-    }
-  }
-
-  return changes;
+  return {
+    id: `kamino-${tx.signature}`,
+    hash: tx.signature,
+    timestamp: tx.timestamp || Math.floor(Date.now() / 1000),
+    protocol: 'Kamino' as const,
+    chain: 'Solana',
+    chainId: 0,
+    loanAsset,
+    collateralAsset,
+    repaidUsd,
+    seizedUsd: seizedUsd || repaidUsd,
+    badDebtUsd: 0,
+    liquidator: '',
+    borrower: '',
+    hasSignificantBadDebt: false,
+  };
 }
 
 // ============================================
