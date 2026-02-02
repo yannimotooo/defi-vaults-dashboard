@@ -43,6 +43,14 @@ export interface ProtocolLiquidationSummary {
   }>;
 }
 
+export interface DailyLiquidationVolume {
+  date: string;
+  volume: number;
+  count: number;
+  badDebt: number;
+  byProtocol: Record<string, number>;
+}
+
 export interface MultiProtocolLiquidationData {
   recentEvents: LiquidationEvent[];
   protocolSummaries: ProtocolLiquidationSummary[];
@@ -54,6 +62,7 @@ export interface MultiProtocolLiquidationData {
     badDebt24h: number;
     badDebt7d: number;
   };
+  dailyVolume: DailyLiquidationVolume[]; // Pre-computed from ALL events
   timestamp: string;
 }
 
@@ -778,24 +787,20 @@ export async function getMultiProtocolLiquidations(
 
   console.log(`[Liquidations] Total: ${allEvents.length} events, $${(totalVolume7d / 1e6).toFixed(2)}M (7d) across ${protocolSummaries.length} protocols`);
 
+  // Compute daily aggregation from ALL events before slicing
+  const dailyVolume = aggregateLiquidationsByDay(allEvents, 7);
+
   return {
     recentEvents: allEvents.slice(0, 100), // Top 100 most recent
     protocolSummaries,
     totals,
+    dailyVolume, // Pre-computed from all events
     timestamp: new Date().toISOString(),
   };
 }
 
-// Daily aggregation for timeline chart
-export interface DailyLiquidationVolume {
-  date: string;
-  volume: number;
-  count: number;
-  badDebt: number;
-  byProtocol: Record<string, number>;
-}
-
-export function aggregateLiquidationsByDay(
+// Daily aggregation helper function
+function aggregateLiquidationsByDay(
   events: LiquidationEvent[],
   days: number = 7
 ): DailyLiquidationVolume[] {

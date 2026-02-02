@@ -3,7 +3,7 @@
 
 import { NextResponse } from 'next/server';
 import { getRiskMetrics, getCuratorRiskMetrics } from '@/lib/risk';
-import { getMultiProtocolLiquidations, aggregateLiquidationsByDay } from '@/lib/liquidations';
+import { getMultiProtocolLiquidations } from '@/lib/liquidations';
 
 export const revalidate = 300; // 5 minutes
 
@@ -36,9 +36,6 @@ export async function GET(request: Request) {
       getMultiProtocolLiquidations(168), // 7 days
     ]);
 
-    // Aggregate liquidations by day for timeline chart
-    const dailyLiquidations = aggregateLiquidationsByDay(liquidationData.recentEvents, 7);
-
     return NextResponse.json({
       // Curator risk rankings (Morpho-specific)
       curators: riskData.curators,
@@ -54,8 +51,8 @@ export async function GET(request: Request) {
         protocolSummaries: liquidationData.protocolSummaries,
         // Totals
         totals: liquidationData.totals,
-        // Daily aggregation for timeline chart
-        dailyVolume: dailyLiquidations,
+        // Daily aggregation for timeline chart (pre-computed from ALL events)
+        dailyVolume: liquidationData.dailyVolume,
       },
 
       // Legacy: Recent liquidation events (Morpho-only for backwards compatibility)
