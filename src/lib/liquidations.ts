@@ -854,9 +854,13 @@ function parseKaminoTransaction(
   if (!involvesKamino) return null;
 
   // Look for liquidation indicators:
-  // 1. Transaction type or description mentioning liquidation
-  // 2. Multiple significant token transfers (repay debt + seize collateral)
-  const isLiquidationType = tx.type?.toLowerCase().includes('liquidat') ||
+  // Helius types for liquidations: LIQUIDATE, LIQUIDATE_OBLIGATION_AND_REDEEM_RESERVE_COLLATERAL
+  const liquidationTypes = [
+    'LIQUIDATE',
+    'LIQUIDATE_OBLIGATION',
+    'LIQUIDATE_OBLIGATION_AND_REDEEM_RESERVE_COLLATERAL',
+  ];
+  const isLiquidationType = liquidationTypes.some(t => tx.type?.toUpperCase().includes(t)) ||
     tx.description?.toLowerCase().includes('liquidat');
 
   // Analyze token transfers
@@ -1001,7 +1005,7 @@ export async function getMultiProtocolLiquidations(
   const eulerTotal = eulerEthEvents.length + eulerBaseEvents.length + eulerArbEvents.length;
   console.log(`  Euler: ${eulerTotal} events (ETH:${eulerEthEvents.length}, Base:${eulerBaseEvents.length}, Arb:${eulerArbEvents.length})`);
   console.log(`  Spark: ${sparkEvents.length} events`);
-  console.log(`  Kamino: ${kaminoEvents.length} events (via Public Solana RPC)`);
+  console.log(`  Kamino: ${kaminoEvents.length} events (via Helius API)`);
 
   // Combine all events
   const allEvents: LiquidationEvent[] = [
@@ -1022,7 +1026,16 @@ export async function getMultiProtocolLiquidations(
   allEvents.sort((a, b) => b.timestamp - a.timestamp);
 
   // Calculate per-protocol summaries
+  // Initialize all monitored protocols (even with 0 events) to show coverage
+  const monitoredProtocols = ['Morpho', 'Euler', 'Kamino'] as const;
   const protocolGroups = new Map<string, LiquidationEvent[]>();
+
+  // Initialize all monitored protocols with empty arrays
+  for (const protocol of monitoredProtocols) {
+    protocolGroups.set(protocol, []);
+  }
+
+  // Add events to their protocol groups
   for (const event of allEvents) {
     if (!protocolGroups.has(event.protocol)) {
       protocolGroups.set(event.protocol, []);
