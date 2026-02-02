@@ -93,9 +93,6 @@ const EULER_V2_SUBGRAPHS: Record<string, string> = {
 // Spark uses Aave V3 fork - same subgraph pattern
 const SPARK_SUBGRAPH = 'https://api.thegraph.com/subgraphs/name/messari/spark-lend-ethereum';
 
-// Flipside Crypto API for Solana/Kamino liquidations (free tier: 500 query seconds/month)
-const FLIPSIDE_API = 'https://api-v2.flipsidecrypto.xyz/json-rpc';
-
 // Chain ID mapping
 const CHAIN_IDS: Record<string, number> = {
   ethereum: 1,
@@ -691,167 +688,286 @@ async function fetchSparkLiquidations(hours: number = 168): Promise<LiquidationE
 }
 
 // ============================================
-// Kamino Liquidations (Flipside Crypto API)
-// Uses solana.defi.ez_lending_liquidations table
-// Free tier: 500 query seconds/month
+// Kamino Liquidations (Public Solana RPC)
+// Decodes liquidation transactions from Kamino Lend program
+// No API key required - uses public RPC endpoints
 // ============================================
 
-// Flipside query result interface
-interface FlipsideQueryResult {
-  BLOCK_TIMESTAMP: string;
-  TX_ID: string;
-  PLATFORM: string;
-  LIQUIDATOR: string;
-  BORROWER: string;
-  COLLATERAL_TOKEN_SYMBOL: string;
-  DEBT_TOKEN_SYMBOL: string;
-  AMOUNT_USD: number;
-}
+// Kamino Lend program ID
+const KAMINO_LEND_PROGRAM_ID = 'KLend2g3cP87fffoy8q1mQqGKjrxjC8boSyAYavgmjDZ';
+
+// Liquidation instruction discriminator (first 8 bytes of SHA256("global:liquidate_obligation_and_redeem_reserve_collateral"))
+// This is how Anchor identifies instructions
+const LIQUIDATION_DISCRIMINATOR = Buffer.from([224, 204, 112, 25, 178, 44, 116, 212]);
+
+// Well-known Solana token mints to symbols
+const SOLANA_TOKEN_MINTS: Record<string, { symbol: string; decimals: number }> = {
+  'So11111111111111111111111111111111111111112': { symbol: 'SOL', decimals: 9 },
+  'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v': { symbol: 'USDC', decimals: 6 },
+  'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB': { symbol: 'USDT', decimals: 6 },
+  'mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So': { symbol: 'mSOL', decimals: 9 },
+  '7dHbWXmci3dT8UFYWYZweBLXgycu7Y3iL6trKn1Y7ARj': { symbol: 'stSOL', decimals: 9 },
+  'J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn': { symbol: 'JitoSOL', decimals: 9 },
+  'bSo13r4TkiE4KumL71LsHTPpL2euBYLFx6h9HP3piy1': { symbol: 'bSOL', decimals: 9 },
+  '7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs': { symbol: 'wETH', decimals: 8 },
+  '3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh': { symbol: 'wBTC', decimals: 8 },
+  'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263': { symbol: 'BONK', decimals: 5 },
+  'JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN': { symbol: 'JUP', decimals: 6 },
+  'HZ1JovNiVvGrGNiiYvEozEVgZ58xaU3RKwX8eACQBCt3': { symbol: 'PYTH', decimals: 6 },
+  'rndrizKT3MK1iimdxRdWabcF7Zg7AR5T4nud4EkHBof': { symbol: 'RENDER', decimals: 8 },
+};
+
+// List of public Solana RPC endpoints to try (in order of reliability)
+const SOLANA_RPC_ENDPOINTS = [
+  'https://api.mainnet-beta.solana.com',
+  'https://solana-mainnet.g.alchemy.com/v2/demo',
+  'https://rpc.ankr.com/solana',
+];
 
 async function fetchKaminoLiquidations(hours: number = 168): Promise<LiquidationEvent[]> {
-  const apiKey = process.env.FLIPSIDE_API_KEY;
+  // Use custom RPC if provided, otherwise try public endpoints
+  const customRpc = process.env.SOLANA_RPC_URL;
+  const rpcEndpoints = customRpc ? [customRpc, ...SOLANA_RPC_ENDPOINTS] : SOLANA_RPC_ENDPOINTS;
 
-  if (!apiKey) {
-    console.log('[Liquidations] Kamino: FLIPSIDE_API_KEY not set, skipping Kamino liquidations');
+  const cutoffTimestamp = Math.floor(Date.now() / 1000) - (hours * 3600);
+
+  console.log(`[Liquidations] Kamino: Fetching from public RPC (last ${hours}h)...`);
+
+  // Try each RPC endpoint until one works
+  for (const rpcUrl of rpcEndpoints) {
+    try {
+      const events = await fetchKaminoFromRpc(rpcUrl, cutoffTimestamp);
+      if (events.length > 0 || rpcUrl === rpcEndpoints[rpcEndpoints.length - 1]) {
+        return events;
+      }
+    } catch {
+      console.log(`[Liquidations] Kamino: RPC ${rpcUrl} failed, trying next...`);
+      continue;
+    }
+  }
+
+  console.log('[Liquidations] Kamino: All RPC endpoints failed');
+  return [];
+}
+
+// Helper function to fetch Kamino liquidations from a specific RPC
+async function fetchKaminoFromRpc(
+  rpcUrl: string,
+  cutoffTimestamp: number
+): Promise<LiquidationEvent[]> {
+  // Dynamic import to avoid build-time issues
+  const { Connection, PublicKey } = await import('@solana/web3.js');
+
+  const connection = new Connection(rpcUrl, {
+    commitment: 'confirmed',
+    confirmTransactionInitialTimeout: 30000,
+  });
+  const programId = new PublicKey(KAMINO_LEND_PROGRAM_ID);
+
+  // Get recent signatures for the Kamino Lend program
+  // Public RPCs limit to ~1000 signatures
+  const signatures = await connection.getSignaturesForAddress(
+    programId,
+    { limit: 1000 },
+    'confirmed'
+  );
+
+  // Filter to recent timeframe
+  const recentSignatures = signatures.filter(sig =>
+    sig.blockTime && sig.blockTime >= cutoffTimestamp
+  );
+
+  console.log(`[Liquidations] Kamino: Found ${recentSignatures.length} recent transactions on ${rpcUrl}`);
+
+  if (recentSignatures.length === 0) {
     return [];
   }
 
-  const cutoffDate = new Date(Date.now() - hours * 3600 * 1000);
-  const cutoffStr = cutoffDate.toISOString().replace('T', ' ').split('.')[0];
+  // Fetch transactions in batches to avoid rate limits
+  const batchSize = 50;
+  const liquidationEvents: LiquidationEvent[] = [];
+  const prices = await getTokenPrices(Object.values(SOLANA_TOKEN_MINTS).map(t => t.symbol));
 
-  // SQL query for Kamino liquidations with USD amounts
-  const sql = `
-    SELECT
-      BLOCK_TIMESTAMP,
-      TX_ID,
-      PLATFORM,
-      LIQUIDATOR,
-      BORROWER,
-      COLLATERAL_TOKEN_SYMBOL,
-      DEBT_TOKEN_SYMBOL,
-      AMOUNT_USD
-    FROM solana.defi.ez_lending_liquidations
-    WHERE PLATFORM = 'kamino'
-      AND BLOCK_TIMESTAMP >= '${cutoffStr}'
-    ORDER BY BLOCK_TIMESTAMP DESC
-    LIMIT 1000
-  `;
+  for (let i = 0; i < Math.min(recentSignatures.length, 500); i += batchSize) {
+    const batch = recentSignatures.slice(i, i + batchSize);
 
-  try {
-    // Step 1: Create query run
-    const createResponse = await fetch(FLIPSIDE_API, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-      },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        method: 'createQueryRun',
-        params: [{ sql, ttlMinutes: 10 }],
-        id: 1,
-      }),
+    // Add delay between batches to avoid rate limits
+    if (i > 0) {
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+
+    const txPromises = batch.map(async (sig) => {
+      try {
+        const tx = await connection.getTransaction(sig.signature, {
+          maxSupportedTransactionVersion: 0,
+        });
+
+        if (!tx || !tx.meta) return null;
+
+        // Check if this is a liquidation by looking for the discriminator in instruction data
+        const isLiquidation = checkForLiquidationInstruction(tx, programId.toBase58());
+
+        if (!isLiquidation) return null;
+
+        // Extract token balance changes to determine liquidation amounts
+        const balanceChanges = extractTokenBalanceChanges(tx);
+
+        if (balanceChanges.length === 0) return null;
+
+        // Find the largest token movements (likely the liquidation amounts)
+        const sortedChanges = balanceChanges.sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount));
+
+        // Get the repay (negative change) and seized (positive change) amounts
+        const repayChange = sortedChanges.find(c => c.amount < 0);
+        const seizedChange = sortedChanges.find(c => c.amount > 0 && c.mint !== repayChange?.mint);
+
+        if (!repayChange) return null;
+
+        const repayToken = SOLANA_TOKEN_MINTS[repayChange.mint];
+        const seizedToken = seizedChange ? SOLANA_TOKEN_MINTS[seizedChange.mint] : null;
+
+        const repaySymbol = repayToken?.symbol || 'Unknown';
+        const seizedSymbol = seizedToken?.symbol || 'Unknown';
+
+        // Convert to USD
+        const repayPrice = prices[repaySymbol] || 0;
+        const seizedPrice = seizedToken ? (prices[seizedSymbol] || 0) : 0;
+
+        const repayDecimals = repayToken?.decimals || 9;
+        const seizedDecimals = seizedToken?.decimals || 9;
+
+        const repaidUsd = (Math.abs(repayChange.amount) / Math.pow(10, repayDecimals)) * repayPrice;
+        const seizedUsd = seizedChange
+          ? (Math.abs(seizedChange.amount) / Math.pow(10, seizedDecimals)) * seizedPrice
+          : repaidUsd;
+
+        // Skip tiny amounts (likely not real liquidations)
+        if (repaidUsd < 10) return null;
+
+        return {
+          id: `kamino-${sig.signature}`,
+          hash: sig.signature,
+          timestamp: sig.blockTime || Math.floor(Date.now() / 1000),
+          protocol: 'Kamino' as const,
+          chain: 'Solana',
+          chainId: 0,
+          loanAsset: repaySymbol,
+          collateralAsset: seizedSymbol,
+          repaidUsd,
+          seizedUsd,
+          badDebtUsd: 0,
+          liquidator: '', // Would need more parsing to extract
+          borrower: '',
+          hasSignificantBadDebt: false,
+        };
+      } catch {
+        return null;
+      }
     });
 
-    if (!createResponse.ok) {
-      console.error('[Liquidations] Kamino Flipside API error:', createResponse.status);
-      return [];
-    }
-
-    const createData = await createResponse.json();
-
-    if (createData.error) {
-      console.error('[Liquidations] Kamino Flipside error:', createData.error);
-      return [];
-    }
-
-    const queryRunId = createData.result?.queryRun?.id;
-    if (!queryRunId) {
-      console.error('[Liquidations] Kamino: No query run ID returned');
-      return [];
-    }
-
-    // Step 2: Poll for results (with timeout)
-    const maxAttempts = 30; // 30 seconds max
-    let attempts = 0;
-    let results: FlipsideQueryResult[] = [];
-
-    while (attempts < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
-      attempts++;
-
-      const resultResponse = await fetch(FLIPSIDE_API, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-        },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          method: 'getQueryRunResults',
-          params: [{ queryRunId, format: 'json', page: { number: 1, size: 1000 } }],
-          id: 1,
-        }),
-      });
-
-      if (!resultResponse.ok) {
-        continue;
+    const results = await Promise.all(txPromises);
+    for (const event of results) {
+      if (event !== null) {
+        liquidationEvents.push(event);
       }
+    }
+  }
 
-      const resultData = await resultResponse.json();
+  console.log(`[Liquidations] Kamino: Found ${liquidationEvents.length} liquidation events`);
+  return liquidationEvents;
+}
 
-      if (resultData.error) {
-        // Query still running
-        if (resultData.error.message?.includes('running') || resultData.error.message?.includes('pending')) {
-          continue;
+// Check if transaction contains a liquidation instruction
+function checkForLiquidationInstruction(
+  tx: { transaction: { message: { compiledInstructions?: Array<{ programIdIndex: number; data: Uint8Array }>; instructions?: Array<{ programIdIndex: number; data: string }> }; accountKeys?: Array<{ pubkey: { toBase58: () => string } }> }; meta: unknown },
+  programId: string
+): boolean {
+  const message = tx.transaction.message;
+
+  // Handle versioned transactions
+  if ('compiledInstructions' in message && message.compiledInstructions) {
+    for (const ix of message.compiledInstructions) {
+      // Check if instruction is for Kamino program
+      const accounts = tx.transaction.accountKeys || [];
+      if (accounts[ix.programIdIndex]?.pubkey?.toBase58() === programId) {
+        // Check discriminator (first 8 bytes)
+        if (ix.data.length >= 8) {
+          const discriminator = Buffer.from(ix.data.slice(0, 8));
+          if (discriminator.equals(LIQUIDATION_DISCRIMINATOR)) {
+            return true;
+          }
         }
-        console.error('[Liquidations] Kamino Flipside result error:', resultData.error);
-        return [];
-      }
-
-      const queryRun = resultData.result?.queryRun;
-      if (queryRun?.state === 'QUERY_STATE_SUCCESS') {
-        results = resultData.result?.rows || [];
-        break;
-      } else if (queryRun?.state === 'QUERY_STATE_FAILED') {
-        console.error('[Liquidations] Kamino Flipside query failed:', queryRun.errorMessage);
-        return [];
       }
     }
-
-    if (results.length === 0) {
-      console.log('[Liquidations] Kamino: No liquidations found or query timeout');
-      return [];
-    }
-
-    console.log(`[Liquidations] Kamino: fetched ${results.length} events from Flipside`);
-
-    // Map Flipside results to LiquidationEvent
-    return results.map((row: FlipsideQueryResult) => {
-      const timestamp = Math.floor(new Date(row.BLOCK_TIMESTAMP).getTime() / 1000);
-      const amountUsd = row.AMOUNT_USD || 0;
-
-      return {
-        id: `kamino-${row.TX_ID}`,
-        hash: row.TX_ID,
-        timestamp,
-        protocol: 'Kamino' as const,
-        chain: 'Solana',
-        chainId: 0, // Solana
-        loanAsset: row.DEBT_TOKEN_SYMBOL || 'Unknown',
-        collateralAsset: row.COLLATERAL_TOKEN_SYMBOL || 'Unknown',
-        repaidUsd: amountUsd,
-        seizedUsd: amountUsd, // Flipside provides single amount
-        badDebtUsd: 0, // Not tracked in Flipside data
-        liquidator: row.LIQUIDATOR || '',
-        borrower: row.BORROWER || '',
-        hasSignificantBadDebt: false,
-      };
-    });
-  } catch (error) {
-    console.error('[Liquidations] Error fetching Kamino from Flipside:', error);
-    return [];
   }
+
+  // Handle legacy transactions
+  if ('instructions' in message && message.instructions) {
+    for (const ix of message.instructions) {
+      const accounts = tx.transaction.accountKeys || [];
+      if (accounts[ix.programIdIndex]?.pubkey?.toBase58() === programId) {
+        // Data is base58 encoded in legacy format
+        try {
+          const data = Buffer.from(ix.data, 'base64');
+          if (data.length >= 8) {
+            const discriminator = data.slice(0, 8);
+            if (discriminator.equals(LIQUIDATION_DISCRIMINATOR)) {
+              return true;
+            }
+          }
+        } catch {
+          // Continue if decoding fails
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
+// Extract token balance changes from a transaction
+function extractTokenBalanceChanges(
+  tx: { meta: { preTokenBalances?: Array<{ mint: string; uiTokenAmount: { amount: string } }> | null; postTokenBalances?: Array<{ mint: string; uiTokenAmount: { amount: string } }> | null } | null }
+): Array<{ mint: string; amount: number }> {
+  if (!tx.meta) return [];
+
+  const preBalances = tx.meta.preTokenBalances ?? [];
+  const postBalances = tx.meta.postTokenBalances ?? [];
+
+  const changes: Array<{ mint: string; amount: number }> = [];
+
+  // Create a map of pre-balances by account index
+  const preMap = new Map<string, bigint>();
+  for (const balance of preBalances) {
+    const key = balance.mint;
+    const existing = preMap.get(key) || BigInt(0);
+    preMap.set(key, existing + BigInt(balance.uiTokenAmount.amount));
+  }
+
+  // Calculate changes from post-balances
+  const postMap = new Map<string, bigint>();
+  for (const balance of postBalances) {
+    const key = balance.mint;
+    const existing = postMap.get(key) || BigInt(0);
+    postMap.set(key, existing + BigInt(balance.uiTokenAmount.amount));
+  }
+
+  // Calculate differences
+  const allMints = new Set([...preMap.keys(), ...postMap.keys()]);
+  for (const mint of allMints) {
+    const pre = preMap.get(mint) || BigInt(0);
+    const post = postMap.get(mint) || BigInt(0);
+    const diff = post - pre;
+
+    if (diff !== BigInt(0)) {
+      changes.push({
+        mint,
+        amount: Number(diff),
+      });
+    }
+  }
+
+  return changes;
 }
 
 // ============================================
@@ -901,7 +1017,7 @@ export async function getMultiProtocolLiquidations(
   const eulerTotal = eulerEthEvents.length + eulerBaseEvents.length + eulerArbEvents.length;
   console.log(`  Euler: ${eulerTotal} events (ETH:${eulerEthEvents.length}, Base:${eulerBaseEvents.length}, Arb:${eulerArbEvents.length})`);
   console.log(`  Spark: ${sparkEvents.length} events`);
-  console.log(`  Kamino: ${kaminoEvents.length} events (via Flipside Crypto API)`);
+  console.log(`  Kamino: ${kaminoEvents.length} events (via Public Solana RPC)`);
 
   // Combine all events
   const allEvents: LiquidationEvent[] = [
