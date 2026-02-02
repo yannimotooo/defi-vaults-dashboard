@@ -93,6 +93,9 @@ const EULER_V2_SUBGRAPHS: Record<string, string> = {
 // Spark uses Aave V3 fork - same subgraph pattern
 const SPARK_SUBGRAPH = 'https://api.thegraph.com/subgraphs/name/messari/spark-lend-ethereum';
 
+// Flipside Crypto API for Solana/Kamino liquidations (free tier: 500 query seconds/month)
+const FLIPSIDE_API = 'https://api-v2.flipsidecrypto.xyz/json-rpc';
+
 // Chain ID mapping
 const CHAIN_IDS: Record<string, number> = {
   ethereum: 1,
@@ -688,50 +691,165 @@ async function fetchSparkLiquidations(hours: number = 168): Promise<LiquidationE
 }
 
 // ============================================
-// Kamino Liquidations (Solana RPC)
+// Kamino Liquidations (Flipside Crypto API)
+// Uses solana.defi.ez_lending_liquidations table
+// Free tier: 500 query seconds/month
 // ============================================
 
-// Kamino Lend program ID (lazy initialization to avoid build-time errors)
-const KAMINO_LEND_PROGRAM_ID = 'KLend2g3cP87fffoy8q1mQqGKjrxjC8boSyAYavgmjDZ';
+// Flipside query result interface
+interface FlipsideQueryResult {
+  BLOCK_TIMESTAMP: string;
+  TX_ID: string;
+  PLATFORM: string;
+  LIQUIDATOR: string;
+  BORROWER: string;
+  COLLATERAL_TOKEN_SYMBOL: string;
+  DEBT_TOKEN_SYMBOL: string;
+  AMOUNT_USD: number;
+}
 
 async function fetchKaminoLiquidations(hours: number = 168): Promise<LiquidationEvent[]> {
-  const rpcUrl = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
+  const apiKey = process.env.FLIPSIDE_API_KEY;
+
+  if (!apiKey) {
+    console.log('[Liquidations] Kamino: FLIPSIDE_API_KEY not set, skipping Kamino liquidations');
+    return [];
+  }
+
+  const cutoffDate = new Date(Date.now() - hours * 3600 * 1000);
+  const cutoffStr = cutoffDate.toISOString().replace('T', ' ').split('.')[0];
+
+  // SQL query for Kamino liquidations with USD amounts
+  const sql = `
+    SELECT
+      BLOCK_TIMESTAMP,
+      TX_ID,
+      PLATFORM,
+      LIQUIDATOR,
+      BORROWER,
+      COLLATERAL_TOKEN_SYMBOL,
+      DEBT_TOKEN_SYMBOL,
+      AMOUNT_USD
+    FROM solana.defi.ez_lending_liquidations
+    WHERE PLATFORM = 'kamino'
+      AND BLOCK_TIMESTAMP >= '${cutoffStr}'
+    ORDER BY BLOCK_TIMESTAMP DESC
+    LIMIT 1000
+  `;
 
   try {
-    // Dynamic import to avoid build-time initialization issues
-    const { Connection, PublicKey } = await import('@solana/web3.js');
-    const kaminoProgram = new PublicKey(KAMINO_LEND_PROGRAM_ID);
+    // Step 1: Create query run
+    const createResponse = await fetch(FLIPSIDE_API, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+      },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        method: 'createQueryRun',
+        params: [{ sql, ttlMinutes: 10 }],
+        id: 1,
+      }),
+    });
 
-    const connection = new Connection(rpcUrl, 'confirmed');
-    const cutoffTimestamp = Math.floor(Date.now() / 1000) - (hours * 3600);
+    if (!createResponse.ok) {
+      console.error('[Liquidations] Kamino Flipside API error:', createResponse.status);
+      return [];
+    }
 
-    // Get recent signatures for the Kamino Lend program
-    // Note: This is limited by RPC history depth (typically 1000 transactions)
-    const signatures = await connection.getSignaturesForAddress(
-      kaminoProgram,
-      { limit: 1000 },
-      'confirmed'
-    );
+    const createData = await createResponse.json();
 
-    // Filter to recent timeframe
-    const recentSignatures = signatures.filter(sig =>
-      sig.blockTime && sig.blockTime >= cutoffTimestamp
-    );
+    if (createData.error) {
+      console.error('[Liquidations] Kamino Flipside error:', createData.error);
+      return [];
+    }
 
-    console.log(`[Liquidations] Kamino: Found ${recentSignatures.length} recent transactions`);
+    const queryRunId = createData.result?.queryRun?.id;
+    if (!queryRunId) {
+      console.error('[Liquidations] Kamino: No query run ID returned');
+      return [];
+    }
 
-    // For now, return empty - full implementation would parse each transaction
-    // to identify liquidation instructions
-    // This is complex because Solana doesn't have indexed event logs like EVM
+    // Step 2: Poll for results (with timeout)
+    const maxAttempts = 30; // 30 seconds max
+    let attempts = 0;
+    let results: FlipsideQueryResult[] = [];
 
-    // TODO: Implement full transaction parsing for liquidation events
-    // - Fetch transaction details for each signature
-    // - Parse instruction data to identify liquidation calls
-    // - Extract amounts and addresses
+    while (attempts < maxAttempts) {
+      await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
+      attempts++;
 
-    return [];
+      const resultResponse = await fetch(FLIPSIDE_API, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+        },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          method: 'getQueryRunResults',
+          params: [{ queryRunId, format: 'json', page: { number: 1, size: 1000 } }],
+          id: 1,
+        }),
+      });
+
+      if (!resultResponse.ok) {
+        continue;
+      }
+
+      const resultData = await resultResponse.json();
+
+      if (resultData.error) {
+        // Query still running
+        if (resultData.error.message?.includes('running') || resultData.error.message?.includes('pending')) {
+          continue;
+        }
+        console.error('[Liquidations] Kamino Flipside result error:', resultData.error);
+        return [];
+      }
+
+      const queryRun = resultData.result?.queryRun;
+      if (queryRun?.state === 'QUERY_STATE_SUCCESS') {
+        results = resultData.result?.rows || [];
+        break;
+      } else if (queryRun?.state === 'QUERY_STATE_FAILED') {
+        console.error('[Liquidations] Kamino Flipside query failed:', queryRun.errorMessage);
+        return [];
+      }
+    }
+
+    if (results.length === 0) {
+      console.log('[Liquidations] Kamino: No liquidations found or query timeout');
+      return [];
+    }
+
+    console.log(`[Liquidations] Kamino: fetched ${results.length} events from Flipside`);
+
+    // Map Flipside results to LiquidationEvent
+    return results.map((row: FlipsideQueryResult) => {
+      const timestamp = Math.floor(new Date(row.BLOCK_TIMESTAMP).getTime() / 1000);
+      const amountUsd = row.AMOUNT_USD || 0;
+
+      return {
+        id: `kamino-${row.TX_ID}`,
+        hash: row.TX_ID,
+        timestamp,
+        protocol: 'Kamino' as const,
+        chain: 'Solana',
+        chainId: 0, // Solana
+        loanAsset: row.DEBT_TOKEN_SYMBOL || 'Unknown',
+        collateralAsset: row.COLLATERAL_TOKEN_SYMBOL || 'Unknown',
+        repaidUsd: amountUsd,
+        seizedUsd: amountUsd, // Flipside provides single amount
+        badDebtUsd: 0, // Not tracked in Flipside data
+        liquidator: row.LIQUIDATOR || '',
+        borrower: row.BORROWER || '',
+        hasSignificantBadDebt: false,
+      };
+    });
   } catch (error) {
-    console.error('[Liquidations] Error fetching Kamino:', error);
+    console.error('[Liquidations] Error fetching Kamino from Flipside:', error);
     return [];
   }
 }
@@ -783,7 +901,7 @@ export async function getMultiProtocolLiquidations(
   const eulerTotal = eulerEthEvents.length + eulerBaseEvents.length + eulerArbEvents.length;
   console.log(`  Euler: ${eulerTotal} events (ETH:${eulerEthEvents.length}, Base:${eulerBaseEvents.length}, Arb:${eulerArbEvents.length})`);
   console.log(`  Spark: ${sparkEvents.length} events`);
-  console.log(`  Kamino: ${kaminoEvents.length} events (Solana RPC parsing not implemented)`);
+  console.log(`  Kamino: ${kaminoEvents.length} events (via Flipside Crypto API)`);
 
   // Combine all events
   const allEvents: LiquidationEvent[] = [
