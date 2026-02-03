@@ -479,6 +479,29 @@ async function fetchAaveLiquidations(
 // Euler V2 Liquidations (Goldsky subgraph)
 // ============================================
 
+// Known Euler vault underlying assets (address -> symbol mapping)
+// These are the underlying ERC20 tokens, not the eVault tokens
+const EULER_UNDERLYING_ASSETS: Record<string, { symbol: string; decimals: number }> = {
+  // Stablecoins
+  '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48': { symbol: 'USDC', decimals: 6 },
+  '0xdac17f958d2ee523a2206206994597c13d831ec7': { symbol: 'USDT', decimals: 6 },
+  '0x6b175474e89094c44da98b954eedeac495271d0f': { symbol: 'DAI', decimals: 18 },
+  '0x4c9edd5852cd905f086c759e8383e09bff1e68b3': { symbol: 'USDe', decimals: 18 },
+  '0x9d39a5de30e57443bff2a8307a4256c8797a3497': { symbol: 'sUSDe', decimals: 18 },
+  '0xc139190f447e929f090edeb554d95abb8b18ac1c': { symbol: 'USDtb', decimals: 18 },
+  // ETH variants
+  '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2': { symbol: 'WETH', decimals: 18 },
+  '0xae78736cd615f374d3085123a210448e74fc6393': { symbol: 'rETH', decimals: 18 },
+  '0xbe9895146f7af43049ca1c1ae358b0541ea49704': { symbol: 'cbETH', decimals: 18 },
+  '0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0': { symbol: 'wstETH', decimals: 18 },
+  '0xcd5fe23c85820f7b72d0926fc9b05b43e359b7ee': { symbol: 'weETH', decimals: 18 },
+  // BTC
+  '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599': { symbol: 'WBTC', decimals: 8 },
+  '0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf': { symbol: 'cbBTC', decimals: 8 },
+  // Other
+  '0x83f20f44975d03b1b09e64809b757c47f942beea': { symbol: 'sDAI', decimals: 18 },
+};
+
 async function fetchEulerLiquidations(
   network: string,
   hours: number = 168
@@ -488,8 +511,8 @@ async function fetchEulerLiquidations(
 
   const cutoffTimestamp = Math.floor(Date.now() / 1000) - (hours * 3600);
 
-  // Euler Goldsky schema uses 'liquidates' with different field names
-  const query = `
+  // Step 1: Fetch liquidations (vault and collateral are just addresses in this schema)
+  const liquidationsQuery = `
     query GetLiquidations($timestamp: BigInt!) {
       liquidates(
         first: 500
@@ -504,14 +527,8 @@ async function fetchEulerLiquidations(
         violator
         repayAssets
         yieldBalance
-        vault {
-          id
-          symbol
-        }
-        collateral {
-          id
-          symbol
-        }
+        vault
+        collateral
       }
     }
   `;
@@ -521,7 +538,7 @@ async function fetchEulerLiquidations(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        query,
+        query: liquidationsQuery,
         variables: { timestamp: cutoffTimestamp.toString() }
       }),
       next: { revalidate: 300 },
@@ -540,62 +557,106 @@ async function fetchEulerLiquidations(
     }
 
     const liquidations = data?.data?.liquidates || [];
-    console.log(`[Liquidations] Euler ${network}: fetched ${liquidations.length} events`);
+    if (liquidations.length === 0) {
+      console.log(`[Liquidations] Euler ${network}: no liquidations found`);
+      return [];
+    }
 
-    // Get token prices for USD conversion
-    const symbols = liquidations
-      .map((liq: { vault?: { symbol?: string }; collateral?: { symbol?: string } }) => [
-        liq.vault?.symbol,
-        liq.collateral?.symbol,
-      ])
-      .flat()
-      .filter(Boolean);
-    const prices = await getTokenPrices(symbols);
+    console.log(`[Liquidations] Euler ${network}: fetched ${liquidations.length} liquidation events`);
 
-    return liquidations.map((liq: {
-      id: string;
-      transactionHash: string;
-      blockTimestamp: string;
-      liquidator: string;
-      violator: string;
-      repayAssets: string;
-      yieldBalance: string;
-      vault?: { id: string; symbol?: string };
-      collateral?: { id: string; symbol?: string };
-    }) => {
-      const loanSymbol = liq.vault?.symbol?.toUpperCase() || 'Unknown';
-      const collateralSymbol = liq.collateral?.symbol?.toUpperCase() || 'Unknown';
+    // Step 2: Get unique vault addresses and fetch their details
+    const vaultAddresses = [...new Set(
+      liquidations.flatMap((liq: { vault: string; collateral: string }) => [liq.vault, liq.collateral])
+    )] as string[];
 
-      // Convert raw amounts to USD using CoinGecko prices
-      // repayAssets is in raw token units (needs decimal adjustment)
+    // Fetch vault details to get symbol, decimals, and underlying asset
+    const vaultsQuery = `
+      query GetVaults($vaults: [Bytes!]!) {
+        eulerVaults(where: { id_in: $vaults }) {
+          id
+          symbol
+          decimals
+          asset
+        }
+      }
+    `;
+
+    const vaultsResponse = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: vaultsQuery,
+        variables: { vaults: vaultAddresses }
+      }),
+    });
+
+    const vaultsData = await vaultsResponse.json();
+    const vaults = vaultsData?.data?.eulerVaults || [];
+
+    // Build vault lookup map
+    const vaultInfo: Record<string, { symbol: string; decimals: number; underlyingSymbol: string }> = {};
+    for (const v of vaults) {
+      const underlying = EULER_UNDERLYING_ASSETS[v.asset?.toLowerCase()] || { symbol: 'Unknown', decimals: 18 };
+      vaultInfo[v.id.toLowerCase()] = {
+        symbol: v.symbol,
+        decimals: parseInt(v.decimals),
+        underlyingSymbol: underlying.symbol,
+      };
+    }
+
+    console.log(`[Liquidations] Euler ${network}: resolved ${Object.keys(vaultInfo).length} vault details`);
+
+    // Step 3: Get prices for underlying assets
+    const underlyingSymbols = [...new Set(Object.values(vaultInfo).map(v => v.underlyingSymbol))];
+    const prices = await getTokenPrices(underlyingSymbols);
+
+    // Step 4: Convert liquidations to events with USD values
+    const events: LiquidationEvent[] = [];
+
+    for (const liq of liquidations) {
+      const vaultAddr = (liq.vault as string).toLowerCase();
+      const collateralAddr = (liq.collateral as string).toLowerCase();
+
+      const vault = vaultInfo[vaultAddr] || { symbol: 'Unknown', decimals: 18, underlyingSymbol: 'Unknown' };
+      const collateral = vaultInfo[collateralAddr] || { symbol: 'Unknown', decimals: 18, underlyingSymbol: 'Unknown' };
+
+      // Use vault decimals for repayAssets conversion
       const rawRepay = parseFloat(liq.repayAssets) || 0;
       const rawYield = parseFloat(liq.yieldBalance) || 0;
 
-      // Assume 18 decimals for most tokens, apply price
-      const loanPrice = prices[loanSymbol] || 0;
-      const collateralPrice = prices[collateralSymbol] || 0;
+      // Get underlying asset price (USDC, WETH, etc.)
+      const loanPrice = prices[vault.underlyingSymbol] || (vault.underlyingSymbol.includes('USD') ? 1 : 0);
+      const collateralPrice = prices[collateral.underlyingSymbol] || (collateral.underlyingSymbol.includes('USD') ? 1 : 0);
 
-      // Rough USD estimate (may be off due to decimal differences)
-      const repaidUsd = (rawRepay / 1e18) * loanPrice;
-      const seizedUsd = (rawYield / 1e18) * collateralPrice;
+      // Convert using actual decimals
+      const repaidUsd = (rawRepay / Math.pow(10, vault.decimals)) * loanPrice;
+      const seizedUsd = (rawYield / Math.pow(10, collateral.decimals)) * collateralPrice;
 
-      return {
+      // Skip tiny liquidations (noise)
+      if (repaidUsd < 1) continue;
+
+      events.push({
         id: `euler-${network}-${liq.id}`,
         hash: liq.transactionHash,
         timestamp: parseInt(liq.blockTimestamp),
         protocol: 'Euler' as const,
         chain: network.charAt(0).toUpperCase() + network.slice(1),
         chainId: CHAIN_IDS[network] || 1,
-        loanAsset: loanSymbol,
-        collateralAsset: collateralSymbol,
+        loanAsset: vault.underlyingSymbol,
+        collateralAsset: collateral.underlyingSymbol,
         repaidUsd,
         seizedUsd,
         badDebtUsd: 0,
         liquidator: liq.liquidator,
         borrower: liq.violator,
         hasSignificantBadDebt: false,
-      };
-    });
+      });
+    }
+
+    const totalVolume = events.reduce((sum, e) => sum + e.repaidUsd, 0);
+    console.log(`[Liquidations] Euler ${network}: ${events.length} events, $${(totalVolume / 1e6).toFixed(2)}M volume`);
+
+    return events;
   } catch (error) {
     console.error(`[Liquidations] Error fetching Euler ${network}:`, error);
     return [];
