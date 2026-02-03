@@ -1113,12 +1113,12 @@ export async function getMultiProtocolLiquidations(
     chainId: e.chainId,
     loanAsset: e.loanAsset,
     collateralAsset: e.collateralAsset,
-    marketKey: e.marketKey || null,
+    marketKey: e.marketKey,
     repaidUsd: e.repaidUsd,
     seizedUsd: e.seizedUsd,
     badDebtUsd: e.badDebtUsd,
     liquidator: e.liquidator,
-    borrower: e.borrower || null,
+    borrower: e.borrower,
     hasSignificantBadDebt: e.hasSignificantBadDebt,
   }));
 
