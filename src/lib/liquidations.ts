@@ -1103,11 +1103,32 @@ export async function getMultiProtocolLiquidations(
   // Compute daily aggregation from ALL events before slicing
   const dailyVolume = aggregateLiquidationsByDay(allEvents, 7);
 
+  // Get recent events (make explicit copy to avoid serialization issues)
+  const recentEvents = allEvents.slice(0, 100).map(e => ({
+    id: e.id,
+    hash: e.hash,
+    timestamp: e.timestamp,
+    protocol: e.protocol,
+    chain: e.chain,
+    chainId: e.chainId,
+    loanAsset: e.loanAsset,
+    collateralAsset: e.collateralAsset,
+    marketKey: e.marketKey || null,
+    repaidUsd: e.repaidUsd,
+    seizedUsd: e.seizedUsd,
+    badDebtUsd: e.badDebtUsd,
+    liquidator: e.liquidator,
+    borrower: e.borrower || null,
+    hasSignificantBadDebt: e.hasSignificantBadDebt,
+  }));
+
+  console.log(`[Liquidations] Returning: ${recentEvents.length} recent events, ${dailyVolume.length} daily entries`);
+
   return {
-    recentEvents: allEvents.slice(0, 100), // Top 100 most recent
+    recentEvents,
     protocolSummaries,
     totals,
-    dailyVolume, // Pre-computed from all events
+    dailyVolume,
     timestamp: new Date().toISOString(),
   };
 }
@@ -1117,26 +1138,27 @@ function aggregateLiquidationsByDay(
   events: LiquidationEvent[],
   days: number = 7
 ): DailyLiquidationVolume[] {
-  const dailyData = new Map<string, DailyLiquidationVolume>();
+  // Use object instead of Map for more reliable serialization
+  const dailyData: Record<string, DailyLiquidationVolume> = {};
 
   // Initialize days
   for (let i = 0; i < days; i++) {
     const date = new Date();
     date.setDate(date.getDate() - i);
     const dateStr = date.toISOString().split('T')[0];
-    dailyData.set(dateStr, {
+    dailyData[dateStr] = {
       date: dateStr,
       volume: 0,
       count: 0,
       badDebt: 0,
       byProtocol: {},
-    });
+    };
   }
 
   // Aggregate events
   for (const event of events) {
     const date = new Date(event.timestamp * 1000).toISOString().split('T')[0];
-    const day = dailyData.get(date);
+    const day = dailyData[date];
     if (day) {
       day.volume += event.repaidUsd;
       day.count += 1;
@@ -1145,6 +1167,12 @@ function aggregateLiquidationsByDay(
     }
   }
 
-  // Convert to array sorted by date
-  return Array.from(dailyData.values()).sort((a, b) => a.date.localeCompare(b.date));
+  // Convert to array sorted by date (explicit array construction)
+  const result: DailyLiquidationVolume[] = [];
+  for (const dateStr of Object.keys(dailyData).sort()) {
+    result.push(dailyData[dateStr]);
+  }
+
+  console.log(`[Liquidations] Daily aggregation: ${result.length} days, processed ${events.length} events`);
+  return result;
 }
