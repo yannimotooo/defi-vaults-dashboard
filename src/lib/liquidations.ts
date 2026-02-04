@@ -926,10 +926,18 @@ async function fetchKaminoLiquidations(hours: number = 168): Promise<Liquidation
       const enableDebug = i === 0;
       let debugCount = 0;
 
+      // Log summary of what Helius returned
+      if (enableDebug && parsedTxs.length > 0) {
+        const types = new Set(parsedTxs.map((t: { type?: string }) => t.type).filter(Boolean));
+        const sources = new Set(parsedTxs.map((t: { source?: string }) => t.source).filter(Boolean));
+        console.log(`[Kamino Debug] Batch types: ${[...types].join(', ') || 'none'}`);
+        console.log(`[Kamino Debug] Batch sources: ${[...sources].join(', ') || 'none'}`);
+      }
+
       for (const tx of parsedTxs) {
         // Look for liquidation-related instructions or token transfers
-        // Debug first 5 transactions to see Helius response format
-        const shouldDebug = enableDebug && debugCount < 5;
+        // Debug first 10 transactions to see Helius response format
+        const shouldDebug = enableDebug && debugCount < 10;
         const event = parseKaminoTransaction(tx, prices, shouldDebug);
         if (shouldDebug) debugCount++;
 
@@ -1034,58 +1042,74 @@ function parseKaminoTransaction(
     }
   }
 
-  // Check if this involves Kamino Lend program
-  const involvesKamino = tx.instructions?.some(
+  // Check if this involves Kamino - multiple detection methods
+  const involvesKaminoProgram = tx.instructions?.some(
     (ix: { programId: string }) => ix.programId === KAMINO_LEND_PROGRAM_ID
   );
+  const sourceIsKamino = tx.source?.toUpperCase().includes('KAMINO');
+  const descriptionMentionsKamino = tx.description?.toLowerCase().includes('kamino');
+
+  const involvesKamino = involvesKaminoProgram || sourceIsKamino || descriptionMentionsKamino;
 
   if (!involvesKamino) {
     if (debug) {
-      console.log(`[Kamino Debug] Skipping: does not involve Kamino Lend program`);
+      console.log(`[Kamino Debug] Skipping: does not involve Kamino (program: ${involvesKaminoProgram}, source: ${sourceIsKamino}, desc: ${descriptionMentionsKamino})`);
     }
     return null;
   }
 
-  // Look for liquidation indicators:
-  // Helius types for liquidations: LIQUIDATE, LIQUIDATE_OBLIGATION_AND_REDEEM_RESERVE_COLLATERAL
-  // Note: Helius may also use UNKNOWN, SWAP, or program-specific names
-  const liquidationTypes = [
-    'LIQUIDATE',
-    'LIQUIDATE_OBLIGATION',
-    'LIQUIDATE_OBLIGATION_AND_REDEEM_RESERVE_COLLATERAL',
-    // Kamino-specific instruction names that may appear in Helius
-    'LIQUIDATE_OBLIGATION_V1',
-    'LIQUIDATE_OBLIGATION_V2',
-  ];
-  const isLiquidationType = liquidationTypes.some(t => tx.type?.toUpperCase().includes(t)) ||
-    tx.description?.toLowerCase().includes('liquidat');
+  // Look for liquidation indicators - be more permissive
+  const txTypeUpper = tx.type?.toUpperCase() || '';
+  const descLower = tx.description?.toLowerCase() || '';
+
+  const isLiquidationType =
+    txTypeUpper.includes('LIQUIDAT') ||
+    txTypeUpper.includes('LIQUIDATION') ||
+    descLower.includes('liquidat') ||
+    descLower.includes('liquidation') ||
+    // Kamino-specific patterns
+    descLower.includes('repay') && descLower.includes('collateral');
 
   if (debug) {
-    console.log(`[Kamino Debug] isLiquidationType: ${isLiquidationType}`);
+    console.log(`[Kamino Debug] isLiquidationType: ${isLiquidationType} (type: ${tx.type}, source: ${tx.source})`);
   }
 
-  // Analyze token transfers
+  // Analyze ALL token transfers, not just known ones
   const tokenTransfers = tx.tokenTransfers || [];
-  const significantTransfers = tokenTransfers.filter(t => {
+
+  // Count transfers with any significant amount (regardless of whether we know the token)
+  const allSignificantTransfers = tokenTransfers.filter(t => {
+    // Check if we know this token
     const tokenInfo = SOLANA_TOKEN_MINTS[t.mint];
-    if (!tokenInfo) return false;
-    const price = prices[tokenInfo.symbol] || 0;
-    const usdValue = (t.tokenAmount / Math.pow(10, tokenInfo.decimals)) * price;
-    return usdValue > 100; // Filter noise
+    if (tokenInfo) {
+      const price = prices[tokenInfo.symbol] || 0;
+      const usdValue = (t.tokenAmount / Math.pow(10, tokenInfo.decimals)) * price;
+      return usdValue > 100;
+    }
+    // For unknown tokens, just check if amount is non-trivial
+    // Assume 6-9 decimals for unknown tokens
+    return Math.abs(t.tokenAmount) > 1000000; // > 1 token with 6 decimals
   });
 
-  // For liquidation, we expect at least 2 significant transfers
-  // (one for repaying debt, one for seizing collateral)
-  if (significantTransfers.length < 2 && !isLiquidationType) {
+  // For liquidation, we expect at least 2 transfers (repay + seize)
+  // But if it's explicitly marked as liquidation type, accept with 1+ transfers
+  const hasEnoughTransfers = allSignificantTransfers.length >= 2 ||
+    (isLiquidationType && allSignificantTransfers.length >= 1) ||
+    (isLiquidationType && tokenTransfers.length >= 2);
+
+  if (!hasEnoughTransfers && !isLiquidationType) {
     if (debug) {
-      console.log(`[Kamino Debug] Skipping: ${significantTransfers.length} significant transfers, not liquidation type`);
+      console.log(`[Kamino Debug] Skipping: ${allSignificantTransfers.length} significant transfers (${tokenTransfers.length} total), not liquidation type`);
     }
     return null;
   }
 
   if (debug) {
-    console.log(`[Kamino Debug] Processing: ${significantTransfers.length} significant transfers, isLiquidationType=${isLiquidationType}`);
+    console.log(`[Kamino Debug] Processing: ${allSignificantTransfers.length}/${tokenTransfers.length} transfers, isLiquidationType=${isLiquidationType}`);
   }
+
+  // Use allSignificantTransfers for further processing
+  const significantTransfers = allSignificantTransfers;
 
   // Calculate repaid and seized amounts
   let repaidUsd = 0;
