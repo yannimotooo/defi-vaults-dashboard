@@ -1,6 +1,9 @@
 // Multi-Protocol Liquidation Data Module
 // Aggregates liquidation events from Morpho, Aave V3, Euler V2, Spark, and Kamino
 // Uses free APIs only: Morpho GraphQL (paginated), The Graph, Euler Goldsky, CoinGecko for prices
+// Falls back to Dune for Kamino when Helius returns no data
+
+import { getKaminoLiquidationsFromDune } from './dune';
 
 // ============================================
 // Types
@@ -1212,6 +1215,43 @@ export async function getMultiProtocolLiquidations(
   console.log(`  Spark: ${sparkEvents.length} events`);
   console.log(`  Kamino: ${kaminoEvents.length} events (via Helius API)`);
 
+  // Fallback to Dune for Kamino if Helius returned no data
+  let finalKaminoEvents = kaminoEvents;
+  if (kaminoEvents.length === 0) {
+    console.log('[Liquidations] Kamino: Helius returned 0 events, trying Dune fallback...');
+    try {
+      const duneSummary = await getKaminoLiquidationsFromDune();
+      if (duneSummary.totalVolume7d > 0) {
+        // Convert Dune summary data to synthetic LiquidationEvents
+        // We don't have individual events, but we can create daily aggregates
+        const syntheticEvents: LiquidationEvent[] = duneSummary.dailyData
+          .filter(d => d.seizedUsd > 0)
+          .map((day, i) => ({
+            id: `kamino-dune-${day.date}-${i}`,
+            hash: `dune-aggregate-${day.date}`,
+            timestamp: Math.floor(new Date(day.date).getTime() / 1000),
+            protocol: 'Kamino' as const,
+            chain: 'Solana',
+            chainId: 0,
+            loanAsset: 'Multiple',
+            collateralAsset: 'Multiple',
+            repaidUsd: day.seizedUsd,
+            seizedUsd: day.seizedUsd,
+            badDebtUsd: 0,
+            liquidator: '',
+            borrower: '',
+            hasSignificantBadDebt: false,
+          }));
+        finalKaminoEvents = syntheticEvents;
+        console.log(`[Liquidations] Kamino: Dune fallback returned ${syntheticEvents.length} daily aggregates, $${(duneSummary.totalVolume7d / 1e6).toFixed(2)}M (7d)`);
+      } else {
+        console.log('[Liquidations] Kamino: Dune also returned no data');
+      }
+    } catch (error) {
+      console.error('[Liquidations] Kamino: Dune fallback failed:', error);
+    }
+  }
+
   // Combine all events
   const allEvents: LiquidationEvent[] = [
     ...morphoEvents,
@@ -1224,7 +1264,7 @@ export async function getMultiProtocolLiquidations(
     ...eulerBaseEvents,
     ...eulerArbEvents,
     ...sparkEvents,
-    ...kaminoEvents,
+    ...finalKaminoEvents,
   ];
 
   // Sort by timestamp (most recent first)
