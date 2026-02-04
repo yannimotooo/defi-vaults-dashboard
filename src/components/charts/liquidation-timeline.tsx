@@ -143,7 +143,7 @@ export function LiquidationTimeline({
             width={60}
           />
           <Tooltip content={<CustomTooltip />} />
-          {showByProtocol && protocols.length > 1 && (
+          {showByProtocol && protocols.length > 0 && (
             <Legend
               wrapperStyle={{ paddingTop: 10 }}
               formatter={(value) => (
@@ -151,7 +151,7 @@ export function LiquidationTimeline({
               )}
             />
           )}
-          {showByProtocol && protocols.length > 1 ? (
+          {showByProtocol && protocols.length > 0 ? (
             // Stacked bars by protocol
             protocols.map((protocol) => (
               <Bar

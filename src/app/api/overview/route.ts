@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getAllProtocols, filterVaultProtocols, calculateEcosystemTvl, getProtocol30dChange } from '@/lib/defillama';
 import type { MarketOverview, ChainTVL, ProtocolTVL } from '@/types';
 
+// Skip static generation at build time (route fetches too much data)
+export const dynamic = 'force-dynamic';
 export const revalidate = 300; // 5 minutes
 
 export async function GET() {

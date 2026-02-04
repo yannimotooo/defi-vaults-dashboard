@@ -84,10 +84,13 @@ const AAVE_V3_SUBGRAPHS: Record<string, string> = {
 };
 
 // Euler V2 Subgraphs (Goldsky hosted)
+// Note: Euler V2 also deployed on Sonic, but Goldsky subgraph may not be available yet
 const EULER_V2_SUBGRAPHS: Record<string, string> = {
   ethereum: 'https://api.goldsky.com/api/public/project_cm4iagnemt1wp01xn4gh1agft/subgraphs/euler-v2-mainnet/latest/gn',
   base: 'https://api.goldsky.com/api/public/project_cm4iagnemt1wp01xn4gh1agft/subgraphs/euler-v2-base/latest/gn',
   arbitrum: 'https://api.goldsky.com/api/public/project_cm4iagnemt1wp01xn4gh1agft/subgraphs/euler-v2-arbitrum/latest/gn',
+  // Sonic chain - check if Goldsky subgraph is available
+  // sonic: 'https://api.goldsky.com/api/public/project_cm4iagnemt1wp01xn4gh1agft/subgraphs/euler-v2-sonic/latest/gn',
 };
 
 // Spark uses Aave V3 fork - same subgraph pattern
@@ -101,6 +104,7 @@ const CHAIN_IDS: Record<string, number> = {
   optimism: 10,
   avalanche: 43114,
   base: 8453,
+  sonic: 146, // Sonic chain ID
   solana: 0, // Custom ID for Solana
 };
 
@@ -110,14 +114,19 @@ const CHAIN_IDS: Record<string, number> = {
 
 // Token symbol to CoinGecko ID mapping
 const SYMBOL_TO_COINGECKO_ID: Record<string, string> = {
+  // Major assets
   'WETH': 'ethereum',
   'ETH': 'ethereum',
   'USDC': 'usd-coin',
+  'USDC.E': 'usd-coin',
   'USDT': 'tether',
   'DAI': 'dai',
   'WBTC': 'wrapped-bitcoin',
   'BTC': 'bitcoin',
   'CBBTC': 'coinbase-wrapped-btc',
+  'TBTC': 'tbtc',
+  'LBTC': 'lombard-staked-btc',
+  // Staked ETH variants
   'STETH': 'staked-ether',
   'WSTETH': 'wrapped-steth',
   'RETH': 'rocket-pool-eth',
@@ -129,6 +138,18 @@ const SYMBOL_TO_COINGECKO_ID: Record<string, string> = {
   'METH': 'mantle-staked-ether',
   'SFRXETH': 'staked-frax-ether',
   'FRXETH': 'frax-ether',
+  'SWETH': 'sweth',
+  'PUFETH': 'puffer-staked-eth',
+  // Stablecoins (additional)
+  'USDE': 'ethena-usde',
+  'SUSDE': 'ethena-staked-usde',
+  'SDAI': 'savings-dai',
+  'USDM': 'mountain-protocol-usdm',
+  'WUSDM': 'wrapped-mountain-protocol-usdm',
+  'EURC': 'euro-coin',
+  'USDA': 'angle-usd',
+  'USDTB': 'usdtb',
+  // DeFi governance
   'LINK': 'chainlink',
   'UNI': 'uniswap',
   'AAVE': 'aave',
@@ -142,12 +163,16 @@ const SYMBOL_TO_COINGECKO_ID: Record<string, string> = {
   'BAL': 'balancer',
   'LDO': 'lido-dao',
   'RPL': 'rocket-pool',
-  'APE': 'apecoin',
-  'SHIB': 'shiba-inu',
-  'PEPE': 'pepe',
+  'GNO': 'gnosis',
+  // Layer 2 tokens
   'ARB': 'arbitrum',
   'OP': 'optimism',
   'MATIC': 'matic-network',
+  // Meme coins
+  'APE': 'apecoin',
+  'SHIB': 'shiba-inu',
+  'PEPE': 'pepe',
+  // L1s
   'SOL': 'solana',
   'AVAX': 'avalanche-2',
 };
@@ -482,6 +507,7 @@ async function fetchAaveLiquidations(
 // Known Euler vault underlying assets (address -> symbol mapping)
 // These are the underlying ERC20 tokens, not the eVault tokens
 const EULER_UNDERLYING_ASSETS: Record<string, { symbol: string; decimals: number }> = {
+  // ===== Ethereum Mainnet =====
   // Stablecoins
   '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48': { symbol: 'USDC', decimals: 6 },
   '0xdac17f958d2ee523a2206206994597c13d831ec7': { symbol: 'USDT', decimals: 6 },
@@ -489,17 +515,63 @@ const EULER_UNDERLYING_ASSETS: Record<string, { symbol: string; decimals: number
   '0x4c9edd5852cd905f086c759e8383e09bff1e68b3': { symbol: 'USDe', decimals: 18 },
   '0x9d39a5de30e57443bff2a8307a4256c8797a3497': { symbol: 'sUSDe', decimals: 18 },
   '0xc139190f447e929f090edeb554d95abb8b18ac1c': { symbol: 'USDtb', decimals: 18 },
+  '0x0022228a2cc5e7ef0274a7baa600d44da5ab5776': { symbol: 'USDA', decimals: 18 },
+  '0x57f5e098cad7a3d1eed53991d4d66c45c9af7812': { symbol: 'wUSDM', decimals: 18 },
+  '0x59d9356e565ab3a36dd77763fc0d87feaf85508c': { symbol: 'USDM', decimals: 18 },
+  '0x8c9532a60e0e7c6bbd2b2c1303f63ace1c3e9811': { symbol: 'EURC', decimals: 6 },
+  '0x1abaea1f7c830bd89acc67ec4af516284b1bc33c': { symbol: 'EURC', decimals: 6 }, // Alternative address
+  '0x0000206329b97db379d5e1bf586bbdb969c63274': { symbol: 'USDA', decimals: 18 },
   // ETH variants
   '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2': { symbol: 'WETH', decimals: 18 },
   '0xae78736cd615f374d3085123a210448e74fc6393': { symbol: 'rETH', decimals: 18 },
   '0xbe9895146f7af43049ca1c1ae358b0541ea49704': { symbol: 'cbETH', decimals: 18 },
   '0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0': { symbol: 'wstETH', decimals: 18 },
   '0xcd5fe23c85820f7b72d0926fc9b05b43e359b7ee': { symbol: 'weETH', decimals: 18 },
+  '0xbf5495efe5db9ce00f80364c8b423567e58d2110': { symbol: 'ezETH', decimals: 18 },
+  '0xa35b1b31ce002fbf2058d22f30f95d405200a15b': { symbol: 'rsETH', decimals: 18 },
+  '0xf1c9acdc66974dfb6decb12aa385b9cd01190e38': { symbol: 'osETH', decimals: 18 },
+  '0xd9a442856c234a39a81a089c06451ebaa4306a72': { symbol: 'pufETH', decimals: 18 },
+  '0xa1290d69c65a6fe4df752f95823fae25cb99e5a7': { symbol: 'rsETH', decimals: 18 },
+  '0xf951e335afb289353dc249e82926178eac7ded78': { symbol: 'swETH', decimals: 18 },
+  '0xac3e018457b222d93114458476f3e3416abbe38f': { symbol: 'sfrxETH', decimals: 18 },
+  '0x5e8422345238f34275888049021821e8e08caa1f': { symbol: 'frxETH', decimals: 18 },
+  '0xd5f7838f5c461feff7fe49ea5ebaf7728bb0adfa': { symbol: 'mETH', decimals: 18 },
   // BTC
   '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599': { symbol: 'WBTC', decimals: 8 },
   '0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf': { symbol: 'cbBTC', decimals: 8 },
+  '0x8db2350d78abc13f5673a411d4700bcf87864dde': { symbol: 'tBTC', decimals: 18 },
+  '0xfae103dc9cf190ed75350761e95403b7b8afa6c0': { symbol: 'rswBTC', decimals: 8 },
+  '0x0052fffc577f39f0d3eaa5cefc61c45a2a10aab3': { symbol: 'LBTC', decimals: 8 },
   // Other
   '0x83f20f44975d03b1b09e64809b757c47f942beea': { symbol: 'sDAI', decimals: 18 },
+  '0x6810e776880c02933d47db1b9fc05908e5386b96': { symbol: 'GNO', decimals: 18 },
+  '0xc00e94cb662c3520282e6f5717214004a7f26888': { symbol: 'COMP', decimals: 18 },
+  '0x5a98fcbea516cf06857215779fd812ca3bef1b32': { symbol: 'LDO', decimals: 18 },
+  '0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9': { symbol: 'AAVE', decimals: 18 },
+  '0x514910771af9ca656af840dff83e8264ecf986ca': { symbol: 'LINK', decimals: 18 },
+  '0x1f9840a85d5af5bf1d1762f925bdaddc4201f984': { symbol: 'UNI', decimals: 18 },
+  '0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2': { symbol: 'MKR', decimals: 18 },
+  '0xd33526068d116ce69f19a9ee46f0bd304f21a51f': { symbol: 'RPL', decimals: 18 },
+
+  // ===== Base =====
+  '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913': { symbol: 'USDC', decimals: 6 },
+  '0x4200000000000000000000000000000000000006': { symbol: 'WETH', decimals: 18 },
+  '0x50c5725949a6f0c72e6c4a641f24049a917db0cb': { symbol: 'DAI', decimals: 18 },
+  '0xc1cba3fcea344f92d9239c08c0568f6f2f0ee452': { symbol: 'wstETH', decimals: 18 },
+  '0x2ae3f1ec7f1f5012cfeab0185bfc7aa3cf0dec22': { symbol: 'cbETH', decimals: 18 },
+  '0x04c0599ae5a44757c0af6f9ec3b93da8976c150a': { symbol: 'weETH', decimals: 18 },
+  // Note: cbBTC (0xcbb7...), USDe, sUSDe have same address as mainnet - already mapped above
+
+  // ===== Arbitrum =====
+  '0xaf88d065e77c8cc2239327c5edb3a432268e5831': { symbol: 'USDC', decimals: 6 },
+  '0xff970a61a04b1ca14834a43f5de4533ebddb5cc8': { symbol: 'USDC.e', decimals: 6 },
+  '0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9': { symbol: 'USDT', decimals: 6 },
+  '0xda10009cbd5d07dd0cecc66161fc93d7c9000da1': { symbol: 'DAI', decimals: 18 },
+  '0x82af49447d8a07e3bd95bd0d56f35241523fbab1': { symbol: 'WETH', decimals: 18 },
+  '0x5979d7b546e38e414f7e9822514be443a4800529': { symbol: 'wstETH', decimals: 18 },
+  '0x35751007a407ca6feffe80b3cb397736d2cf4dbe': { symbol: 'weETH', decimals: 18 },
+  '0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f': { symbol: 'WBTC', decimals: 8 },
+  // Note: USDe, sUSDe have same address as mainnet - already mapped above
 };
 
 async function fetchEulerLiquidations(
@@ -847,9 +919,17 @@ async function fetchKaminoLiquidations(hours: number = 168): Promise<Liquidation
 
       const parsedTxs = await parsedTxResponse.json();
 
+      // Enable debug logging for first batch to analyze Helius response format
+      const enableDebug = i === 0;
+      let debugCount = 0;
+
       for (const tx of parsedTxs) {
         // Look for liquidation-related instructions or token transfers
-        const event = parseKaminoTransaction(tx, prices);
+        // Debug first 5 transactions to see Helius response format
+        const shouldDebug = enableDebug && debugCount < 5;
+        const event = parseKaminoTransaction(tx, prices, shouldDebug);
+        if (shouldDebug) debugCount++;
+
         if (event) {
           liquidationEvents.push(event);
         }
@@ -863,6 +943,36 @@ async function fetchKaminoLiquidations(hours: number = 168): Promise<Liquidation
 
     const totalVolume = liquidationEvents.reduce((sum, e) => sum + e.repaidUsd, 0);
     console.log(`[Liquidations] Kamino: Found ${liquidationEvents.length} liquidation events, $${(totalVolume / 1e6).toFixed(2)}M volume`);
+
+    // Log unique transaction types seen for debugging
+    const allTxTypes = new Set<string>();
+    for (let i = 0; i < Math.min(recentSignatures.length, 100); i += batchSize) {
+      const batch = recentSignatures.slice(i, i + batchSize);
+      const txSignatures = batch.map((s: { signature: string }) => s.signature);
+      try {
+        const resp = await fetch(
+          `https://api.helius.xyz/v0/transactions?api-key=${heliusApiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ transactions: txSignatures }),
+          }
+        );
+        if (resp.ok) {
+          const txs = await resp.json();
+          for (const t of txs) {
+            if (t.type) allTxTypes.add(t.type);
+          }
+        }
+        break; // Only sample first batch
+      } catch {
+        break;
+      }
+    }
+    if (allTxTypes.size > 0) {
+      console.log(`[Liquidations] Kamino: Unique tx types seen: ${[...allTxTypes].join(', ')}`);
+    }
+
     return liquidationEvents;
   } catch (error) {
     console.error('[Liquidations] Kamino: Error fetching via Helius:', error);
@@ -905,24 +1015,51 @@ function parseKaminoTransaction(
       innerInstructions?: Array<unknown>;
     }>;
   },
-  prices: Record<string, number>
+  prices: Record<string, number>,
+  debug: boolean = false
 ): LiquidationEvent | null {
+  // Debug logging for Helius response analysis
+  if (debug) {
+    console.log(`[Kamino Debug] tx.signature: ${tx.signature?.slice(0, 20)}...`);
+    console.log(`[Kamino Debug] tx.type: ${tx.type}`);
+    console.log(`[Kamino Debug] tx.description: ${tx.description?.slice(0, 100)}`);
+    console.log(`[Kamino Debug] tx.source: ${tx.source}`);
+    console.log(`[Kamino Debug] tokenTransfers count: ${tx.tokenTransfers?.length || 0}`);
+    console.log(`[Kamino Debug] instructions count: ${tx.instructions?.length || 0}`);
+    if (tx.instructions?.length) {
+      console.log(`[Kamino Debug] programIds: ${tx.instructions.map(ix => ix.programId).join(', ')}`);
+    }
+  }
+
   // Check if this involves Kamino Lend program
   const involvesKamino = tx.instructions?.some(
     (ix: { programId: string }) => ix.programId === KAMINO_LEND_PROGRAM_ID
   );
 
-  if (!involvesKamino) return null;
+  if (!involvesKamino) {
+    if (debug) {
+      console.log(`[Kamino Debug] Skipping: does not involve Kamino Lend program`);
+    }
+    return null;
+  }
 
   // Look for liquidation indicators:
   // Helius types for liquidations: LIQUIDATE, LIQUIDATE_OBLIGATION_AND_REDEEM_RESERVE_COLLATERAL
+  // Note: Helius may also use UNKNOWN, SWAP, or program-specific names
   const liquidationTypes = [
     'LIQUIDATE',
     'LIQUIDATE_OBLIGATION',
     'LIQUIDATE_OBLIGATION_AND_REDEEM_RESERVE_COLLATERAL',
+    // Kamino-specific instruction names that may appear in Helius
+    'LIQUIDATE_OBLIGATION_V1',
+    'LIQUIDATE_OBLIGATION_V2',
   ];
   const isLiquidationType = liquidationTypes.some(t => tx.type?.toUpperCase().includes(t)) ||
     tx.description?.toLowerCase().includes('liquidat');
+
+  if (debug) {
+    console.log(`[Kamino Debug] isLiquidationType: ${isLiquidationType}`);
+  }
 
   // Analyze token transfers
   const tokenTransfers = tx.tokenTransfers || [];
@@ -937,7 +1074,14 @@ function parseKaminoTransaction(
   // For liquidation, we expect at least 2 significant transfers
   // (one for repaying debt, one for seizing collateral)
   if (significantTransfers.length < 2 && !isLiquidationType) {
+    if (debug) {
+      console.log(`[Kamino Debug] Skipping: ${significantTransfers.length} significant transfers, not liquidation type`);
+    }
     return null;
+  }
+
+  if (debug) {
+    console.log(`[Kamino Debug] Processing: ${significantTransfers.length} significant transfers, isLiquidationType=${isLiquidationType}`);
   }
 
   // Calculate repaid and seized amounts
