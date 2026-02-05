@@ -96,8 +96,12 @@ const EULER_V2_SUBGRAPHS: Record<string, string> = {
   // sonic: 'https://api.goldsky.com/api/public/project_cm4iagnemt1wp01xn4gh1agft/subgraphs/euler-v2-sonic/latest/gn',
 };
 
-// Spark uses Aave V3 fork - same subgraph pattern
-const SPARK_SUBGRAPH = 'https://api.thegraph.com/subgraphs/name/messari/spark-lend-ethereum';
+// Spark Lend Subgraphs (The Graph Decentralized Network)
+// Spark is an Aave V3 fork, uses Messari subgraphs migrated to decentralized network
+const SPARK_SUBGRAPHS: Record<string, string> = {
+  ethereum: 'https://gateway.thegraph.com/api/subgraphs/id/GbKdmBe4ycCYCQLQSjqGg6UHYoYfbyJyq5WrG35pv1si',
+  gnosis: 'https://gateway.thegraph.com/api/subgraphs/id/Bw4RH37UbbGEhHo4FaWwT1dn9QJzm1XSZCyK1cbr6ZKM',
+};
 
 // Chain ID mapping
 const CHAIN_IDS: Record<string, number> = {
@@ -107,6 +111,7 @@ const CHAIN_IDS: Record<string, number> = {
   optimism: 10,
   avalanche: 43114,
   base: 8453,
+  gnosis: 100, // Gnosis Chain (formerly xDai)
   sonic: 146, // Sonic chain ID
   solana: 0, // Custom ID for Solana
 };
@@ -740,10 +745,17 @@ async function fetchEulerLiquidations(
 
 // ============================================
 // Spark Liquidations (Aave V3 Fork)
+// Uses Messari subgraphs on The Graph Decentralized Network
 // ============================================
 
-async function fetchSparkLiquidations(hours: number = 168): Promise<LiquidationEvent[]> {
+async function fetchSparkLiquidationsForChain(
+  chain: string,
+  endpoint: string,
+  hours: number
+): Promise<LiquidationEvent[]> {
   const cutoffTimestamp = Math.floor(Date.now() / 1000) - (hours * 3600);
+  const chainId = CHAIN_IDS[chain] || 1;
+  const chainName = chain.charAt(0).toUpperCase() + chain.slice(1);
 
   const query = `
     query GetLiquidations($timestamp: Int!) {
@@ -770,7 +782,7 @@ async function fetchSparkLiquidations(hours: number = 168): Promise<LiquidationE
   `;
 
   try {
-    const response = await fetch(SPARK_SUBGRAPH, {
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -781,14 +793,21 @@ async function fetchSparkLiquidations(hours: number = 168): Promise<LiquidationE
     });
 
     if (!response.ok) {
-      console.error('[Liquidations] Spark error:', response.status);
+      console.error(`[Liquidations] Spark ${chain} error:`, response.status);
       return [];
     }
 
     const data = await response.json();
+
+    // Handle GraphQL errors
+    if (data.errors) {
+      console.error(`[Liquidations] Spark ${chain} GraphQL errors:`, data.errors);
+      return [];
+    }
+
     const liquidations = data?.data?.liquidates || [];
 
-    return liquidations.map((liq: {
+    const events = liquidations.map((liq: {
       id: string;
       hash: string;
       timestamp: string;
@@ -801,12 +820,12 @@ async function fetchSparkLiquidations(hours: number = 168): Promise<LiquidationE
       const repaidUsd = parseFloat(liq.amountUSD) || 0;
 
       return {
-        id: `spark-${liq.id}`,
+        id: `spark-${chain}-${liq.id}`,
         hash: liq.hash,
         timestamp: parseInt(liq.timestamp),
         protocol: 'Spark' as const,
-        chain: 'Ethereum',
-        chainId: 1,
+        chain: chainName,
+        chainId,
         loanAsset: liq.market?.inputToken?.symbol || 'Unknown',
         collateralAsset: 'Unknown',
         repaidUsd,
@@ -817,10 +836,31 @@ async function fetchSparkLiquidations(hours: number = 168): Promise<LiquidationE
         hasSignificantBadDebt: false,
       };
     });
+
+    const totalVolume = events.reduce((sum: number, e: LiquidationEvent) => sum + e.repaidUsd, 0);
+    console.log(`[Liquidations] Spark ${chain}: ${events.length} events, $${(totalVolume / 1e6).toFixed(2)}M volume`);
+
+    return events;
   } catch (error) {
-    console.error('[Liquidations] Error fetching Spark:', error);
+    console.error(`[Liquidations] Error fetching Spark ${chain}:`, error);
     return [];
   }
+}
+
+async function fetchSparkLiquidations(hours: number = 168): Promise<LiquidationEvent[]> {
+  const allEvents: LiquidationEvent[] = [];
+
+  // Fetch from all Spark chains in parallel
+  const chainPromises = Object.entries(SPARK_SUBGRAPHS).map(([chain, endpoint]) =>
+    fetchSparkLiquidationsForChain(chain, endpoint, hours)
+  );
+
+  const results = await Promise.all(chainPromises);
+  for (const events of results) {
+    allEvents.push(...events);
+  }
+
+  return allEvents;
 }
 
 // ============================================
