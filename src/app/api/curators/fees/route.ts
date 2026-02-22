@@ -126,16 +126,8 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const curatorSlug = searchParams.get('curator');
 
-    // Map slugs to names for Euler lookup
-    const slugToName: Record<string, string> = {
-      'steakhouse-financial': 'Steakhouse',
-      'gauntlet': 'Gauntlet',
-      're7-labs': 'RE7',
-      'mev-capital': 'MEV Capital',
-      'k3-capital': 'K3',
-      'block-analitica': 'Block Analitica',
-      'euler-dao': 'Euler DAO',
-    };
+    // Use centralized slug-to-name mapping
+    const { CURATOR_SLUG_TO_NAME: slugToName } = await import('@/lib/curator-names');
 
     if (curatorSlug) {
       // Get fee data for a specific curator from all sources

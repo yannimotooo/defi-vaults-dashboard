@@ -9,9 +9,10 @@ import type { Curator } from '@/types';
 
 // Simple in-memory cache for Kamino data (expensive Solana RPC call)
 let kaminoCache: { data: KaminoCuratorTvlData[]; timestamp: number } | null = null;
+let kaminoPendingRequest: Promise<KaminoCuratorTvlData[]> | null = null;
 const KAMINO_CACHE_TTL = 20 * 60 * 1000; // 20 minutes (Solana RPC is expensive)
 
-// Fetch Kamino curator data with actual on-chain TVL (cached)
+// Fetch Kamino curator data with actual on-chain TVL (cached + deduped)
 async function getKaminoCuratorData(): Promise<KaminoCuratorTvlData[]> {
   // Return cached data if valid
   if (kaminoCache && Date.now() - kaminoCache.timestamp < KAMINO_CACHE_TTL) {
@@ -19,18 +20,26 @@ async function getKaminoCuratorData(): Promise<KaminoCuratorTvlData[]> {
     return kaminoCache.data;
   }
 
+  // Deduplicate concurrent requests — return existing in-flight promise
+  if (kaminoPendingRequest) {
+    console.log('[Kamino] Deduplicating concurrent request');
+    return kaminoPendingRequest;
+  }
+
+  kaminoPendingRequest = (async () => {
+    try {
+      const rpcUrl = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
+      const curators = await getKaminoCuratorsTvl(rpcUrl);
+      console.log(`[Kamino] Fetched ${curators.length} curators with on-chain TVL`);
+      kaminoCache = { data: curators, timestamp: Date.now() };
+      return curators;
+    } finally {
+      kaminoPendingRequest = null;
+    }
+  })();
+
   try {
-    const rpcUrl = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
-
-    // Use the new getKaminoCuratorsTvl which reads ACTUAL on-chain TVL
-    const curators = await getKaminoCuratorsTvl(rpcUrl);
-
-    console.log(`[Kamino] Fetched ${curators.length} curators with on-chain TVL`);
-
-    // Cache the result
-    kaminoCache = { data: curators, timestamp: Date.now() };
-
-    return curators;
+    return await kaminoPendingRequest;
   } catch (error) {
     console.error('[Kamino] Error fetching curator data:', error);
     // Return stale cache if available
@@ -136,36 +145,7 @@ function formatProtocolName(project: string): string {
   return nameMap[lower] || project.charAt(0).toUpperCase() + project.slice(1);
 }
 
-// Curator name variations for fee data lookup
-// Maps DeFiLlama protocol slugs to possible Morpho/Euler curator names
-const CURATOR_NAME_VARIANTS: Record<string, string[]> = {
-  'steakhouse-financial': ['Steakhouse Financial', 'Steakhouse'],
-  'gauntlet': ['Gauntlet'],
-  'sentora': ['Sentora'],
-  'mev-capital': ['MEV Capital', 'Mev Capital'],
-  're7-labs': ['RE7 Labs', 'Re7 Labs', 'RE7'],
-  'k3-capital': ['K3 Capital', 'K3'],
-  'block-analitica': ['Block Analitica', 'BA Labs'],
-  'euler-dao': ['Euler DAO', 'Euler'],
-  'b-protocol': ['B.Protocol', 'B Protocol'],
-  'b.protocol-curator': ['B.Protocol', 'B Protocol', 'B.Protocol Curator'],
-  'summer-fi': ['Summer.fi', 'Summerfi'],
-  'ultrayield-by-edge': ['UltraYield', 'Ultrayield', 'Edge'],
-  'hyperithm': ['Hyperithm'],
-  'vault-bridge': ['Vault Bridge', 'VaultBridge'],
-  'clearstar': ['Clearstar'],
-  'telos-consilium': ['Telos Consilium', 'Telos'],
-  'tulipa-capital': ['Tulipa Capital', 'Tulipa'],
-  'kpk': ['kpk', 'KPK'],
-  'alphaping': ['AlphaPing', 'Alphaping'],
-  '9summits': ['9Summits', '9summits'],
-  // Name variations between DeFiLlama and Morpho API
-  'yearn-curating': ['Yearn', 'Yearn Curating', 'yearn'],
-  'hakutora': ['Hakutora'],
-  'singularv': ['SingularV'],
-  'avantgarde': ['Avantgarde'],
-  'apostro': ['Apostro'],
-};
+import { CURATOR_NAME_VARIANTS, formatCuratorName } from '@/lib/curator-names';
 
 // Look up fee data using multiple name matching strategies
 function lookupFeeData(
@@ -215,14 +195,14 @@ export async function GET() {
       kaminoCuratorData, // Kamino Solana data with on-chain TVL
     ] = await Promise.all([
       getAllProtocols(),
-      getMorphoCuratorData().catch(() => []),
-      getAllCuratorsFeeData().catch(() => []),
-      getEulerCuratorFeeData().catch(() => []),
-      getYieldPools().catch(() => []),
-      getMorphoCuratorsTvl().catch(() => []),   // Authoritative Morpho TVL
-      getEulerCuratorsTvl().catch(() => []),    // Authoritative Euler TVL
-      getRiskMetrics().catch(() => null),       // Risk data
-      getKaminoCuratorData().catch(() => []),   // Kamino with on-chain TVL
+      getMorphoCuratorData().catch(e => { console.error('[Curators] Dune data failed:', e.message); return []; }),
+      getAllCuratorsFeeData().catch(e => { console.error('[Curators] Morpho fees failed:', e.message); return []; }),
+      getEulerCuratorFeeData().catch(e => { console.error('[Curators] Euler fees failed:', e.message); return []; }),
+      getYieldPools().catch(e => { console.error('[Curators] Yield pools failed:', e.message); return []; }),
+      getMorphoCuratorsTvl().catch(e => { console.error('[Curators] Morpho TVL failed:', e.message); return []; }),
+      getEulerCuratorsTvl().catch(e => { console.error('[Curators] Euler TVL failed:', e.message); return []; }),
+      getRiskMetrics().catch(e => { console.error('[Curators] Risk metrics failed:', e.message); return null; }),
+      getKaminoCuratorData().catch(e => { console.error('[Curators] Kamino data failed:', e.message); return []; }),
     ]);
 
     // Create Morpho TVL lookup map (normalized curator name -> data)
@@ -562,23 +542,7 @@ export async function GET() {
   }
 }
 
-// Format curator names for display
-function formatCuratorName(name: string): string {
-  const nameMap: Record<string, string> = {
-    'Steakhouse Financial': 'Steakhouse Financial',
-    'MEV Capital': 'MEV Capital',
-    'K3 Capital': 'K3 Capital',
-    'Re7 Labs': 'RE7 Labs',
-    'Block Analitica': 'Block Analitica',
-    'Euler DAO': 'Euler DAO',
-    'UltraYield by Edge': 'UltraYield',
-    'Vault Bridge': 'Vault Bridge',
-    'B.Protocol': 'B.Protocol',
-    'Summer.fi': 'Summer.fi',
-  };
-
-  return nameMap[name] || name;
-}
+// formatCuratorName imported from @/lib/curator-names
 
 // Estimate vault count based on TVL (rough heuristic)
 function estimateVaultCount(tvl: number): number {

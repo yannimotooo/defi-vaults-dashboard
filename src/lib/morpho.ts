@@ -226,20 +226,7 @@ export async function getMorphoVaultsWithFees(): Promise<MorphoVault[]> {
   }
 }
 
-// Map curator slugs to Morpho curator names
-const CURATOR_NAME_MAPPING: Record<string, string[]> = {
-  'steakhouse-financial': ['Steakhouse Financial', 'Steakhouse'],
-  'gauntlet': ['Gauntlet'],
-  'sentora': ['Sentora'],
-  'mev-capital': ['MEV Capital'],
-  're7-labs': ['RE7 Labs', 'Re7 Labs', 'RE7'],
-  'k3-capital': ['K3 Capital', 'K3'],
-  'block-analitica': ['Block Analitica', 'BA Labs'],
-  'b-protocol': ['B.Protocol'],
-  'summer-fi': ['Summer.fi'],
-  'ultrayield-by-edge': ['UltraYield', 'Edge'],
-  'hyperithm': ['Hyperithm'],
-};
+import { CURATOR_NAME_VARIANTS as CURATOR_NAME_MAPPING } from '@/lib/curator-names';
 
 // Get fee data for a specific curator
 export async function getCuratorFeeData(curatorSlug: string): Promise<CuratorFeeData | null> {

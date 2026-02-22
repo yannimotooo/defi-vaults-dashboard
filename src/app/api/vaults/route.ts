@@ -142,10 +142,10 @@ export async function GET(request: NextRequest) {
     // Fetch from all sources in parallel
     const [vaults, duneVaults, vaultRiskData, morphoApyData, curatorMap] = await Promise.all([
       curatorSlug ? getCuratorVaults(curatorSlug) : getTopVaults(limit),
-      getAllVaultsTvl().catch(() => []),
-      includeRisk ? getVaultRiskWithCreditRatings().catch(() => []) : Promise.resolve([]),
-      getMorphoVaultApyData().catch(() => []), // Morpho API APY data
-      getVaultToCuratorMap().catch(() => new Map<string, string>()), // Vault-to-curator mapping
+      getAllVaultsTvl().catch(e => { console.error('[Vaults] Dune TVL failed:', e.message); return []; }),
+      includeRisk ? getVaultRiskWithCreditRatings().catch(e => { console.error('[Vaults] Risk data failed:', e.message); return []; }) : Promise.resolve([]),
+      getMorphoVaultApyData().catch(e => { console.error('[Vaults] Morpho APY failed:', e.message); return []; }),
+      getVaultToCuratorMap().catch(e => { console.error('[Vaults] Curator map failed:', e.message); return new Map<string, string>(); }),
     ]);
 
     // Create lookup maps
@@ -156,18 +156,28 @@ export async function GET(request: NextRequest) {
     // Create risk lookup by vault name (normalized)
     const normalizeName = (s: string) => s.toLowerCase().replace(/[\s\-_]/g, '');
     const riskMap = new Map<string, VaultWithCreditRating>();
+    // Pre-build comprehensive index to avoid O(n²) fallback matching
+    const riskByNameSubstr = new Map<string, VaultWithCreditRating>();
     for (const vault of vaultRiskData) {
-      // Map by multiple keys for better matching
-      riskMap.set(normalizeName(vault.name), vault);
-      riskMap.set(normalizeName(vault.symbol), vault);
+      const nameNorm = normalizeName(vault.name);
+      const symbolNorm = normalizeName(vault.symbol);
+      riskMap.set(nameNorm, vault);
+      riskMap.set(symbolNorm, vault);
+      // Index by name tokens for substring matching
+      riskByNameSubstr.set(nameNorm, vault);
+      riskByNameSubstr.set(symbolNorm, vault);
     }
 
     // Create Morpho APY lookup by symbol (normalized)
-    // Try multiple matching strategies
     const morphoApyMap = new Map<string, MorphoVaultApy>();
+    const morphoByNameSubstr = new Map<string, MorphoVaultApy>();
     for (const vault of morphoApyData) {
-      morphoApyMap.set(normalizeName(vault.symbol), vault);
-      morphoApyMap.set(normalizeName(vault.name), vault);
+      const nameNorm = normalizeName(vault.name);
+      const symbolNorm = normalizeName(vault.symbol);
+      morphoApyMap.set(symbolNorm, vault);
+      morphoApyMap.set(nameNorm, vault);
+      morphoByNameSubstr.set(nameNorm, vault);
+      morphoByNameSubstr.set(symbolNorm, vault);
     }
     console.log(`[Vaults] Morpho APY data available for ${morphoApyData.length} vaults`);
 
@@ -180,12 +190,17 @@ export async function GET(request: NextRequest) {
       const normalizedSymbol = normalizeName(vault.symbol);
       const normalizedMeta = normalizeName(vault.poolMeta || '');
 
-      const riskData = riskMap.get(normalizedSymbol)
-        || riskMap.get(normalizedMeta)
-        || Array.from(riskMap.values()).find(r =>
-            normalizeName(r.name).includes(normalizedSymbol) ||
-            normalizedSymbol.includes(normalizeName(r.symbol))
-          );
+      // O(1) lookup: try exact keys, then check substring index
+      let riskData = riskMap.get(normalizedSymbol) || riskMap.get(normalizedMeta);
+      if (!riskData) {
+        // Check if any risk entry's name/symbol contains the vault symbol or vice versa
+        for (const [key, val] of riskByNameSubstr) {
+          if (key.includes(normalizedSymbol) || normalizedSymbol.includes(key)) {
+            riskData = val;
+            break;
+          }
+        }
+      }
 
       // Try to get APY from Morpho API if DeFiLlama has 0
       // This fixes morpho-v1 pools that show 0% APY in DeFiLlama
@@ -195,13 +210,17 @@ export async function GET(request: NextRequest) {
 
       if (finalApy === 0 && vault.project.toLowerCase().includes('morpho')) {
         // Try to find matching Morpho vault APY
-        const morphoApy = morphoApyMap.get(normalizeName(vault.symbol))
-          || morphoApyMap.get(normalizeName(vault.poolMeta || ''))
-          || Array.from(morphoApyMap.values()).find(m =>
-              normalizeName(m.symbol).includes(normalizeName(vault.symbol)) ||
-              normalizeName(vault.symbol).includes(normalizeName(m.symbol)) ||
-              normalizeName(m.name).includes(normalizeName(vault.symbol))
-            );
+        let morphoApy = morphoApyMap.get(normalizeName(vault.symbol))
+          || morphoApyMap.get(normalizeName(vault.poolMeta || ''));
+        if (!morphoApy) {
+          const vaultSymNorm = normalizeName(vault.symbol);
+          for (const [key, val] of morphoByNameSubstr) {
+            if (key.includes(vaultSymNorm) || vaultSymNorm.includes(key)) {
+              morphoApy = val;
+              break;
+            }
+          }
+        }
 
         if (morphoApy && morphoApy.apy > 0) {
           finalApy = morphoApy.netApy || morphoApy.apy;

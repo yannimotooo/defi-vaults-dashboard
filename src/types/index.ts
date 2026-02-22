@@ -123,3 +123,109 @@ export interface CuratorApiResponse {
   curators: Curator[];
   validation: DataValidation;
 }
+
+// Historical curator data for TVL-over-time charts
+export interface HistoricalCuratorData {
+  name: string;
+  slug: string;
+  color: string;
+  data: { date: number; tvl: number }[];
+}
+
+// Vault data from DeFiLlama yield pools
+export interface VaultData {
+  id: string;
+  name: string;
+  chain: string;
+  project: string;
+  symbol: string;
+  tvl: number;
+  apy: number;
+  apyBase: number;
+  apyReward: number;
+  apyChange7d: number;
+  stablecoin: boolean;
+  exposure: string;
+  poolMeta: string | null;
+  // Curator attribution (from Morpho on-chain data)
+  curator?: string | null;
+  isRawMarket?: boolean;
+  // Risk metrics
+  riskScore?: number;
+  riskLevel?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  maxUtilization?: number;
+  avgLltv?: number;
+  hasBadDebt?: boolean;
+  redWarningCount?: number;
+  criticalWarnings?: string[];
+  markets?: Array<{
+    uniqueKey: string;
+    loanAsset: string;
+    collateralAsset: string;
+    allocationUsd: number;
+    allocationPct: number;
+    lltv: number;
+    utilization: number;
+    hasRedWarning: boolean;
+    hasBadDebt: boolean;
+  }>;
+  // Credit rating
+  creditRating?: VaultCreditRating;
+}
+
+// Liquidation event from multi-protocol aggregation
+export interface LiquidationEvent {
+  id: string;
+  hash: string;
+  timestamp: number;
+  protocol: string;
+  chain: string;
+  loanAsset: string;
+  collateralAsset: string;
+  repaidUsd: number;
+  seizedUsd: number;
+  badDebtUsd: number;
+  liquidator: string;
+  borrower?: string;
+  hasSignificantBadDebt: boolean;
+}
+
+// Protocol liquidation summary
+export interface ProtocolLiquidationSummary {
+  protocol: string;
+  volume24h: number;
+  volume7d: number;
+  count24h: number;
+  count7d: number;
+  badDebt24h: number;
+  badDebt7d: number;
+  topMarkets: Array<{
+    loanAsset: string;
+    collateralAsset: string;
+    volume7d: number;
+  }>;
+}
+
+// Aggregated liquidation data
+export interface LiquidationData {
+  recentEvents: LiquidationEvent[];
+  protocolSummaries: ProtocolLiquidationSummary[];
+  totals: {
+    volume24h: number;
+    volume7d: number;
+    count24h: number;
+    count7d: number;
+    badDebt24h: number;
+    badDebt7d: number;
+  };
+  dailyVolume: Array<{
+    date: string;
+    volume: number;
+    count: number;
+    badDebt: number;
+    byProtocol: Record<string, number>;
+  }>;
+}
+
+// Tab type for navigation
+export type Tab = 'overview' | 'curators' | 'protocols' | 'vaults' | 'liquidations';

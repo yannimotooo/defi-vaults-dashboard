@@ -6,6 +6,21 @@ const MORPHO_GRAPHQL_API = 'https://blue-api.morpho.org/graphql';
 // Risk warning levels
 export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
+// Risk scoring thresholds
+const BAD_DEBT_CRITICAL = 0.01;     // >1% of supply = max bad debt score
+const BAD_DEBT_HIGH = 0.001;        // >0.1%
+const BAD_DEBT_MEDIUM = 0.0001;     // >0.01%
+const UTILIZATION_CRITICAL = 0.95;
+const UTILIZATION_HIGH = 0.9;
+const UTILIZATION_ELEVATED = 0.8;
+const UTILIZATION_MODERATE = 0.7;
+const LIQ_RATIO_CRITICAL = 0.05;    // >5% of supply liquidated in 7d
+const LIQ_RATIO_HIGH = 0.02;
+const LIQ_RATIO_MEDIUM = 0.01;
+const RISK_LEVEL_CRITICAL = 70;
+const RISK_LEVEL_HIGH = 40;
+const RISK_LEVEL_MEDIUM = 20;
+
 // Morpho warning types that indicate risk
 export const CRITICAL_WARNING_TYPES = [
   'bad_debt_unrealized',
@@ -348,17 +363,17 @@ function calculateRiskScore(metrics: {
   // Bad debt component (0-40 points)
   if (metrics.supplyUsd > 0) {
     const badDebtRatio = metrics.badDebtUsd / metrics.supplyUsd;
-    if (badDebtRatio > 0.01) score += 40; // >1% bad debt = max score
-    else if (badDebtRatio > 0.001) score += 30; // >0.1%
-    else if (badDebtRatio > 0.0001) score += 20; // >0.01%
+    if (badDebtRatio > BAD_DEBT_CRITICAL) score += 40;
+    else if (badDebtRatio > BAD_DEBT_HIGH) score += 30;
+    else if (badDebtRatio > BAD_DEBT_MEDIUM) score += 20;
     else if (badDebtRatio > 0) score += 10;
   }
 
   // Utilization component (0-20 points)
-  if (metrics.avgUtilization > 0.95) score += 20;
-  else if (metrics.avgUtilization > 0.9) score += 15;
-  else if (metrics.avgUtilization > 0.8) score += 10;
-  else if (metrics.avgUtilization > 0.7) score += 5;
+  if (metrics.avgUtilization > UTILIZATION_CRITICAL) score += 20;
+  else if (metrics.avgUtilization > UTILIZATION_HIGH) score += 15;
+  else if (metrics.avgUtilization > UTILIZATION_ELEVATED) score += 10;
+  else if (metrics.avgUtilization > UTILIZATION_MODERATE) score += 5;
 
   // Warning component (0-25 points)
   score += Math.min(metrics.redWarningCount * 5, 25);
@@ -366,9 +381,9 @@ function calculateRiskScore(metrics: {
   // Liquidation volume component (0-15 points)
   if (metrics.supplyUsd > 0) {
     const liqRatio = metrics.liquidationVolume7d / metrics.supplyUsd;
-    if (liqRatio > 0.05) score += 15; // >5% liquidated
-    else if (liqRatio > 0.02) score += 10;
-    else if (liqRatio > 0.01) score += 5;
+    if (liqRatio > LIQ_RATIO_CRITICAL) score += 15;
+    else if (liqRatio > LIQ_RATIO_HIGH) score += 10;
+    else if (liqRatio > LIQ_RATIO_MEDIUM) score += 5;
   }
 
   return Math.min(score, 100);
@@ -376,9 +391,9 @@ function calculateRiskScore(metrics: {
 
 // Get risk level from score
 function getRiskLevel(score: number): RiskLevel {
-  if (score >= 70) return 'CRITICAL';
-  if (score >= 40) return 'HIGH';
-  if (score >= 20) return 'MEDIUM';
+  if (score >= RISK_LEVEL_CRITICAL) return 'CRITICAL';
+  if (score >= RISK_LEVEL_HIGH) return 'HIGH';
+  if (score >= RISK_LEVEL_MEDIUM) return 'MEDIUM';
   return 'LOW';
 }
 

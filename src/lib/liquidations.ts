@@ -1257,16 +1257,16 @@ export async function getMultiProtocolLiquidations(
     kaminoEvents,
   ] = await Promise.all([
     fetchMorphoLiquidations(hours),
-    fetchAaveLiquidations('ethereum', hours).catch(() => []),
-    fetchAaveLiquidations('base', hours).catch(() => []),
-    fetchAaveLiquidations('arbitrum', hours).catch(() => []),
-    fetchAaveLiquidations('polygon', hours).catch(() => []),
-    fetchAaveLiquidations('optimism', hours).catch(() => []),
-    fetchEulerLiquidations('ethereum', hours).catch(() => []),
-    fetchEulerLiquidations('base', hours).catch(() => []),
-    fetchEulerLiquidations('arbitrum', hours).catch(() => []),
-    fetchSparkLiquidations(hours).catch(() => []),
-    fetchKaminoLiquidations(hours).catch(() => []),
+    fetchAaveLiquidations('ethereum', hours).catch(e => { console.error('[Liqs] Aave ethereum failed:', e.message); return []; }),
+    fetchAaveLiquidations('base', hours).catch(e => { console.error('[Liqs] Aave base failed:', e.message); return []; }),
+    fetchAaveLiquidations('arbitrum', hours).catch(e => { console.error('[Liqs] Aave arbitrum failed:', e.message); return []; }),
+    fetchAaveLiquidations('polygon', hours).catch(e => { console.error('[Liqs] Aave polygon failed:', e.message); return []; }),
+    fetchAaveLiquidations('optimism', hours).catch(e => { console.error('[Liqs] Aave optimism failed:', e.message); return []; }),
+    fetchEulerLiquidations('ethereum', hours).catch(e => { console.error('[Liqs] Euler ethereum failed:', e.message); return []; }),
+    fetchEulerLiquidations('base', hours).catch(e => { console.error('[Liqs] Euler base failed:', e.message); return []; }),
+    fetchEulerLiquidations('arbitrum', hours).catch(e => { console.error('[Liqs] Euler arbitrum failed:', e.message); return []; }),
+    fetchSparkLiquidations(hours).catch(e => { console.error('[Liqs] Spark failed:', e.message); return []; }),
+    fetchKaminoLiquidations(hours).catch(e => { console.error('[Liqs] Kamino failed:', e.message); return []; }),
   ]);
 
   // Log fetched data

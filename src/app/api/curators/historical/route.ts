@@ -1,30 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getProtocolHistoricalTvl, RISK_CURATOR_SLUGS } from '@/lib/defillama';
+import { TOP_CURATOR_SLUGS, CURATOR_SLUG_TO_NAME as CURATOR_NAMES } from '@/lib/curator-names';
 
 export const revalidate = 600; // 10 minutes
-
-// Top curators to fetch historical data for
-const TOP_CURATOR_SLUGS = [
-  'steakhouse-financial',
-  'gauntlet',
-  'sentora',
-  'mev-capital',
-  're7-labs',
-  'k3-capital',
-  'block-analitica',
-  'euler-dao',
-];
-
-const CURATOR_NAMES: Record<string, string> = {
-  'steakhouse-financial': 'Steakhouse Financial',
-  'gauntlet': 'Gauntlet',
-  'sentora': 'Sentora',
-  'mev-capital': 'MEV Capital',
-  're7-labs': 'RE7 Labs',
-  'k3-capital': 'K3 Capital',
-  'block-analitica': 'Block Analitica',
-  'euler-dao': 'Euler DAO',
-};
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);

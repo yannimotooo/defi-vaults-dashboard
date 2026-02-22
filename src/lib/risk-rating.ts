@@ -883,7 +883,7 @@ export const RATING_COLORS: Record<CreditRating, { bg: string; text: string; bor
   'CCC': { bg: 'bg-red-500/10', text: 'text-red-400', border: 'border-red-500/20' },
   'CC': { bg: 'bg-red-500/15', text: 'text-red-400', border: 'border-red-500/30' },
   'C': { bg: 'bg-red-500/20', text: 'text-red-500', border: 'border-red-500/40' },
-  'NR': { bg: 'bg-zinc-500/10', text: 'text-zinc-400', border: 'border-zinc-500/20' },
+  'NR': { bg: 'bg-slate-500/10', text: 'text-slate-400', border: 'border-slate-500/20' },
 };
 
 export const RATING_LABELS: Record<CreditRating, string> = {
