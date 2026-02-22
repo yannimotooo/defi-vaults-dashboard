@@ -187,7 +187,7 @@ export function ProtocolLiquidationSummary({ summaries }: ProtocolLiquidationSum
       {summaries.map((summary) => (
         <div
           key={summary.protocol}
-          className="bg-[#111827]/60 rounded-lg p-4 border border-slate-700/40"
+          className="bg-[#141922]/70 rounded-lg p-4 border border-slate-700/40"
         >
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
@@ -224,7 +224,7 @@ export function ProtocolLiquidationSummary({ summaries }: ProtocolLiquidationSum
                 {summary.topMarkets.slice(0, 3).map((market, i) => (
                   <span
                     key={i}
-                    className="text-xs bg-slate-800/60 px-2 py-1 rounded"
+                    className="text-xs bg-[#1a1f2e]/60 px-2 py-1 rounded"
                   >
                     {market.loanAsset}/{market.collateralAsset}
                   </span>

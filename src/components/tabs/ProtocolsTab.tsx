@@ -13,8 +13,8 @@ export function ProtocolsTab({ overviewData }: ProtocolsTabProps) {
   return (
     <>
       {/* Protocol Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-slate-700/30 rounded-xl overflow-hidden mb-8 border border-slate-700/35">
-        <div className="bg-[#111827]/80 accent-border-blue">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-[#2d3548]/40 rounded-[14px] overflow-hidden mb-8 border border-[#2d3548]/60">
+        <div className="bg-[#1a1f2e] accent-border-blue">
           <StatCard
             title="Total Protocol TVL"
             value={overviewData.totalTvl}
@@ -23,7 +23,7 @@ export function ProtocolsTab({ overviewData }: ProtocolsTabProps) {
             accent="blue"
           />
         </div>
-        <div className="bg-[#111827]/80 accent-border-amber">
+        <div className="bg-[#1a1f2e] accent-border-amber">
           <StatCard
             title="Protocols Tracked"
             value={overviewData.tvlByProtocol.length}
@@ -31,7 +31,7 @@ export function ProtocolsTab({ overviewData }: ProtocolsTabProps) {
             accent="amber"
           />
         </div>
-        <div className="bg-[#111827]/80 accent-border-cyan">
+        <div className="bg-[#1a1f2e] accent-border-cyan">
           <StatCard
             title="Chains Covered"
             value={overviewData.tvlByChain.length}
@@ -39,7 +39,7 @@ export function ProtocolsTab({ overviewData }: ProtocolsTabProps) {
             accent="cyan"
           />
         </div>
-        <div className="bg-[#111827]/80 accent-border-emerald">
+        <div className="bg-[#1a1f2e] accent-border-emerald">
           <StatCard
             title="7d Change"
             value={overviewData.totalTvlChange7d}

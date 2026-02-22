@@ -61,7 +61,7 @@ export function RiskBadge({ riskLevel, riskScore, compact = false, showTooltip =
         </div>
 
         {showTooltip && (
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1.5 bg-[#111827]/90 border border-slate-700/40 rounded text-[11px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1.5 bg-[#1a1f2e]/95 border border-slate-700/40 rounded text-[11px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
             <p className={config.color}>{config.label}</p>
             {riskScore !== undefined && (
               <p className="text-slate-500">Score: {riskScore}/100</p>

@@ -133,7 +133,7 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-              <div className="bg-[#111827]/60 rounded-lg p-4 border border-slate-700/35">
+              <div className="bg-[#141922]/70 rounded-lg p-4 border border-[#2d3548]/60">
                 <div className="flex items-center gap-2 mb-2">
                   <Percent className="h-4 w-4 text-slate-500" />
                   <span className="text-[12px] text-slate-500 uppercase tracking-wider">
@@ -147,7 +147,7 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
                   Kamino on Solana
                 </p>
               </div>
-              <div className="bg-[#111827]/60 rounded-lg p-4 border border-slate-700/35">
+              <div className="bg-[#141922]/70 rounded-lg p-4 border border-[#2d3548]/60">
                 <div className="flex items-center gap-2 mb-2">
                   <Percent className="h-4 w-4 text-slate-500" />
                   <span className="text-[12px] text-slate-500 uppercase tracking-wider">
@@ -161,7 +161,7 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
                   annual
                 </p>
               </div>
-              <div className="bg-[#111827]/60 rounded-lg p-4 border border-slate-700/35">
+              <div className="bg-[#141922]/70 rounded-lg p-4 border border-[#2d3548]/60">
                 <div className="flex items-center gap-2 mb-2">
                   <Info className="h-4 w-4 text-slate-500" />
                   <span className="text-[12px] text-slate-500 uppercase tracking-wider">
@@ -283,7 +283,7 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="bg-[#111827]/60 rounded-lg p-4 border border-slate-700/35">
+              <div className="bg-[#141922]/70 rounded-lg p-4 border border-[#2d3548]/60">
                 <div className="flex items-center gap-2 mb-2">
                   <Percent className="h-4 w-4 text-slate-500" />
                   <span className="text-[12px] text-slate-500 uppercase tracking-wider">
@@ -297,7 +297,7 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
                   {kaminoEstimate.protocol} on {kaminoEstimate.chain}
                 </p>
               </div>
-              <div className="bg-[#111827]/60 rounded-lg p-4 border border-slate-700/35">
+              <div className="bg-[#141922]/70 rounded-lg p-4 border border-[#2d3548]/60">
                 <div className="flex items-center gap-2 mb-2">
                   <Info className="h-4 w-4 text-slate-500" />
                   <span className="text-[12px] text-slate-500 uppercase tracking-wider">
@@ -361,7 +361,7 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
       <CardContent>
         {/* Key Metrics Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-[#111827]/60 rounded-lg p-4 border border-slate-700/35">
+          <div className="bg-[#141922]/70 rounded-lg p-4 border border-[#2d3548]/60">
             <div className="flex items-center gap-2 mb-2">
               <Percent className="h-4 w-4 text-slate-500" />
               <span className="text-[12px] text-slate-500 uppercase tracking-wider">
@@ -376,7 +376,7 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
             </p>
           </div>
 
-          <div className="bg-[#111827]/60 rounded-lg p-4 border border-slate-700/35">
+          <div className="bg-[#141922]/70 rounded-lg p-4 border border-[#2d3548]/60">
             <div className="flex items-center gap-2 mb-2">
               <TrendingUp className="h-4 w-4 text-slate-500" />
               <span className="text-[12px] text-slate-500 uppercase tracking-wider">
@@ -391,7 +391,7 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
             </p>
           </div>
 
-          <div className="bg-[#111827]/60 rounded-lg p-4 border border-slate-700/35">
+          <div className="bg-[#141922]/70 rounded-lg p-4 border border-[#2d3548]/60">
             <div className="flex items-center gap-2 mb-2">
               <TrendingUp className="h-4 w-4 text-slate-500" />
               <span className="text-[12px] text-slate-500 uppercase tracking-wider">
@@ -406,7 +406,7 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
             </p>
           </div>
 
-          <div className="bg-[#111827]/60 rounded-lg p-4 border border-slate-700/35">
+          <div className="bg-[#141922]/70 rounded-lg p-4 border border-[#2d3548]/60">
             <div className="flex items-center gap-2 mb-2">
               <DollarSign className="h-4 w-4 text-slate-500" />
               <span className="text-[12px] text-slate-500 uppercase tracking-wider">
@@ -430,7 +430,7 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
               {(100 - feeImpact).toFixed(1)}%
             </span>
           </div>
-          <div className="h-3 bg-slate-800/60 rounded-full overflow-hidden">
+          <div className="h-3 bg-[#1a1f2e]/60 rounded-full overflow-hidden">
             <div
               className="h-full rounded-full transition-all"
               style={{

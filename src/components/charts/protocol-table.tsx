@@ -24,7 +24,7 @@ export function ProtocolTable({ data }: ProtocolTableProps) {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-slate-700/35 bg-[#0f172a]/40">
+              <tr className="border-b border-slate-700/35 bg-[#141922]/60">
                 <th className="px-5 py-3 text-left text-[11px] font-medium text-slate-500 uppercase tracking-wider w-12">#</th>
                 <th className="px-5 py-3 text-left text-[11px] font-medium text-slate-500 uppercase tracking-wider">Protocol</th>
                 <th className="px-5 py-3 text-right text-[11px] font-medium text-slate-500 uppercase tracking-wider">TVL</th>

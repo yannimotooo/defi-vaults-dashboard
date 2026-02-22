@@ -9,6 +9,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
+  ReferenceLine,
 } from 'recharts';
 import { formatTvl } from '@/lib/utils';
 
@@ -67,6 +68,11 @@ export function LiquidationTimeline({
     badDebt: day.badDebt,
   }));
 
+  // Compute reference line values
+  const dailyAvg = data.reduce((sum, d) => sum + d.volume, 0) / data.length;
+  // "Elevated" threshold: 2x the average (flags unusual activity)
+  const elevatedThreshold = dailyAvg * 2;
+
   const CustomTooltip = ({ active, payload, label }: {
     active?: boolean;
     payload?: Array<{ name: string; value: number; color: string }>;
@@ -78,7 +84,7 @@ export function LiquidationTimeline({
     const dayData = data.find(d => formatDate(d.date) === label);
 
     return (
-      <div className="bg-[#111827]/90 border border-slate-700/40 rounded-lg p-3 shadow-lg">
+      <div className="bg-[#1a1f2e]/95 border border-slate-700/40 rounded-lg p-3 shadow-lg">
         <div className="text-slate-400 text-sm mb-2">{label}</div>
         <div className="space-y-1">
           {payload.filter(p => p.value > 0).map((entry, i) => (
@@ -128,7 +134,7 @@ export function LiquidationTimeline({
     <div className="h-[300px]">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#2d3548" strokeOpacity={0.4} vertical={false} />
           <XAxis
             dataKey="date"
             axisLine={false}
@@ -142,6 +148,24 @@ export function LiquidationTimeline({
             tickFormatter={(value) => formatTvl(value, true)}
             width={60}
           />
+          {dailyAvg > 0 && (
+            <ReferenceLine
+              y={dailyAvg}
+              stroke="#64748b"
+              strokeDasharray="4 4"
+              strokeWidth={1}
+              label={{ value: 'Avg', position: 'right', fill: '#64748b', fontSize: 10 }}
+            />
+          )}
+          {elevatedThreshold > 0 && data.some(d => d.volume > elevatedThreshold) && (
+            <ReferenceLine
+              y={elevatedThreshold}
+              stroke="#f59e0b"
+              strokeDasharray="4 4"
+              strokeWidth={1}
+              label={{ value: 'Elevated', position: 'right', fill: '#f59e0b', fontSize: 10 }}
+            />
+          )}
           <Tooltip content={<CustomTooltip />} />
           {showByProtocol && protocols.length > 0 && (
             <Legend
@@ -193,8 +217,8 @@ export function LiquidationStats({
   badDebt7d,
 }: LiquidationStatsProps) {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-slate-700/30 rounded-xl overflow-hidden border border-slate-700/35">
-      <div className="bg-[#111827]/80 p-4 border-t-2 border-t-indigo-500">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-[#2d3548]/40 rounded-[14px] overflow-hidden border border-[#2d3548]/60">
+      <div className="bg-[#1a1f2e] p-4 border-t-2 border-t-indigo-500">
         <div className="text-[10px] uppercase tracking-widest text-slate-500 font-medium">24h Volume</div>
         <div className="text-[22px] font-semibold text-slate-100 mt-1.5" style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>
           {formatTvl(volume24h)}
@@ -204,7 +228,7 @@ export function LiquidationStats({
         </div>
       </div>
 
-      <div className="bg-[#111827]/80 p-4 border-t-2 border-t-amber-400">
+      <div className="bg-[#1a1f2e] p-4 border-t-2 border-t-amber-400">
         <div className="text-[10px] uppercase tracking-widest text-slate-500 font-medium">7d Volume</div>
         <div className="text-[22px] font-semibold text-slate-100 mt-1.5" style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>
           {formatTvl(volume7d)}
@@ -214,7 +238,7 @@ export function LiquidationStats({
         </div>
       </div>
 
-      <div className="bg-[#111827]/80 p-4 border-t-2 border-t-cyan-400">
+      <div className="bg-[#1a1f2e] p-4 border-t-2 border-t-cyan-400">
         <div className="text-[10px] uppercase tracking-widest text-slate-500 font-medium">Daily Avg</div>
         <div className="text-[22px] font-semibold text-slate-100 mt-1.5" style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>
           {formatTvl(volume7d / 7)}
@@ -224,7 +248,7 @@ export function LiquidationStats({
         </div>
       </div>
 
-      <div className="bg-[#111827]/80 p-4 border-t-2 border-t-rose-400">
+      <div className="bg-[#1a1f2e] p-4 border-t-2 border-t-rose-400">
         <div className="text-[10px] uppercase tracking-widest text-slate-500 font-medium">7d Bad Debt</div>
         <div className={`text-[22px] font-semibold mt-1.5 ${
           badDebt7d > 10000 ? 'text-red-400' : badDebt7d > 0 ? 'text-amber-400' : 'text-emerald-400'

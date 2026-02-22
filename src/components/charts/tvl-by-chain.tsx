@@ -56,7 +56,7 @@ export function TvlByChainChart({ data }: TvlByChainChartProps) {
                     if (active && payload && payload.length) {
                       const data = payload[0].payload;
                       return (
-                        <div className="rounded-lg border border-slate-700/40 bg-[#111827]/90 backdrop-blur-sm px-3 py-2 shadow-xl">
+                        <div className="rounded-lg border border-[#2d3548]/60 bg-[#1a1f2e]/95 backdrop-blur-sm px-3 py-2 shadow-xl">
                           <p className="text-[13px] text-white">{data.name}</p>
                           <p className="text-[13px] font-mono text-slate-400">{formatTvl(data.value)}</p>
                         </div>

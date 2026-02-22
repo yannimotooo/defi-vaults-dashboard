@@ -2,12 +2,12 @@
 
 :root {
   /* Deep navy-black base (Morpho-inspired, not pure black) */
-  --bg-primary: #0b0f19;
-  --bg-card: #111827;
-  --bg-card-hover: #1e293b;
-  --bg-surface: #0f172a;
-  --border: #1e293b;
-  --border-subtle: rgba(30, 41, 59, 0.4);
+  --bg-primary: #0d1117;
+  --bg-card: #1a1f2e;
+  --bg-card-hover: #242a3a;
+  --bg-surface: #141922;
+  --border: #2d3548;
+  --border-subtle: rgba(45, 53, 72, 0.5);
 
   /* Text hierarchy */
   --text-primary: #f1f5f9;
@@ -54,19 +54,14 @@ body {
 
 /* Glass card base */
 .glass-card {
-  background: rgba(17, 24, 39, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(51, 65, 85, 0.35);
-  border-radius: 12px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
-  transition: all 0.2s ease;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  transition: background 0.2s ease;
 }
 
 .glass-card:hover {
-  background: rgba(30, 41, 59, 0.6);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(99, 102, 241, 0.06);
-  transform: translateY(-1px);
+  background: var(--bg-card-hover);
 }
 
 /* Accent top border variants */

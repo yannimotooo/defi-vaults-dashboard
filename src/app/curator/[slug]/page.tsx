@@ -171,20 +171,20 @@ export default function CuratorDetailPage() {
 
       <main className="max-w-[1400px] mx-auto px-6 py-8">
         {/* Key Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-px bg-slate-700/40 rounded-lg overflow-hidden mb-8 border border-slate-700/35">
-          <div className="bg-[#111827]/80">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-px bg-slate-700/40 rounded-lg overflow-hidden mb-8 border border-[#2d3548]/60">
+          <div className="bg-[#1a1f2e]">
             <StatCard title="Total TVL" value={curator.totalTvl} />
           </div>
-          <div className="bg-[#111827]/80">
+          <div className="bg-[#1a1f2e]">
             <StatCard title="Market Share" value={marketShare} format="percent" />
           </div>
-          <div className="bg-[#111827]/80">
+          <div className="bg-[#1a1f2e]">
             <StatCard title="Vaults" value={curator.vaultCount} format="number" />
           </div>
-          <div className="bg-[#111827]/80">
+          <div className="bg-[#1a1f2e]">
             <StatCard title="Avg APY" value={curator.avgApy} format="percent" />
           </div>
-          <div className="bg-[#111827]/80">
+          <div className="bg-[#1a1f2e]">
             <div className="p-5">
               <p className="text-[13px] text-slate-500 font-medium">7d Flow</p>
               <p className={cn(

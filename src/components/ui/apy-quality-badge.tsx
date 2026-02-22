@@ -49,7 +49,7 @@ export function ApyQualityBadge({
           </div>
         )}
         {/* Tooltip */}
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1.5 bg-[#111827]/90 border border-slate-700/40 rounded-lg text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1.5 bg-[#1a1f2e]/95 border border-slate-700/40 rounded-lg text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
           <p className="text-slate-300 font-medium mb-1">{quality.label} Yield</p>
           <p className="text-slate-500">Base: <span className="text-emerald-400">{apyBase.toFixed(2)}%</span></p>
           <p className="text-slate-500">Rewards: <span className="text-amber-400">{apyReward.toFixed(2)}%</span></p>
@@ -113,7 +113,7 @@ export function ApyWithQuality({
         {apy.toFixed(2)}%
       </span>
       {/* Tooltip with breakdown */}
-      <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-[#111827]/90 border border-slate-700/40 rounded-lg text-[11px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+      <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-[#1a1f2e]/95 border border-slate-700/40 rounded-lg text-[11px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
         <div className="space-y-1.5">
           <div className="flex items-center justify-between gap-4">
             <span className="text-slate-500">Base APY:</span>

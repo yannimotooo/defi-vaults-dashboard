@@ -36,7 +36,7 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-slate-700/35 bg-[#0f172a]/40">
+              <tr className="border-b border-slate-700/35 bg-[#141922]/60">
                 <th className="px-3 sm:px-5 py-3 text-left text-[10px] sm:text-[11px] font-medium text-slate-500 uppercase tracking-wider w-10 sm:w-12">#</th>
                 <th className="px-3 sm:px-5 py-3 text-left text-[10px] sm:text-[11px] font-medium text-slate-500 uppercase tracking-wider">Curator</th>
                 <th className="px-3 sm:px-5 py-3 text-right text-[10px] sm:text-[11px] font-medium text-slate-500 uppercase tracking-wider">TVL</th>
@@ -162,7 +162,7 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                           </span>
                           {/* APY Tooltip with Gross/Net breakdown - hidden on mobile */}
                           {(curator.grossApy || curator.netApy || curator.avgPerformanceFee) && (
-                            <div className="hidden sm:block absolute bottom-full right-0 mb-2 px-3 py-2 bg-[#111827]/90 border border-slate-700/40 rounded-lg text-[11px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+                            <div className="hidden sm:block absolute bottom-full right-0 mb-2 px-3 py-2 bg-[#1a1f2e]/95 border border-slate-700/40 rounded-lg text-[11px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
                               <div className="space-y-1">
                                 {curator.grossApy !== undefined && (
                                   <p className="text-slate-400">
@@ -197,7 +197,7 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                     </td>
                   </tr>
                   {expandedCurator === curator.slug && (
-                    <tr key={`${curator.slug}-expanded`} className="bg-[#0f172a]/50">
+                    <tr key={`${curator.slug}-expanded`} className="bg-[#141922]/60">
                       <td colSpan={100} className="px-3 sm:px-5 py-4 sm:py-5">
                         <div className="sm:pl-8 space-y-4">
                           {/* Row 1: Basic Info */}
@@ -210,7 +210,7 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                                 {curator.chains.map((chain) => (
                                   <span
                                     key={chain}
-                                    className="px-2 py-0.5 text-[12px] text-slate-300 bg-slate-800/60 rounded"
+                                    className="px-2 py-0.5 text-[12px] text-slate-300 bg-[#1a1f2e]/60 rounded"
                                   >
                                     {chain}
                                   </span>
@@ -225,7 +225,7 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                                 {curator.protocols.map((protocol) => (
                                   <span
                                     key={protocol}
-                                    className="px-2 py-0.5 text-[12px] text-slate-300 bg-slate-800/60 rounded flex items-center gap-1.5"
+                                    className="px-2 py-0.5 text-[12px] text-slate-300 bg-[#1a1f2e]/60 rounded flex items-center gap-1.5"
                                   >
                                     <span
                                       className="w-2 h-2 rounded-full"

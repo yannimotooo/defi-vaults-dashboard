@@ -209,7 +209,7 @@ export function RiskSummaryCard({ curators }: RiskSummaryCardProps) {
                   className={cn('relative group', colors[rating])}
                   style={{ width: `${pct}%` }}
                 >
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-1.5 py-0.5 bg-[#111827]/90 border border-slate-700/40 rounded text-[9px] text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-1.5 py-0.5 bg-[#1a1f2e]/95 border border-slate-700/40 rounded text-[9px] text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10">
                     {rating}: {count}
                   </div>
                 </div>
@@ -236,7 +236,7 @@ export function RiskSummaryCard({ curators }: RiskSummaryCardProps) {
                   className={cn('relative group', colors[rating])}
                   style={{ width: `${pct}%` }}
                 >
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-1.5 py-0.5 bg-[#111827]/90 border border-slate-700/40 rounded text-[9px] text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-1.5 py-0.5 bg-[#1a1f2e]/95 border border-slate-700/40 rounded text-[9px] text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10">
                     {rating}: {count}
                   </div>
                 </div>
@@ -247,7 +247,7 @@ export function RiskSummaryCard({ curators }: RiskSummaryCardProps) {
                 className="bg-slate-600 relative group"
                 style={{ width: `${(summary.notRatedCount / curators.length) * 100}%` }}
               >
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-1.5 py-0.5 bg-[#111827]/90 border border-slate-700/40 rounded text-[9px] text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-1.5 py-0.5 bg-[#1a1f2e]/95 border border-slate-700/40 rounded text-[9px] text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10">
                   NR: {summary.notRatedCount}
                 </div>
               </div>
@@ -266,7 +266,7 @@ export function RiskSummaryCard({ curators }: RiskSummaryCardProps) {
         {/* Key Metrics Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {/* 7d Liquidations */}
-          <div className="bg-[#0f172a]/50 rounded-lg p-3 border border-slate-700/20 space-y-1">
+          <div className="bg-[#141922]/60 rounded-lg p-3 border border-slate-700/20 space-y-1">
             <div className="flex items-center gap-1.5 text-[10px] text-slate-500 uppercase tracking-wider font-medium">
               <TrendingDown className="h-3 w-3" />
               <span>7d Liqs</span>
@@ -286,7 +286,7 @@ export function RiskSummaryCard({ curators }: RiskSummaryCardProps) {
           </div>
 
           {/* Bad Debt */}
-          <div className="bg-[#0f172a]/50 rounded-lg p-3 border border-slate-700/20 space-y-1">
+          <div className="bg-[#141922]/60 rounded-lg p-3 border border-slate-700/20 space-y-1">
             <div className="flex items-center gap-1.5 text-[10px] text-slate-500 uppercase tracking-wider font-medium">
               <AlertTriangle className="h-3 w-3" />
               <span>Bad Debt</span>
@@ -304,7 +304,7 @@ export function RiskSummaryCard({ curators }: RiskSummaryCardProps) {
           </div>
 
           {/* Investment Grade */}
-          <div className="bg-[#0f172a]/50 rounded-lg p-3 border border-slate-700/20 space-y-1">
+          <div className="bg-[#141922]/60 rounded-lg p-3 border border-slate-700/20 space-y-1">
             <div className="flex items-center gap-1.5 text-[10px] text-slate-500 uppercase tracking-wider font-medium">
               <CheckCircle className="h-3 w-3" />
               <span>Inv. Grade</span>
@@ -318,7 +318,7 @@ export function RiskSummaryCard({ curators }: RiskSummaryCardProps) {
           </div>
 
           {/* Avg Utilization */}
-          <div className="bg-[#0f172a]/50 rounded-lg p-3 border border-slate-700/20 space-y-1">
+          <div className="bg-[#141922]/60 rounded-lg p-3 border border-slate-700/20 space-y-1">
             <div className="flex items-center gap-1.5 text-[10px] text-slate-500 uppercase tracking-wider font-medium">
               <Droplets className="h-3 w-3" />
               <span>Utilization</span>

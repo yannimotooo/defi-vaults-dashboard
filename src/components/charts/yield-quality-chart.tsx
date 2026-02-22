@@ -201,7 +201,7 @@ export function YieldQualityChart({
                 Yield Quality Score
               </p>
               <div className="flex items-center gap-3">
-                <div className="flex-1 h-2 bg-slate-800/60 rounded-full overflow-hidden">
+                <div className="flex-1 h-2 bg-[#1a1f2e]/60 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all"
                     style={{ width: `${Math.min(analysis.organicPercent, 100)}%` }}
@@ -245,7 +245,7 @@ export function YieldQualityChart({
                       if (active && payload && payload.length) {
                         const data = payload[0].payload;
                         return (
-                          <div className="rounded-lg border border-slate-700/40 bg-[#111827]/90 backdrop-blur-sm px-3 py-2 shadow-xl">
+                          <div className="rounded-lg border border-slate-700/40 bg-[#1a1f2e]/95 backdrop-blur-sm px-3 py-2 shadow-xl">
                             <p className="text-[13px] text-white">{data.name}</p>
                             <p className="text-[14px] font-mono" style={{ color: data.color }}>
                               {data.value.toFixed(1)}%
@@ -362,7 +362,7 @@ export function YieldQualitySummary({
             {analysis.organicPercent.toFixed(0)}% organic
           </span>
         </div>
-        <div className="h-1.5 bg-slate-800/60 rounded-full overflow-hidden flex">
+        <div className="h-1.5 bg-[#1a1f2e]/60 rounded-full overflow-hidden flex">
           <div
             className="h-full bg-emerald-500"
             style={{ width: `${analysis.organicPercent}%` }}

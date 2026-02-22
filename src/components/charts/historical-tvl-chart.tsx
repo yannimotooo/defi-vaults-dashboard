@@ -31,7 +31,7 @@ interface HistoricalTvlChartProps {
 export function HistoricalTvlChart({
   data,
   title = 'TVL Over Time',
-  color = '#6366f1',
+  color = '#34d399',
   showPeriodSelector = true,
   height = 300,
 }: HistoricalTvlChartProps) {
@@ -122,18 +122,18 @@ export function HistoricalTvlChart({
             )}
           </div>
           {showPeriodSelector && (
-            <div className="flex gap-1 bg-slate-800/40 rounded-lg p-1">
+            <div className="flex gap-0.5 bg-[#141922] rounded-full p-0.5 border border-[#2d3548]/50">
               {(['7d', '30d', '90d', '1y', 'all'] as Period[]).map((p) => (
                 <button
                   key={p}
                   onClick={() => setPeriod(p)}
-                  className={`px-3 py-1 text-[12px] font-medium rounded-md transition-all ${
+                  className={`px-3 py-1 text-[11px] font-medium rounded-full transition-all ${
                     period === p
-                      ? 'bg-slate-700/80 text-white shadow-sm'
+                      ? 'bg-[#2d3548] text-white'
                       : 'text-slate-500 hover:text-slate-300'
                   }`}
                 >
-                  {p === 'all' ? 'All' : p.toUpperCase()}
+                  {p === 'all' ? 'ALL' : p.toUpperCase()}
                 </button>
               ))}
             </div>
@@ -146,13 +146,14 @@ export function HistoricalTvlChart({
             <AreaChart data={chartData} margin={{ left: 0, right: 0, top: 10, bottom: 0 }}>
               <defs>
                 <linearGradient id={`gradient-${color.replace('#', '')}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={color} stopOpacity={0.3} />
-                  <stop offset="100%" stopColor={color} stopOpacity={0} />
+                  <stop offset="0%" stopColor={color} stopOpacity={0.45} />
+                  <stop offset="95%" stopColor={color} stopOpacity={0.03} />
                 </linearGradient>
               </defs>
               <CartesianGrid
                 strokeDasharray="3 3"
-                stroke="#1e293b"
+                stroke="#2d3548"
+                strokeOpacity={0.4}
                 vertical={false}
               />
               <XAxis
@@ -177,7 +178,7 @@ export function HistoricalTvlChart({
                   if (active && payload && payload.length) {
                     const data = payload[0].payload;
                     return (
-                      <div className="rounded-lg border border-slate-700/40 bg-[#111827]/90 backdrop-blur-sm px-3 py-2 shadow-xl">
+                      <div className="rounded-lg border border-[#2d3548]/60 bg-[#1a1f2e]/95 backdrop-blur-sm px-3 py-2 shadow-xl">
                         <p className="text-[12px] text-slate-500 mb-1">
                           {new Date(data.date).toLocaleDateString('en-US', {
                             month: 'short',

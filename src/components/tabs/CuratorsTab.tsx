@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { CuratorLeaderboard } from '@/components/charts/curator-leaderboard';
 import { CuratorTvlChart } from '@/components/charts/curator-tvl-chart';
 import { CuratorComparisonChart } from '@/components/charts/curator-comparison-chart';
+import { RiskHeatmap } from '@/components/charts/risk-heatmap';
 import { getCuratorColor } from '@/lib/colors';
 import type { Curator, HistoricalCuratorData } from '@/types';
 
@@ -29,17 +30,17 @@ export function CuratorsTab({ curators, historicalData }: CuratorsTabProps) {
   return (
     <>
       {/* Curator Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-slate-700/30 rounded-xl overflow-hidden mb-8 border border-slate-700/35">
-        <div className="bg-[#111827]/80 accent-border-blue">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-[#2d3548]/40 rounded-[14px] overflow-hidden mb-8 border border-[#2d3548]/60">
+        <div className="bg-[#1a1f2e] accent-border-blue">
           <StatCard title="Total Curator TVL" value={stats.totalTvl} accent="blue" />
         </div>
-        <div className="bg-[#111827]/80 accent-border-amber">
+        <div className="bg-[#1a1f2e] accent-border-amber">
           <StatCard title="Total Curators" value={curators.length} format="number" accent="amber" />
         </div>
-        <div className="bg-[#111827]/80 accent-border-cyan">
+        <div className="bg-[#1a1f2e] accent-border-cyan">
           <StatCard title="Total Vaults" value={stats.totalVaults} format="number" accent="cyan" />
         </div>
-        <div className="bg-[#111827]/80 accent-border-emerald">
+        <div className="bg-[#1a1f2e] accent-border-emerald">
           <StatCard
             title="Avg APY"
             value={stats.avgApy}
@@ -80,7 +81,7 @@ export function CuratorsTab({ curators, historicalData }: CuratorsTabProps) {
                         <span className="text-[13px] text-slate-300">{curator.name}</span>
                         <span className="text-[13px] text-slate-400" style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>{share.toFixed(1)}%</span>
                       </div>
-                      <div className="h-1.5 bg-slate-800/60 rounded-full overflow-hidden">
+                      <div className="h-1.5 bg-[#1a1f2e]/60 rounded-full overflow-hidden">
                         <div
                           className="h-full rounded-full transition-all"
                           style={{
@@ -96,6 +97,11 @@ export function CuratorsTab({ curators, historicalData }: CuratorsTabProps) {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Risk Heatmap */}
+      <div className="mb-8">
+        <RiskHeatmap curators={curators} />
       </div>
 
       {/* Curator Leaderboard */}

@@ -130,7 +130,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen text-white" style={{ background: 'var(--bg-primary)' }}>
       {/* Header with dotted grid */}
-      <header className="border-b border-slate-700/40 sticky top-0 z-50 backdrop-blur-md" style={{ background: 'rgba(11, 15, 25, 0.92)' }}>
+      <header className="border-b border-[#2d3548]/60 sticky top-0 z-50 backdrop-blur-md" style={{ background: 'rgba(13, 17, 23, 0.95)' }}>
         <div className="dotted-grid">
           <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-3">
             <div className="flex items-center justify-between">
@@ -187,7 +187,7 @@ export default function Dashboard() {
       </header>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 backdrop-blur-md border-t border-slate-700/40 safe-area-pb" style={{ background: 'rgba(11, 15, 25, 0.95)' }}>
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 backdrop-blur-md border-t border-[#2d3548]/60 safe-area-pb" style={{ background: 'rgba(13, 17, 23, 0.96)' }}>
         <div className="flex justify-around items-center h-14">
           <MobileTabButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon={<LayoutDashboard className="h-5 w-5" />} label="Overview" />
           <MobileTabButton active={activeTab === 'curators'} onClick={() => setActiveTab('curators')} icon={<Users className="h-5 w-5" />} label="Curators" />
@@ -201,7 +201,7 @@ export default function Dashboard() {
       <main className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-20 sm:pb-8">
         <div className="tab-content-enter" key={activeTab}>
           {activeTab === 'overview' && (
-            <OverviewTab overviewData={overviewData} curators={curators} onNavigate={setActiveTab} />
+            <OverviewTab overviewData={overviewData} curators={curators} historicalData={historicalData} onNavigate={setActiveTab} />
           )}
 
           {activeTab === 'curators' && (
@@ -222,7 +222,7 @@ export default function Dashboard() {
         </div>
 
         {/* Footer */}
-        <footer className="mt-12 sm:mt-16 pt-6 border-t border-slate-700/30">
+        <footer className="mt-12 sm:mt-16 pt-6 border-t border-[#2d3548]/40">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] sm:text-[12px] text-slate-600">
             <div className="flex items-center gap-4">
               <a href="https://defillama.com" target="_blank" rel="noopener noreferrer" className="hover:text-slate-400 transition-colors">
@@ -246,8 +246,8 @@ function TabButton({ active, onClick, icon, label }: { active: boolean; onClick:
       onClick={onClick}
       className={`flex items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-medium rounded-lg transition-all duration-150 ${
         active
-          ? 'bg-slate-700/60 text-white shadow-sm'
-          : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
+          ? 'bg-[#2d3548]/60 text-white'
+          : 'text-slate-500 hover:text-white hover:bg-[#2d3548]/30'
       }`}
     >
       {icon}

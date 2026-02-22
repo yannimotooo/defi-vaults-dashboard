@@ -193,7 +193,7 @@ export function VaultTable({
               <col className="hidden md:table-column w-[9%]" /> {/* Buffer */}
             </colgroup>
             <thead>
-              <tr className="border-b border-slate-700/35 bg-[#0f172a]/40">
+              <tr className="border-b border-slate-700/35 bg-[#141922]/60">
                 <th className="px-3 sm:px-5 py-3 text-left text-[10px] sm:text-[11px] font-medium text-slate-500 uppercase tracking-wider">
                   <SortButton columnKey="name" label="Vault" />
                 </th>
@@ -327,7 +327,7 @@ export function VaultTable({
                               <span className="text-[10px] sm:text-[11px] text-slate-500 bg-slate-700/35 px-1 sm:px-1.5 py-0.5 rounded cursor-help">
                                 No Data
                               </span>
-                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1.5 bg-[#111827]/90 border border-slate-700/40 rounded-lg text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1.5 bg-[#1a1f2e]/95 border border-slate-700/40 rounded-lg text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
                                 <p className="text-slate-300">Insufficient on-chain data</p>
                                 <p className="text-slate-500">Raw market or non-Morpho vault</p>
                               </div>
@@ -368,7 +368,7 @@ export function VaultTable({
                               {(stressBuffer * 100).toFixed(0)}%
                             </span>
                             {/* Buffer tooltip */}
-                            <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-[#111827]/90 border border-slate-700/40 rounded-lg text-[11px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+                            <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-[#1a1f2e]/95 border border-slate-700/40 rounded-lg text-[11px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
                               <p className="text-slate-300 font-medium mb-1">Stress Buffer</p>
                               <div className="space-y-1 text-slate-500">
                                 <p>LLTV Headroom: {((1 - (vault.avgLltv || 0)) * 100).toFixed(0)}%</p>
@@ -386,7 +386,7 @@ export function VaultTable({
                     </tr>
                     {/* Expanded vault details */}
                     {expandedVault === vault.id && (
-                      <tr className="bg-[#0f172a]/50">
+                      <tr className="bg-[#141922]/60">
                         <td colSpan={100} className="px-3 sm:px-5 py-4 sm:py-5">
                           <div className="sm:pl-8 space-y-4 sm:space-y-5">
                             {/* Quick Overview Section */}

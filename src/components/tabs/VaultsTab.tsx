@@ -18,7 +18,7 @@ const RATING_COLORS: Record<string, string> = {
   'A': 'text-green-400 bg-green-500/10',
   'BBB': 'text-yellow-400 bg-yellow-500/10',
   'BB': 'text-amber-400 bg-amber-500/10',
-  'NR': 'text-slate-400 bg-slate-800/60',
+  'NR': 'text-slate-400 bg-[#1a1f2e]/60',
 };
 
 export function VaultsTab({ vaults }: VaultsTabProps) {
@@ -99,11 +99,11 @@ export function VaultsTab({ vaults }: VaultsTabProps) {
   return (
     <>
       {/* Vault Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-slate-700/30 rounded-xl overflow-hidden mb-8 border border-slate-700/35">
-        <div className="bg-[#111827]/80 accent-border-blue">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-[#2d3548]/40 rounded-[14px] overflow-hidden mb-8 border border-[#2d3548]/60">
+        <div className="bg-[#1a1f2e] accent-border-blue">
           <StatCard title="Total Vault TVL" value={stats.totalTvl} accent="blue" />
         </div>
-        <div className="bg-[#111827]/80 accent-border-amber">
+        <div className="bg-[#1a1f2e] accent-border-amber">
           <StatCard
             title="Rated Coverage"
             value={stats.ratedPct}
@@ -112,7 +112,7 @@ export function VaultsTab({ vaults }: VaultsTabProps) {
             accent="amber"
           />
         </div>
-        <div className="bg-[#111827]/80 accent-border-emerald">
+        <div className="bg-[#1a1f2e] accent-border-emerald">
           <StatCard
             title="Stablecoin APY"
             value={stats.stablecoinAvgApy}
@@ -121,7 +121,7 @@ export function VaultsTab({ vaults }: VaultsTabProps) {
             accent="emerald"
           />
         </div>
-        <div className="bg-[#111827]/80 accent-border-cyan">
+        <div className="bg-[#1a1f2e] accent-border-cyan">
           <StatCard
             title="Investment Grade"
             value={stats.investmentGrade.length}
@@ -138,7 +138,7 @@ export function VaultsTab({ vaults }: VaultsTabProps) {
           <h3 className="text-[11px] uppercase tracking-widest text-slate-400 font-medium mb-4">APY by Asset Class</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {assetClasses.map(cat => (
-              <div key={cat.name} className="bg-[#111827]/60 border border-slate-700/35 rounded-xl p-4 transition-all hover:bg-[#1e293b]/40 hover:-translate-y-px">
+              <div key={cat.name} className="bg-[#141922]/70 border border-[#2d3548]/60 rounded-xl p-4 transition-all hover:bg-[#212738]/40 hover:-translate-y-px">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-lg">{cat.icon}</span>
                   <span className="text-[14px] text-white font-medium">{cat.name}</span>
@@ -249,7 +249,7 @@ export function VaultsTab({ vaults }: VaultsTabProps) {
       {/* Credit Rating Methodology */}
       <div id="methodology" className="mt-12 pt-8 border-t border-slate-700/30">
         <h3 className="text-[11px] uppercase tracking-widest text-slate-400 font-medium mb-4">Credit Rating Methodology</h3>
-        <div className="bg-[#111827]/50 border border-slate-700/35 rounded-xl p-6">
+        <div className="bg-[#141922]/60 border border-[#2d3548]/60 rounded-xl p-6">
           <p className="text-[13px] text-slate-400 mb-6">
             Our three-pillar credit rating system assesses vault risk across capital safety, liquidity health,
             and curator quality. Lower scores indicate higher quality.
@@ -353,7 +353,7 @@ function FeaturedVaultCard({
   const ratingColor = RATING_COLORS[rating] || RATING_COLORS['NR'];
 
   return (
-    <div className="bg-[#0f172a]/60 border border-slate-700/30 rounded-lg p-4 transition-all hover:bg-[#1e293b]/40">
+    <div className="bg-[#0f172a]/60 border border-slate-700/30 rounded-lg p-4 transition-all hover:bg-[#212738]/40">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <span className="text-[14px] text-white font-medium">{vault.symbol}</span>

@@ -139,18 +139,18 @@ export function CuratorComparisonChart({
             <p className="text-[11px] uppercase tracking-widest text-slate-500 font-medium mb-1">Historical</p>
             <CardTitle>{title}</CardTitle>
           </div>
-          <div className="flex gap-1 bg-slate-800/40 rounded-lg p-1">
+          <div className="flex gap-0.5 bg-[#141922] rounded-full p-0.5 border border-[#2d3548]/50">
             {(['7d', '30d', '90d', '1y', 'all'] as Period[]).map((p) => (
               <button
                 key={p}
                 onClick={() => setPeriod(p)}
-                className={`px-3 py-1 text-[12px] font-medium rounded-md transition-all ${
+                className={`px-3 py-1 text-[11px] font-medium rounded-full transition-all ${
                   period === p
-                    ? 'bg-slate-700/80 text-white shadow-sm'
+                    ? 'bg-[#2d3548] text-white'
                     : 'text-slate-500 hover:text-slate-300'
                 }`}
               >
-                {p === 'all' ? 'All' : p.toUpperCase()}
+                {p === 'all' ? 'ALL' : p.toUpperCase()}
               </button>
             ))}
           </div>
@@ -166,7 +166,7 @@ export function CuratorComparisonChart({
                 onClick={() => toggleCurator(curator.slug)}
                 className={`flex items-center gap-2 px-2 py-1 rounded-md text-[12px] transition-all ${
                   isHidden ? 'opacity-40' : 'opacity-100'
-                } hover:bg-slate-800/60`}
+                } hover:bg-[#1a1f2e]/60`}
               >
                 <div
                   className="w-3 h-0.5 rounded"
@@ -193,7 +193,7 @@ export function CuratorComparisonChart({
                   );
                 })}
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#2d3548" strokeOpacity={0.4} vertical={false} />
               <XAxis
                 dataKey="date"
                 tickFormatter={formatDate}
@@ -215,7 +215,7 @@ export function CuratorComparisonChart({
                 content={({ active, payload, label }) => {
                   if (active && payload && payload.length && label) {
                     return (
-                      <div className="rounded-xl border border-slate-700/40 bg-[#111827]/95 backdrop-blur-xl px-4 py-3 shadow-2xl min-w-[200px]">
+                      <div className="rounded-xl border border-[#2d3548]/60 bg-[#1a1f2e]/95 backdrop-blur-xl px-4 py-3 shadow-2xl min-w-[200px]">
                         <p className="text-[11px] uppercase tracking-wider text-slate-500 mb-2">
                           {new Date(label as number).toLocaleDateString('en-US', {
                             month: 'short',

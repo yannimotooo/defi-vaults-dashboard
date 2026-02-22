@@ -1,47 +1,69 @@
 'use client';
 
+import { useMemo } from 'react';
 import { StatCard } from '@/components/ui/stat-card';
 import { TvlByChainChart } from '@/components/charts/tvl-by-chain';
 import { TvlByProtocolChart } from '@/components/charts/tvl-by-protocol';
 import { CuratorTvlChart } from '@/components/charts/curator-tvl-chart';
 import { RiskSummaryCard } from '@/components/charts/risk-summary-card';
-import type { MarketOverview, Curator } from '@/types';
+import type { MarketOverview, Curator, HistoricalCuratorData } from '@/types';
 
 interface OverviewTabProps {
   overviewData: MarketOverview;
   curators: Curator[];
+  historicalData: HistoricalCuratorData[];
   onNavigate: (tab: 'curators') => void;
 }
 
-export function OverviewTab({ overviewData, curators, onNavigate }: OverviewTabProps) {
+export function OverviewTab({ overviewData, curators, historicalData, onNavigate }: OverviewTabProps) {
+  // Derive aggregate TVL sparkline from per-curator historical data
+  const tvlSparkline = useMemo(() => {
+    if (!historicalData || historicalData.length === 0) return undefined;
+
+    // Aggregate TVL by date across all curators
+    const dateMap = new Map<number, number>();
+    for (const curator of historicalData) {
+      for (const point of curator.data) {
+        dateMap.set(point.date, (dateMap.get(point.date) || 0) + point.tvl);
+      }
+    }
+
+    // Sort by date and take last 14 points for a clean sparkline
+    const sorted = Array.from(dateMap.entries())
+      .sort((a, b) => a[0] - b[0])
+      .map(([, tvl]) => tvl);
+
+    return sorted.length >= 2 ? sorted.slice(-14) : undefined;
+  }, [historicalData]);
   return (
     <>
       {/* Stats Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-slate-700/30 rounded-xl overflow-hidden mb-8 border border-slate-700/35">
-        <div className="bg-[#111827]/80 accent-border-blue">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-[#2d3548]/40 rounded-[14px] overflow-hidden mb-8 border border-[#2d3548]/60">
+        <div className="bg-[#1a1f2e] accent-border-blue">
           <StatCard
             title="Total Vault TVL"
             value={overviewData.totalTvl}
             change={overviewData.totalTvlChange24h}
             subtitle="24h"
             accent="blue"
+            sparklineData={tvlSparkline}
           />
         </div>
-        <div className="bg-[#111827]/80 accent-border-emerald">
+        <div className="bg-[#1a1f2e] accent-border-emerald">
           <StatCard
             title="EVM Chains"
             value={overviewData.evmTvl}
             accent="emerald"
           />
         </div>
-        <div className="bg-[#111827]/80 accent-border-cyan">
+        <div className="bg-[#1a1f2e] accent-border-cyan">
           <StatCard
             title="Solana"
             value={overviewData.solanaTvl}
             accent="cyan"
           />
         </div>
-        <div className="bg-[#111827]/80 accent-border-amber">
+        <div className="bg-[#1a1f2e] accent-border-amber">
           <StatCard
             title="Active Curators"
             value={curators.length || overviewData.totalCurators}

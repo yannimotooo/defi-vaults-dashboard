@@ -120,7 +120,7 @@ export function DataConfidenceBadge({
       <span className={`text-[10px] ${textColor}`}>{label}</span>
 
       {showTooltip && (
-        <div className="absolute bottom-full right-0 mb-2 px-2 py-1.5 bg-[#111827]/90 border border-slate-700/40 rounded-lg text-[11px] text-slate-400 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+        <div className="absolute bottom-full right-0 mb-2 px-2 py-1.5 bg-[#1a1f2e]/95 border border-slate-700/40 rounded-lg text-[11px] text-slate-400 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
           <p>{description}</p>
           {difference && (
             <p className="text-slate-500 mt-0.5">

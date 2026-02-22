@@ -77,7 +77,7 @@ export function CuratorTvlChart({ curators }: CuratorTvlChartProps) {
                   if (active && payload && payload.length) {
                     const data = payload[0].payload;
                     return (
-                      <div className="rounded-lg border border-slate-700/40 bg-[#111827]/90 backdrop-blur-sm p-3 shadow-xl min-w-[200px]">
+                      <div className="rounded-lg border border-[#2d3548]/60 bg-[#1a1f2e]/95 backdrop-blur-sm p-3 shadow-xl min-w-[200px]">
                         <p className="font-medium text-white text-[14px] mb-2">{data.fullName}</p>
                         <div className="space-y-1.5 text-[13px]">
                           <div className="flex justify-between">
@@ -139,9 +139,10 @@ function formatCuratorNameForChart(name: string): string {
   const shortNames: Record<string, string> = {
     'Steakhouse Financial': 'Steakhouse',
     'UltraYield by Edge': 'UltraYield',
+    'Varlamore Capital': 'Varlamore',
   };
 
   if (shortNames[name]) return shortNames[name];
-  if (name.length > 16) return name.slice(0, 14) + '...';
+  if (name.length > 18) return name.slice(0, 16) + '...';
   return name;
 }

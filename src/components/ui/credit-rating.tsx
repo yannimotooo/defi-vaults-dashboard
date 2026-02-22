@@ -131,7 +131,7 @@ export function PillarBadge({ pillar, rating, compact = false }: PillarBadgeProp
         </span>
 
         {/* Tooltip */}
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-2 bg-[#111827]/90 border border-slate-700/40 rounded-lg text-[11px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-2 bg-[#1a1f2e]/95 border border-slate-700/40 rounded-lg text-[11px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
           <p className="text-white font-medium mb-1">{config.label}</p>
           <p className="text-slate-500">{config.description}</p>
           <p className={cn('mt-1', colors.text)}>
@@ -259,7 +259,7 @@ export function PillarDetailCard({ pillar, rating, defaultExpanded = false }: Pi
   const OutlookIcon = outlook.icon;
 
   return (
-    <div className={cn('rounded-lg border', colors.border, 'bg-[#111827]/60')}>
+    <div className={cn('rounded-lg border', colors.border, 'bg-[#141922]/70')}>
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-700/25 transition-colors"
@@ -469,7 +469,7 @@ export function CompactRating({ rating, showPillars = false }: CompactRatingProp
       )}
 
       {/* Hover tooltip - positioned below to avoid clipping */}
-      <div className="absolute top-full left-0 mt-2 px-3 py-2.5 bg-[#111827]/90 border border-slate-700/40 rounded-lg text-[11px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl min-w-[220px]">
+      <div className="absolute top-full left-0 mt-2 px-3 py-2.5 bg-[#1a1f2e]/95 border border-slate-700/40 rounded-lg text-[11px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl min-w-[220px]">
         <div className="flex items-center justify-between mb-2">
           <span className="text-white font-medium">
             {rating.compositeRating} - {RATING_LABELS[rating.compositeRating]}
@@ -527,7 +527,7 @@ export function RatingScaleLegend() {
   const speculative: CreditRating[] = ['BB', 'B', 'CCC', 'CC', 'C'];
 
   return (
-    <div className="p-4 bg-[#111827]/60 rounded-lg border border-slate-700/40">
+    <div className="p-4 bg-[#141922]/70 rounded-lg border border-slate-700/40">
       <p className="text-[11px] text-slate-500 uppercase tracking-wider mb-3">
         Credit Rating Scale
       </p>
