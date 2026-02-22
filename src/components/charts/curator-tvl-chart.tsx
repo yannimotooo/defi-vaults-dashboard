@@ -38,8 +38,11 @@ export function CuratorTvlChart({ curators }: CuratorTvlChartProps) {
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle>Top Curators by TVL</CardTitle>
-          <span className="text-[11px] text-slate-500">Click bar for details</span>
+          <div>
+            <p className="text-[11px] uppercase tracking-widest text-slate-500 font-medium mb-1">Rankings</p>
+            <CardTitle>Top Curators by TVL</CardTitle>
+          </div>
+          <span className="text-[11px] text-slate-600">Click bar for details</span>
         </div>
       </CardHeader>
       <CardContent className="p-0 pr-5 pb-5">
@@ -56,7 +59,7 @@ export function CuratorTvlChart({ curators }: CuratorTvlChartProps) {
                 tickFormatter={(value) => formatTvl(value)}
                 stroke="#334155"
                 fontSize={11}
-                fontFamily="monospace"
+                fontFamily="var(--font-jetbrains-mono), monospace"
                 axisLine={false}
                 tickLine={false}
               />

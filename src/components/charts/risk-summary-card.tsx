@@ -164,9 +164,18 @@ export function RiskSummaryCard({ curators }: RiskSummaryCardProps) {
     <Card>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-[15px]">Protocol Risk Summary</CardTitle>
-          <div className="flex items-center gap-2">
-            <span className={cn('px-2 py-1 rounded-full text-[11px] font-medium', health.bg, health.color)}>
+          <div>
+            <p className="text-[11px] uppercase tracking-widest text-slate-500 font-medium mb-1">Risk Assessment</p>
+            <CardTitle className="text-[15px]">Protocol Risk Summary</CardTitle>
+          </div>
+          <div className="flex items-center gap-2.5">
+            <span className={cn(
+              'px-2.5 py-1 rounded-full text-[11px] font-medium border',
+              health.bg, health.color,
+              health.label === 'Healthy' ? 'border-emerald-500/20' :
+              health.label === 'Stable' ? 'border-green-500/20' :
+              health.label === 'Elevated Risk' ? 'border-amber-500/20' : 'border-red-500/20'
+            )}>
               {health.label}
             </span>
             <RatingBadge rating={summary.protocolRating} size="md" />
@@ -175,11 +184,11 @@ export function RiskSummaryCard({ curators }: RiskSummaryCardProps) {
       </CardHeader>
       <CardContent>
         {/* Rating Distribution */}
-        <div className="mb-4">
-          <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2">
+        <div className="mb-5">
+          <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2.5 font-medium">
             Rating Distribution
           </p>
-          <div className="flex gap-1 h-6 rounded overflow-hidden">
+          <div className="flex gap-0.5 h-7 rounded-lg overflow-hidden bg-slate-800/30">
             {investmentGradeRatings.map(rating => {
               const count = summary.ratingDistribution[rating];
               const pct = summary.curatorsWithRatings > 0
@@ -255,15 +264,15 @@ export function RiskSummaryCard({ curators }: RiskSummaryCardProps) {
         </div>
 
         {/* Key Metrics Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {/* 7d Liquidations */}
-          <div className="space-y-1">
-            <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
-              <TrendingDown className="h-3.5 w-3.5" />
-              <span>7d Liquidations</span>
+          <div className="bg-[#0f172a]/50 rounded-lg p-3 border border-slate-700/20 space-y-1">
+            <div className="flex items-center gap-1.5 text-[10px] text-slate-500 uppercase tracking-wider font-medium">
+              <TrendingDown className="h-3 w-3" />
+              <span>7d Liqs</span>
             </div>
             <p className={cn(
-              'font-mono text-[18px]',
+              'font-mono text-[20px] font-medium',
               summary.totalLiquidations7d > 10_000_000 ? 'text-red-400' :
               summary.totalLiquidations7d > 1_000_000 ? 'text-amber-400' : 'text-slate-300'
             )}>
@@ -277,13 +286,13 @@ export function RiskSummaryCard({ curators }: RiskSummaryCardProps) {
           </div>
 
           {/* Bad Debt */}
-          <div className="space-y-1">
-            <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
-              <AlertTriangle className="h-3.5 w-3.5" />
+          <div className="bg-[#0f172a]/50 rounded-lg p-3 border border-slate-700/20 space-y-1">
+            <div className="flex items-center gap-1.5 text-[10px] text-slate-500 uppercase tracking-wider font-medium">
+              <AlertTriangle className="h-3 w-3" />
               <span>Bad Debt</span>
             </div>
             <p className={cn(
-              'font-mono text-[18px]',
+              'font-mono text-[20px] font-medium',
               summary.curatorsWithBadDebt > 2 ? 'text-red-400' :
               summary.curatorsWithBadDebt > 0 ? 'text-amber-400' : 'text-emerald-400'
             )}>
@@ -295,12 +304,12 @@ export function RiskSummaryCard({ curators }: RiskSummaryCardProps) {
           </div>
 
           {/* Investment Grade */}
-          <div className="space-y-1">
-            <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
-              <CheckCircle className="h-3.5 w-3.5" />
-              <span>Investment Grade</span>
+          <div className="bg-[#0f172a]/50 rounded-lg p-3 border border-slate-700/20 space-y-1">
+            <div className="flex items-center gap-1.5 text-[10px] text-slate-500 uppercase tracking-wider font-medium">
+              <CheckCircle className="h-3 w-3" />
+              <span>Inv. Grade</span>
             </div>
-            <p className="font-mono text-[18px] text-emerald-400">
+            <p className="font-mono text-[20px] font-medium text-emerald-400">
               {summary.investmentGradeCount}
             </p>
             <p className="text-[10px] text-slate-600">
@@ -309,13 +318,13 @@ export function RiskSummaryCard({ curators }: RiskSummaryCardProps) {
           </div>
 
           {/* Avg Utilization */}
-          <div className="space-y-1">
-            <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
-              <Droplets className="h-3.5 w-3.5" />
-              <span>Avg Utilization</span>
+          <div className="bg-[#0f172a]/50 rounded-lg p-3 border border-slate-700/20 space-y-1">
+            <div className="flex items-center gap-1.5 text-[10px] text-slate-500 uppercase tracking-wider font-medium">
+              <Droplets className="h-3 w-3" />
+              <span>Utilization</span>
             </div>
             <p className={cn(
-              'font-mono text-[18px]',
+              'font-mono text-[20px] font-medium',
               summary.avgUtilization > 0.95 ? 'text-red-400' :
               summary.avgUtilization > 0.85 ? 'text-amber-400' :
               summary.avgUtilization > 0.70 ? 'text-yellow-400' : 'text-slate-300'
@@ -330,16 +339,16 @@ export function RiskSummaryCard({ curators }: RiskSummaryCardProps) {
 
         {/* Top/Bottom Rated */}
         {(summary.bestRatedCurators.length > 0 || summary.worstRatedCurators.length > 0) && (
-          <div className="mt-4 pt-3 border-t border-slate-700/40 grid grid-cols-2 gap-4">
+          <div className="mt-5 pt-4 border-t border-slate-700/30 grid grid-cols-2 gap-4">
             {summary.bestRatedCurators.length > 0 && (
-              <div>
-                <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+              <div className="bg-emerald-500/[0.04] rounded-lg p-3 border border-emerald-500/10">
+                <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2.5 flex items-center gap-1.5 font-medium">
                   <Shield className="h-3 w-3 text-emerald-400" /> Top Rated
                 </p>
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   {summary.bestRatedCurators.map(c => (
                     <div key={c.name} className="flex items-center justify-between">
-                      <span className="text-[11px] text-slate-400 truncate max-w-[120px]">{c.name}</span>
+                      <span className="text-[11px] text-slate-300 truncate max-w-[120px]">{c.name}</span>
                       <RatingBadge rating={c.rating} size="sm" />
                     </div>
                   ))}
@@ -347,14 +356,14 @@ export function RiskSummaryCard({ curators }: RiskSummaryCardProps) {
               </div>
             )}
             {summary.worstRatedCurators.length > 0 && (
-              <div>
-                <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+              <div className="bg-amber-500/[0.04] rounded-lg p-3 border border-amber-500/10">
+                <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2.5 flex items-center gap-1.5 font-medium">
                   <AlertTriangle className="h-3 w-3 text-amber-400" /> Watch List
                 </p>
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   {summary.worstRatedCurators.map(c => (
                     <div key={c.name} className="flex items-center justify-between">
-                      <span className="text-[11px] text-slate-400 truncate max-w-[120px]">{c.name}</span>
+                      <span className="text-[11px] text-slate-300 truncate max-w-[120px]">{c.name}</span>
                       <RatingBadge rating={c.rating} size="sm" />
                     </div>
                   ))}

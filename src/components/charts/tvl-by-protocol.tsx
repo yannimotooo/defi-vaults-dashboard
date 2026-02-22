@@ -22,6 +22,7 @@ export function TvlByProtocolChart({ data }: TvlByProtocolChartProps) {
   return (
     <Card>
       <CardHeader>
+        <p className="text-[11px] uppercase tracking-widest text-slate-500 font-medium mb-1">Breakdown</p>
         <CardTitle>TVL by Protocol</CardTitle>
       </CardHeader>
       <CardContent className="p-0 pr-5 pb-5">

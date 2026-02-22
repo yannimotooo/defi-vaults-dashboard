@@ -172,8 +172,11 @@ export function VaultTable({
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle>{title}</CardTitle>
-          <span className="text-[12px] text-slate-500">{vaults.length} vaults</span>
+          <div>
+            <p className="text-[11px] uppercase tracking-widest text-slate-500 font-medium mb-1">Portfolio</p>
+            <CardTitle>{title}</CardTitle>
+          </div>
+          <span className="text-[12px] text-slate-600 font-mono">{vaults.length} vaults</span>
         </div>
       </CardHeader>
       <CardContent className="p-0">
@@ -190,7 +193,7 @@ export function VaultTable({
               <col className="hidden md:table-column w-[9%]" /> {/* Buffer */}
             </colgroup>
             <thead>
-              <tr className="border-b border-slate-700/35">
+              <tr className="border-b border-slate-700/35 bg-[#0f172a]/40">
                 <th className="px-3 sm:px-5 py-3 text-left text-[10px] sm:text-[11px] font-medium text-slate-500 uppercase tracking-wider">
                   <SortButton columnKey="name" label="Vault" />
                 </th>
@@ -383,11 +386,11 @@ export function VaultTable({
                     </tr>
                     {/* Expanded vault details */}
                     {expandedVault === vault.id && (
-                      <tr className="bg-[#111827]/60">
-                        <td colSpan={100} className="px-3 sm:px-5 py-4">
+                      <tr className="bg-[#0f172a]/50">
+                        <td colSpan={100} className="px-3 sm:px-5 py-4 sm:py-5">
                           <div className="sm:pl-8 space-y-4 sm:space-y-5">
                             {/* Quick Overview Section */}
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg bg-slate-700/25 border border-slate-700/40">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg bg-slate-800/30 border border-slate-700/25">
                               {/* Chain */}
                               <div>
                                 <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1">

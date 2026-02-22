@@ -24,13 +24,19 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Curator Leaderboard</CardTitle>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[11px] uppercase tracking-widest text-slate-500 font-medium mb-1">Rankings</p>
+            <CardTitle>Curator Leaderboard</CardTitle>
+          </div>
+          <span className="text-[12px] text-slate-600 font-mono">{curators.length} curators</span>
+        </div>
       </CardHeader>
       <CardContent className="p-0">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-slate-700/35">
+              <tr className="border-b border-slate-700/35 bg-[#0f172a]/40">
                 <th className="px-3 sm:px-5 py-3 text-left text-[10px] sm:text-[11px] font-medium text-slate-500 uppercase tracking-wider w-10 sm:w-12">#</th>
                 <th className="px-3 sm:px-5 py-3 text-left text-[10px] sm:text-[11px] font-medium text-slate-500 uppercase tracking-wider">Curator</th>
                 <th className="px-3 sm:px-5 py-3 text-right text-[10px] sm:text-[11px] font-medium text-slate-500 uppercase tracking-wider">TVL</th>
@@ -47,14 +53,17 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                   <tr
                     onClick={() => toggleExpanded(curator.slug)}
                     className={cn(
-                      'border-b border-slate-700/30 hover:bg-slate-700/25 transition-colors cursor-pointer',
-                      expandedCurator === curator.slug && 'bg-slate-700/20'
+                      'border-b border-slate-700/30 hover:bg-slate-700/20 transition-all cursor-pointer',
+                      expandedCurator === curator.slug && 'bg-slate-700/15'
                     )}
+                    style={{
+                      borderLeft: `3px solid ${CURATOR_COLORS[curator.name] || FALLBACK_CURATOR_COLORS[index % FALLBACK_CURATOR_COLORS.length]}`,
+                    }}
                   >
                     <td className="px-3 sm:px-5 py-3 sm:py-4">
                       <div className="flex items-center gap-1.5 sm:gap-2">
                         {expandedCurator === curator.slug ? (
-                          <ChevronDown className="h-3 sm:h-3.5 w-3 sm:w-3.5 text-slate-600 flex-shrink-0" />
+                          <ChevronDown className="h-3 sm:h-3.5 w-3 sm:w-3.5 text-slate-500 flex-shrink-0" />
                         ) : (
                           <ChevronRight className="h-3 sm:h-3.5 w-3 sm:w-3.5 text-slate-600 flex-shrink-0" />
                         )}
@@ -68,11 +77,11 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                         onClick={(e) => e.stopPropagation()}
                       >
                         <div
-                          className="w-2 h-2 rounded-full flex-shrink-0"
+                          className="w-2.5 h-2.5 rounded-full flex-shrink-0 ring-2 ring-slate-800/80"
                           style={{ backgroundColor: CURATOR_COLORS[curator.name] || FALLBACK_CURATOR_COLORS[index % FALLBACK_CURATOR_COLORS.length] }}
                         />
                         <div className="min-w-0">
-                          <p className="text-[13px] sm:text-[14px] text-white group-hover:text-blue-400 transition-colors flex items-center gap-1 truncate">
+                          <p className="text-[13px] sm:text-[14px] text-white group-hover:text-indigo-400 transition-colors flex items-center gap-1 truncate">
                             {curator.name}
                             <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
                           </p>
@@ -188,8 +197,8 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                     </td>
                   </tr>
                   {expandedCurator === curator.slug && (
-                    <tr key={`${curator.slug}-expanded`} className="bg-[#111827]/60">
-                      <td colSpan={100} className="px-3 sm:px-5 py-3 sm:py-4">
+                    <tr key={`${curator.slug}-expanded`} className="bg-[#0f172a]/50">
+                      <td colSpan={100} className="px-3 sm:px-5 py-4 sm:py-5">
                         <div className="sm:pl-8 space-y-4">
                           {/* Row 1: Basic Info */}
                           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">

@@ -22,11 +22,19 @@ export function TvlByChainChart({ data }: TvlByChainChartProps) {
   return (
     <Card>
       <CardHeader>
+        <p className="text-[11px] uppercase tracking-widest text-slate-500 font-medium mb-1">Distribution</p>
         <CardTitle>TVL by Chain</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="flex items-center gap-8">
-          <div className="h-[200px] w-[200px] flex-shrink-0">
+          <div className="h-[200px] w-[200px] flex-shrink-0 relative">
+            {/* Center label */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10">
+              <span className="text-[10px] uppercase tracking-wider text-slate-500">Total</span>
+              <span className="text-[16px] font-semibold text-white" style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>
+                {formatTvl(total)}
+              </span>
+            </div>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
