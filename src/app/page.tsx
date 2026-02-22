@@ -1,8 +1,9 @@
 'use client';
 
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useState, useEffect, useMemo } from 'react';
 import useSWR from 'swr';
 import { DataFreshnessBadge } from '@/components/ui/data-freshness-badge';
+import { LoadingChart } from '@/components/ui/loading-chart';
 import { OverviewTab } from '@/components/tabs/OverviewTab';
 
 const CuratorsTab = lazy(() => import('@/components/tabs/CuratorsTab').then(m => ({ default: m.CuratorsTab })));
@@ -50,34 +51,53 @@ export default function Dashboard() {
     mutateCurators();
   };
 
-  if (loading && !overviewData) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
-        <div className="text-center">
-          <RefreshCw className="h-8 w-8 text-indigo-500 animate-spin mx-auto mb-4" />
-          <p className="text-slate-400">Loading DeFi Vault data...</p>
-        </div>
-      </div>
-    );
-  }
+  // Animated loading progress
+  const [elapsed, setElapsed] = useState(0);
 
-  if (error && !overviewData) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
-        <div className="text-center">
-          <p className="text-red-400 mb-4">{error}</p>
-          <button
-            onClick={refreshAll}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 transition-colors"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (overviewData) return;
+    const t0 = Date.now();
+    const id = setInterval(() => setElapsed((Date.now() - t0) / 1000), 80);
+    return () => clearInterval(id);
+  }, [overviewData]);
 
-  if (!overviewData) return null;
+  // Logarithmic fake progress (0→85% over ~10s) + real data checkpoints
+  const loadingProgress = useMemo(() => {
+    if (overviewData) return 100;
+    let base = Math.min(85, 85 * (1 - Math.exp(-elapsed / 4)));
+    // Bump when secondary data arrives before overview
+    if (curatorResponse) base = Math.max(base, 50);
+    if (historicalResponse) base = Math.max(base, 65);
+    return base;
+  }, [elapsed, overviewData, curatorResponse, historicalResponse]);
+
+  const loadingStage = useMemo(() => {
+    if (overviewData) return 'Ready';
+    if (error) return 'Retrying...';
+    if (loadingProgress > 70) return 'Aggregating curators...';
+    if (loadingProgress > 45) return 'Loading vault data...';
+    if (loadingProgress > 20) return 'Fetching protocol data...';
+    return 'Connecting to data sources...';
+  }, [loadingProgress, overviewData, error]);
+
+  if (!overviewData) {
+    if (error) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
+          <div className="text-center">
+            <p className="text-red-400 mb-4">{error}</p>
+            <button
+              onClick={refreshAll}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return <LoadingChart progress={loadingProgress} stage={loadingStage} />;
+  }
 
   return (
     <div className="min-h-screen text-white" style={{ background: 'var(--bg-primary)' }}>
