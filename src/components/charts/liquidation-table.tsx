@@ -67,26 +67,29 @@ export function LiquidationTable({
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="text-left text-slate-500 border-b border-slate-700/40">
-            <th className="pb-3 font-medium">Time</th>
-            {showProtocol && <th className="pb-3 font-medium">Protocol</th>}
-            <th className="pb-3 font-medium">Market</th>
-            <th className="pb-3 font-medium text-right">Repaid</th>
-            <th className="pb-3 font-medium text-right">Bad Debt</th>
-            <th className="pb-3 font-medium hidden sm:table-cell">Liquidator</th>
+          <tr className="text-left text-slate-500 border-b border-slate-700/35 bg-[#0f172a]/30">
+            <th className="pb-3 pt-2 px-2 font-medium text-[10px] uppercase tracking-wider">Time</th>
+            {showProtocol && <th className="pb-3 pt-2 px-2 font-medium text-[10px] uppercase tracking-wider">Protocol</th>}
+            <th className="pb-3 pt-2 px-2 font-medium text-[10px] uppercase tracking-wider">Market</th>
+            <th className="pb-3 pt-2 px-2 font-medium text-right text-[10px] uppercase tracking-wider">Repaid</th>
+            <th className="pb-3 pt-2 px-2 font-medium text-right text-[10px] uppercase tracking-wider">Bad Debt</th>
+            <th className="pb-3 pt-2 px-2 font-medium hidden sm:table-cell text-[10px] uppercase tracking-wider">Liquidator</th>
           </tr>
         </thead>
         <tbody>
           {displayEvents.map((event) => (
             <tr
               key={event.id}
-              className="border-b border-slate-700/40 hover:bg-[#111827]/60 transition-colors"
+              className={`border-b border-slate-700/30 hover:bg-slate-700/20 transition-all ${
+                event.hasSignificantBadDebt ? 'bg-red-500/[0.03]' :
+                event.badDebtUsd > 0 ? 'bg-amber-500/[0.02]' : ''
+              }`}
             >
-              <td className="py-3 text-slate-400">
+              <td className="py-3 px-2 text-slate-400">
                 {formatTimeAgo(event.timestamp)}
               </td>
               {showProtocol && (
-                <td className="py-3">
+                <td className="py-3 px-2">
                   <span className={`font-medium ${getProtocolColor(event.protocol)}`}>
                     {event.protocol}
                   </span>
@@ -95,7 +98,7 @@ export function LiquidationTable({
                   </span>
                 </td>
               )}
-              <td className="py-3">
+              <td className="py-3 px-2">
                 <span className="text-slate-300">
                   {event.loanAsset}
                 </span>
@@ -104,24 +107,24 @@ export function LiquidationTable({
                   {event.collateralAsset}
                 </span>
               </td>
-              <td className="py-3 text-right font-mono text-slate-300">
+              <td className="py-3 px-2 text-right font-mono text-slate-300">
                 {formatTvl(event.repaidUsd)}
               </td>
-              <td className="py-3 text-right font-mono">
+              <td className="py-3 px-2 text-right font-mono">
                 {event.badDebtUsd > 0 ? (
-                  <span className={event.hasSignificantBadDebt ? 'text-red-400' : 'text-yellow-500'}>
+                  <span className={event.hasSignificantBadDebt ? 'text-red-400' : 'text-amber-400'}>
                     {formatTvl(event.badDebtUsd)}
                   </span>
                 ) : (
                   <span className="text-slate-600">$0</span>
                 )}
               </td>
-              <td className="py-3 hidden sm:table-cell">
+              <td className="py-3 px-2 hidden sm:table-cell">
                 <a
                   href={`https://etherscan.io/address/${event.liquidator}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-slate-500 hover:text-slate-300 font-mono text-xs"
+                  className="text-slate-500 hover:text-indigo-400 font-mono text-xs transition-colors"
                 >
                   {truncateAddress(event.liquidator)}
                 </a>

@@ -148,9 +148,12 @@ export function YieldQualityChart({
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle>{title}</CardTitle>
-          <span className="text-[12px] text-slate-500">
-            {vaults.length} vaults analyzed
+          <div>
+            <p className="text-[11px] uppercase tracking-widest text-slate-500 font-medium mb-1">Yield Analysis</p>
+            <CardTitle>{title}</CardTitle>
+          </div>
+          <span className="text-[12px] text-slate-600 font-mono">
+            {vaults.length} vaults
           </span>
         </div>
       </CardHeader>

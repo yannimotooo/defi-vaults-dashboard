@@ -100,6 +100,7 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
     return (
       <Card>
         <CardHeader>
+          <p className="text-[11px] uppercase tracking-widest text-slate-500 font-medium mb-1">Fee Structure</p>
           <CardTitle>Curator Economics</CardTitle>
         </CardHeader>
         <CardContent>
@@ -118,11 +119,14 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5" style={{ color: curatorColor }} />
-                Curator Economics
-              </CardTitle>
-              <span className="text-[11px] text-purple-400 font-mono px-2 py-0.5 bg-purple-500/10 rounded">
+              <div>
+                <p className="text-[11px] uppercase tracking-widest text-slate-500 font-medium mb-1">Fee Structure</p>
+                <CardTitle className="flex items-center gap-2">
+                  <DollarSign className="h-5 w-5" style={{ color: curatorColor }} />
+                  Curator Economics
+                </CardTitle>
+              </div>
+              <span className="text-[11px] text-purple-400 font-mono px-2 py-0.5 bg-purple-500/10 rounded border border-purple-500/20">
                 Kamino On-Chain
               </span>
             </div>
@@ -265,11 +269,14 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5" style={{ color: curatorColor }} />
-                Curator Economics
-              </CardTitle>
-              <span className="text-[11px] text-amber-500 font-mono px-2 py-0.5 bg-amber-500/10 rounded">
+              <div>
+                <p className="text-[11px] uppercase tracking-widest text-slate-500 font-medium mb-1">Fee Structure</p>
+                <CardTitle className="flex items-center gap-2">
+                  <DollarSign className="h-5 w-5" style={{ color: curatorColor }} />
+                  Curator Economics
+                </CardTitle>
+              </div>
+              <span className="text-[11px] text-amber-500 font-mono px-2 py-0.5 bg-amber-500/10 rounded border border-amber-500/20">
                 Estimate Only
               </span>
             </div>
@@ -314,6 +321,7 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
     return (
       <Card>
         <CardHeader>
+          <p className="text-[11px] uppercase tracking-widest text-slate-500 font-medium mb-1">Fee Structure</p>
           <CardTitle>Curator Economics</CardTitle>
         </CardHeader>
         <CardContent>
@@ -338,11 +346,14 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5" style={{ color: curatorColor }} />
-            Curator Economics
-          </CardTitle>
-          <span className="text-[11px] text-slate-500 font-mono">
+          <div>
+            <p className="text-[11px] uppercase tracking-widest text-slate-500 font-medium mb-1">Fee Structure</p>
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5" style={{ color: curatorColor }} />
+              Curator Economics
+            </CardTitle>
+          </div>
+          <span className="text-[12px] text-slate-600 font-mono">
             {feeData.vaultCount} vaults
           </span>
         </div>

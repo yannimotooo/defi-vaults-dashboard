@@ -26,8 +26,8 @@ export function TvlByChainChart({ data }: TvlByChainChartProps) {
         <CardTitle>TVL by Chain</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="flex items-center gap-8">
-          <div className="h-[200px] w-[200px] flex-shrink-0 relative">
+        <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-8">
+          <div className="h-[180px] w-[180px] sm:h-[200px] sm:w-[200px] flex-shrink-0 relative">
             {/* Center label */}
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10">
               <span className="text-[10px] uppercase tracking-wider text-slate-500">Total</span>

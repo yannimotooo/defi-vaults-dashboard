@@ -12,13 +12,19 @@ export function ProtocolTable({ data }: ProtocolTableProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Protocol Rankings</CardTitle>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[11px] uppercase tracking-widest text-slate-500 font-medium mb-1">Protocols</p>
+            <CardTitle>Protocol Rankings</CardTitle>
+          </div>
+          <span className="text-[12px] text-slate-600 font-mono">{data.length} protocols</span>
+        </div>
       </CardHeader>
       <CardContent className="p-0">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-slate-700/35">
+              <tr className="border-b border-slate-700/35 bg-[#0f172a]/40">
                 <th className="px-5 py-3 text-left text-[11px] font-medium text-slate-500 uppercase tracking-wider w-12">#</th>
                 <th className="px-5 py-3 text-left text-[11px] font-medium text-slate-500 uppercase tracking-wider">Protocol</th>
                 <th className="px-5 py-3 text-right text-[11px] font-medium text-slate-500 uppercase tracking-wider">TVL</th>
@@ -32,7 +38,7 @@ export function ProtocolTable({ data }: ProtocolTableProps) {
               {data.map((protocol, index) => (
                 <tr
                   key={protocol.slug}
-                  className="border-b border-slate-700/30 hover:bg-slate-700/25 transition-colors"
+                  className="border-b border-slate-700/30 hover:bg-slate-700/20 transition-all"
                 >
                   <td className="px-5 py-4">
                     <span className="font-mono text-slate-500 text-[13px]">{index + 1}</span>
