@@ -31,7 +31,7 @@ interface HistoricalTvlChartProps {
 export function HistoricalTvlChart({
   data,
   title = 'TVL Over Time',
-  color = '#3B82F6',
+  color = '#6366f1',
   showPeriodSelector = true,
   height = 300,
 }: HistoricalTvlChartProps) {
@@ -91,7 +91,7 @@ export function HistoricalTvlChart({
           <CardTitle>{title}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[200px] flex items-center justify-center text-zinc-500 text-[14px]">
+          <div className="h-[200px] flex items-center justify-center text-slate-500 text-[14px]">
             No historical data available
           </div>
         </CardContent>
@@ -122,15 +122,15 @@ export function HistoricalTvlChart({
             )}
           </div>
           {showPeriodSelector && (
-            <div className="flex gap-1">
+            <div className="flex gap-1 bg-slate-800/40 rounded-lg p-1">
               {(['7d', '30d', '90d', '1y', 'all'] as Period[]).map((p) => (
                 <button
                   key={p}
                   onClick={() => setPeriod(p)}
-                  className={`px-3 py-1.5 text-[12px] font-medium rounded transition-colors ${
+                  className={`px-3 py-1 text-[12px] font-medium rounded-md transition-all ${
                     period === p
-                      ? 'bg-zinc-700 text-white'
-                      : 'text-zinc-500 hover:text-zinc-300'
+                      ? 'bg-slate-700/80 text-white shadow-sm'
+                      : 'text-slate-500 hover:text-slate-300'
                   }`}
                 >
                   {p === 'all' ? 'All' : p.toUpperCase()}
@@ -152,13 +152,13 @@ export function HistoricalTvlChart({
               </defs>
               <CartesianGrid
                 strokeDasharray="3 3"
-                stroke="#27272a"
+                stroke="#1e293b"
                 vertical={false}
               />
               <XAxis
                 dataKey="date"
                 tickFormatter={formatDate}
-                stroke="#52525b"
+                stroke="#475569"
                 fontSize={11}
                 tickLine={false}
                 axisLine={false}
@@ -166,7 +166,7 @@ export function HistoricalTvlChart({
               />
               <YAxis
                 tickFormatter={(value) => formatTvl(value)}
-                stroke="#52525b"
+                stroke="#475569"
                 fontSize={11}
                 tickLine={false}
                 axisLine={false}
@@ -177,8 +177,8 @@ export function HistoricalTvlChart({
                   if (active && payload && payload.length) {
                     const data = payload[0].payload;
                     return (
-                      <div className="rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 shadow-xl">
-                        <p className="text-[12px] text-zinc-500 mb-1">
+                      <div className="rounded-lg border border-slate-700/40 bg-[#111827]/90 backdrop-blur-sm px-3 py-2 shadow-xl">
+                        <p className="text-[12px] text-slate-500 mb-1">
                           {new Date(data.date).toLocaleDateString('en-US', {
                             month: 'short',
                             day: 'numeric',

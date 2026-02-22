@@ -61,10 +61,10 @@ export function RiskBadge({ riskLevel, riskScore, compact = false, showTooltip =
         </div>
 
         {showTooltip && (
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1.5 bg-zinc-900 border border-zinc-800 rounded text-[11px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1.5 bg-[#111827]/90 border border-slate-700/40 rounded text-[11px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
             <p className={config.color}>{config.label}</p>
             {riskScore !== undefined && (
-              <p className="text-zinc-500">Score: {riskScore}/100</p>
+              <p className="text-slate-500">Score: {riskScore}/100</p>
             )}
           </div>
         )}
@@ -78,7 +78,7 @@ export function RiskBadge({ riskLevel, riskScore, compact = false, showTooltip =
       <div>
         <span className={`text-[12px] font-medium ${config.color}`}>{config.label}</span>
         {riskScore !== undefined && (
-          <span className="text-[11px] text-zinc-500 ml-2">({riskScore}/100)</span>
+          <span className="text-[11px] text-slate-500 ml-2">({riskScore}/100)</span>
         )}
       </div>
     </div>
@@ -101,14 +101,14 @@ export function RiskScoreBar({ score, showLabel = true }: RiskScoreBarProps) {
 
   return (
     <div className="flex items-center gap-2">
-      <div className="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+      <div className="flex-1 h-1.5 bg-slate-800/60 rounded-full overflow-hidden">
         <div
           className={`h-full ${getColor(score)} rounded-full transition-all`}
           style={{ width: `${Math.min(score, 100)}%` }}
         />
       </div>
       {showLabel && (
-        <span className="text-[11px] text-zinc-500 font-mono w-8">{score}</span>
+        <span className="text-[11px] text-slate-500 font-mono w-8">{score}</span>
       )}
     </div>
   );

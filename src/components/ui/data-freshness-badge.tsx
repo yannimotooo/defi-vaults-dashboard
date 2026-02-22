@@ -50,9 +50,9 @@ export function DataFreshnessBadge({ timestamp, sources, className }: DataFreshn
   if (!mounted) {
     return (
       <div className={cn('flex items-center gap-3 text-[11px]', className)}>
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-zinc-500/10">
-          <Clock className="h-3 w-3 text-zinc-400" />
-          <span className="text-zinc-400">Loading...</span>
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-slate-500/10">
+          <Clock className="h-3 w-3 text-slate-400" />
+          <span className="text-slate-400">Loading...</span>
         </div>
       </div>
     );
@@ -73,8 +73,8 @@ export function DataFreshnessBadge({ timestamp, sources, className }: DataFreshn
     },
     old: {
       icon: AlertCircle,
-      color: 'text-zinc-400',
-      bgColor: 'bg-zinc-500/10',
+      color: 'text-slate-400',
+      bgColor: 'bg-slate-500/10',
       label: 'Stale',
     },
   };
@@ -95,25 +95,25 @@ export function DataFreshnessBadge({ timestamp, sources, className }: DataFreshn
       <div className={cn('flex items-center gap-1.5 px-2 py-1 rounded-full', config.bgColor)}>
         <Icon className={cn('h-3 w-3', config.color)} />
         <span className={config.color}>{config.label}</span>
-        <span className="text-zinc-500">·</span>
-        <span className="text-zinc-400">{timeAgo}</span>
+        <span className="text-slate-500">·</span>
+        <span className="text-slate-400">{timeAgo}</span>
       </div>
 
       {/* Source badges - hidden on smaller screens to prevent wrapping */}
       {sourceList.length > 0 && (
         <div className="hidden lg:flex items-center gap-1.5 flex-shrink-0">
-          <span className="text-zinc-600">Sources:</span>
+          <span className="text-slate-600">Sources:</span>
           {sourceList.slice(0, 3).map((source, i) => (
             <span
               key={i}
-              className="px-1.5 py-0.5 text-[10px] bg-zinc-800 text-zinc-400 rounded truncate max-w-[100px]"
+              className="px-1.5 py-0.5 text-[10px] bg-slate-800/60 text-slate-400 rounded truncate max-w-[100px]"
               title={source}
             >
               {source}
             </span>
           ))}
           {sourceList.length > 3 && (
-            <span className="text-[10px] text-zinc-600">+{sourceList.length - 3}</span>
+            <span className="text-[10px] text-slate-600">+{sourceList.length - 3}</span>
           )}
         </div>
       )}
@@ -135,7 +135,7 @@ export function DataFreshnessIndicator({ timestamp }: { timestamp: string }) {
   const colors = {
     fresh: 'bg-emerald-500',
     stale: 'bg-amber-500',
-    old: 'bg-zinc-500',
+    old: 'bg-slate-500',
   };
 
   return (

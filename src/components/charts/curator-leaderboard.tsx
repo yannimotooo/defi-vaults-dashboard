@@ -30,15 +30,15 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-zinc-800/60">
-                <th className="px-3 sm:px-5 py-3 text-left text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider w-10 sm:w-12">#</th>
-                <th className="px-3 sm:px-5 py-3 text-left text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Curator</th>
-                <th className="px-3 sm:px-5 py-3 text-right text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">TVL</th>
-                <th className="hidden sm:table-cell px-3 sm:px-5 py-3 text-center text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Risk</th>
-                <th className="hidden lg:table-cell px-3 sm:px-5 py-3 text-right text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">7d Liqs</th>
-                <th className="hidden md:table-cell px-3 sm:px-5 py-3 text-right text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Vaults</th>
-                <th className="px-3 sm:px-5 py-3 text-right text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">APY</th>
-                <th className="hidden lg:table-cell px-3 sm:px-5 py-3 text-right text-[10px] sm:text-[11px] font-medium text-zinc-500 uppercase tracking-wider">7d Flow</th>
+              <tr className="border-b border-slate-700/35">
+                <th className="px-3 sm:px-5 py-3 text-left text-[10px] sm:text-[11px] font-medium text-slate-500 uppercase tracking-wider w-10 sm:w-12">#</th>
+                <th className="px-3 sm:px-5 py-3 text-left text-[10px] sm:text-[11px] font-medium text-slate-500 uppercase tracking-wider">Curator</th>
+                <th className="px-3 sm:px-5 py-3 text-right text-[10px] sm:text-[11px] font-medium text-slate-500 uppercase tracking-wider">TVL</th>
+                <th className="hidden sm:table-cell px-3 sm:px-5 py-3 text-center text-[10px] sm:text-[11px] font-medium text-slate-500 uppercase tracking-wider">Risk</th>
+                <th className="hidden lg:table-cell px-3 sm:px-5 py-3 text-right text-[10px] sm:text-[11px] font-medium text-slate-500 uppercase tracking-wider">7d Liqs</th>
+                <th className="hidden md:table-cell px-3 sm:px-5 py-3 text-right text-[10px] sm:text-[11px] font-medium text-slate-500 uppercase tracking-wider">Vaults</th>
+                <th className="px-3 sm:px-5 py-3 text-right text-[10px] sm:text-[11px] font-medium text-slate-500 uppercase tracking-wider">APY</th>
+                <th className="hidden lg:table-cell px-3 sm:px-5 py-3 text-right text-[10px] sm:text-[11px] font-medium text-slate-500 uppercase tracking-wider">7d Flow</th>
               </tr>
             </thead>
             <tbody>
@@ -47,18 +47,18 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                   <tr
                     onClick={() => toggleExpanded(curator.slug)}
                     className={cn(
-                      'border-b border-zinc-800/40 hover:bg-zinc-800/30 transition-colors cursor-pointer',
-                      expandedCurator === curator.slug && 'bg-zinc-800/20'
+                      'border-b border-slate-700/30 hover:bg-slate-700/25 transition-colors cursor-pointer',
+                      expandedCurator === curator.slug && 'bg-slate-700/20'
                     )}
                   >
                     <td className="px-3 sm:px-5 py-3 sm:py-4">
                       <div className="flex items-center gap-1.5 sm:gap-2">
                         {expandedCurator === curator.slug ? (
-                          <ChevronDown className="h-3 sm:h-3.5 w-3 sm:w-3.5 text-zinc-600 flex-shrink-0" />
+                          <ChevronDown className="h-3 sm:h-3.5 w-3 sm:w-3.5 text-slate-600 flex-shrink-0" />
                         ) : (
-                          <ChevronRight className="h-3 sm:h-3.5 w-3 sm:w-3.5 text-zinc-700 flex-shrink-0" />
+                          <ChevronRight className="h-3 sm:h-3.5 w-3 sm:w-3.5 text-slate-600 flex-shrink-0" />
                         )}
-                        <span className="font-mono text-zinc-500 text-[12px] sm:text-[13px]">{index + 1}</span>
+                        <span className="font-mono text-slate-500 text-[12px] sm:text-[13px]">{index + 1}</span>
                       </div>
                     </td>
                     <td className="px-3 sm:px-5 py-3 sm:py-4">
@@ -76,7 +76,7 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                             {curator.name}
                             <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
                           </p>
-                          <p className="text-[10px] sm:text-[11px] text-zinc-600 mt-0.5 flex items-center gap-1.5 truncate">
+                          <p className="text-[10px] sm:text-[11px] text-slate-600 mt-0.5 flex items-center gap-1.5 truncate">
                             {curator.protocols.slice(0, 2).map((protocol, i) => (
                               <span key={protocol} className="flex items-center gap-1">
                                 <span
@@ -84,7 +84,7 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                                   style={{ backgroundColor: getProtocolColor(protocol) }}
                                 />
                                 <span className="truncate">{protocol}</span>
-                                {i < Math.min(curator.protocols.length, 2) - 1 && <span className="text-zinc-700 ml-0.5">·</span>}
+                                {i < Math.min(curator.protocols.length, 2) - 1 && <span className="text-slate-600 ml-0.5">·</span>}
                               </span>
                             ))}
                           </p>
@@ -118,7 +118,7 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                           compact
                         />
                       ) : (
-                        <span className="text-[11px] text-zinc-600">—</span>
+                        <span className="text-[11px] text-slate-600">—</span>
                       )}
                     </td>
                     <td className="hidden lg:table-cell px-3 sm:px-5 py-3 sm:py-4 text-right">
@@ -126,19 +126,19 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                         <span className={cn(
                           'font-mono text-[12px]',
                           curator.liquidationVolume7d! > 1_000_000 ? 'text-red-400' :
-                          curator.liquidationVolume7d! > 100_000 ? 'text-amber-400' : 'text-zinc-400'
+                          curator.liquidationVolume7d! > 100_000 ? 'text-amber-400' : 'text-slate-400'
                         )}>
                           {formatTvl(curator.liquidationVolume7d!)}
                         </span>
                       ) : (
-                        <span className="text-[11px] text-zinc-600">$0</span>
+                        <span className="text-[11px] text-slate-600">$0</span>
                       )}
                     </td>
                     <td className="hidden md:table-cell px-3 sm:px-5 py-3 sm:py-4 text-right">
                       <span
                         className={cn(
                           'font-mono text-[14px]',
-                          curator.vaultCountEstimated ? 'text-zinc-600' : 'text-zinc-400'
+                          curator.vaultCountEstimated ? 'text-slate-600' : 'text-slate-400'
                         )}
                         title={curator.vaultCountEstimated ? 'Estimated from TVL' : 'Actual vault count'}
                       >
@@ -153,20 +153,20 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                           </span>
                           {/* APY Tooltip with Gross/Net breakdown - hidden on mobile */}
                           {(curator.grossApy || curator.netApy || curator.avgPerformanceFee) && (
-                            <div className="hidden sm:block absolute bottom-full right-0 mb-2 px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-[11px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+                            <div className="hidden sm:block absolute bottom-full right-0 mb-2 px-3 py-2 bg-[#111827]/90 border border-slate-700/40 rounded-lg text-[11px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
                               <div className="space-y-1">
                                 {curator.grossApy !== undefined && (
-                                  <p className="text-zinc-400">
+                                  <p className="text-slate-400">
                                     Gross APY: <span className="font-mono text-white">{curator.grossApy.toFixed(2)}%</span>
                                   </p>
                                 )}
                                 {curator.avgPerformanceFee !== undefined && (
-                                  <p className="text-zinc-400">
+                                  <p className="text-slate-400">
                                     Perf Fee: <span className="font-mono text-amber-400">-{curator.avgPerformanceFee.toFixed(1)}%</span>
                                   </p>
                                 )}
                                 {curator.netApy !== undefined && (
-                                  <p className="text-zinc-400 border-t border-zinc-700 pt-1 mt-1">
+                                  <p className="text-slate-400 border-t border-slate-700/40 pt-1 mt-1">
                                     Net APY: <span className="font-mono text-emerald-400">{curator.netApy.toFixed(2)}%</span>
                                   </p>
                                 )}
@@ -175,33 +175,33 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                           )}
                         </div>
                       ) : (
-                        <span className="text-[11px] text-zinc-600" title="APY data not available">—</span>
+                        <span className="text-[11px] text-slate-600" title="APY data not available">—</span>
                       )}
                     </td>
                     <td className="hidden lg:table-cell px-3 sm:px-5 py-3 sm:py-4 text-right">
                       <span className={cn(
                         'font-mono text-[14px]',
-                        curator.netFlow7d > 0 ? 'text-emerald-400' : curator.netFlow7d < 0 ? 'text-red-400' : 'text-zinc-500'
+                        curator.netFlow7d > 0 ? 'text-emerald-400' : curator.netFlow7d < 0 ? 'text-red-400' : 'text-slate-500'
                       )}>
                         {formatFlow(curator.netFlow7d)}
                       </span>
                     </td>
                   </tr>
                   {expandedCurator === curator.slug && (
-                    <tr key={`${curator.slug}-expanded`} className="bg-zinc-900/50">
+                    <tr key={`${curator.slug}-expanded`} className="bg-[#111827]/60">
                       <td colSpan={100} className="px-3 sm:px-5 py-3 sm:py-4">
                         <div className="sm:pl-8 space-y-4">
                           {/* Row 1: Basic Info */}
                           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
                             <div>
-                              <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-2">
+                              <p className="text-[11px] text-slate-500 uppercase tracking-wider mb-2">
                                 Chains ({curator.chains.length})
                               </p>
                               <div className="flex flex-wrap gap-1.5">
                                 {curator.chains.map((chain) => (
                                   <span
                                     key={chain}
-                                    className="px-2 py-0.5 text-[12px] text-zinc-300 bg-zinc-800 rounded"
+                                    className="px-2 py-0.5 text-[12px] text-slate-300 bg-slate-800/60 rounded"
                                   >
                                     {chain}
                                   </span>
@@ -209,14 +209,14 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                               </div>
                             </div>
                             <div>
-                              <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-2">
+                              <p className="text-[11px] text-slate-500 uppercase tracking-wider mb-2">
                                 Protocols
                               </p>
                               <div className="flex flex-wrap gap-1.5">
                                 {curator.protocols.map((protocol) => (
                                   <span
                                     key={protocol}
-                                    className="px-2 py-0.5 text-[12px] text-zinc-300 bg-zinc-800 rounded flex items-center gap-1.5"
+                                    className="px-2 py-0.5 text-[12px] text-slate-300 bg-slate-800/60 rounded flex items-center gap-1.5"
                                   >
                                     <span
                                       className="w-2 h-2 rounded-full"
@@ -229,12 +229,12 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                             </div>
                             {curator.netFlow30d !== 0 && (
                               <div>
-                                <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-2">
+                                <p className="text-[11px] text-slate-500 uppercase tracking-wider mb-2">
                                   30d Flow
                                 </p>
                                 <span className={cn(
                                   'font-mono text-[14px]',
-                                  curator.netFlow30d > 0 ? 'text-emerald-400' : curator.netFlow30d < 0 ? 'text-red-400' : 'text-zinc-500'
+                                  curator.netFlow30d > 0 ? 'text-emerald-400' : curator.netFlow30d < 0 ? 'text-red-400' : 'text-slate-500'
                                 )}>
                                   {formatFlow(curator.netFlow30d)}
                                 </span>
@@ -242,28 +242,28 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                             )}
                             {curator.avgPerformanceFee !== undefined && (
                               <div>
-                                <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-2">
+                                <p className="text-[11px] text-slate-500 uppercase tracking-wider mb-2">
                                   Fee Structure
                                 </p>
                                 <div className="space-y-0.5">
                                   <p className="text-[12px]">
-                                    <span className="text-zinc-500">Perf:</span>{' '}
+                                    <span className="text-slate-500">Perf:</span>{' '}
                                     <span className={cn(
                                       'font-mono',
                                       curator.avgPerformanceFee > 15 ? 'text-amber-400' :
-                                      curator.avgPerformanceFee > 10 ? 'text-zinc-300' : 'text-emerald-400'
+                                      curator.avgPerformanceFee > 10 ? 'text-slate-300' : 'text-emerald-400'
                                     )}>
                                       {curator.avgPerformanceFee.toFixed(1)}%
                                     </span>
                                   </p>
                                   {curator.avgManagementFee !== undefined && curator.avgManagementFee > 0 && (
                                     <p className="text-[12px]">
-                                      <span className="text-zinc-500">Mgmt:</span>{' '}
-                                      <span className="font-mono text-zinc-400">{curator.avgManagementFee.toFixed(2)}%</span>
+                                      <span className="text-slate-500">Mgmt:</span>{' '}
+                                      <span className="font-mono text-slate-400">{curator.avgManagementFee.toFixed(2)}%</span>
                                     </p>
                                   )}
                                   {curator.estimatedAnnualRevenue !== undefined && curator.estimatedAnnualRevenue > 0 && (
-                                    <p className="text-[10px] text-zinc-600 mt-1">
+                                    <p className="text-[10px] text-slate-600 mt-1">
                                       Est. {formatTvl(curator.estimatedAnnualRevenue)}/yr
                                     </p>
                                   )}
@@ -272,21 +272,21 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                             )}
                             {curator.duneTvl && (
                               <div>
-                                <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-2">
+                                <p className="text-[11px] text-slate-500 uppercase tracking-wider mb-2">
                                   Cross-Reference
                                 </p>
-                                <span className="font-mono text-[13px] text-zinc-400">
+                                <span className="font-mono text-[13px] text-slate-400">
                                   {formatTvl(curator.duneTvl)}
                                 </span>
-                                <p className="text-[10px] text-zinc-600">Dune Analytics</p>
+                                <p className="text-[10px] text-slate-600">Dune Analytics</p>
                               </div>
                             )}
                           </div>
 
                           {/* Row 2: Risk & Health - Always show if any risk data exists */}
                           {(curator.riskLevel || (curator.liquidationVolume7d ?? 0) > 0 || curator.hasBadDebt || curator.avgUtilization !== undefined || curator.riskScore !== undefined) && (
-                            <div className="border-t border-zinc-800 pt-4">
-                              <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                            <div className="border-t border-slate-700/40 pt-4">
+                              <p className="text-[11px] text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
                                 Risk & Health Metrics
                                 {curator.hasBadDebt && (
                                   <span className="px-1.5 py-0.5 text-[9px] font-medium bg-red-500/20 text-red-400 rounded flex items-center gap-1">
@@ -303,7 +303,7 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                               <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                                 {curator.riskScore !== undefined && (
                                   <div>
-                                    <p className="text-[10px] text-zinc-600 mb-1">Risk Score</p>
+                                    <p className="text-[10px] text-slate-600 mb-1">Risk Score</p>
                                     <div className="flex items-center gap-2">
                                       <span className={cn(
                                         'font-mono text-[14px]',
@@ -313,18 +313,18 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                                       )}>
                                         {curator.riskScore}
                                       </span>
-                                      <span className="text-[11px] text-zinc-600">/100</span>
+                                      <span className="text-[11px] text-slate-600">/100</span>
                                     </div>
                                   </div>
                                 )}
                                 {curator.avgUtilization !== undefined && (
                                   <div>
-                                    <p className="text-[10px] text-zinc-600 mb-1">Avg Utilization</p>
+                                    <p className="text-[10px] text-slate-600 mb-1">Avg Utilization</p>
                                     <span className={cn(
                                       'font-mono text-[14px]',
                                       curator.avgUtilization > 0.95 ? 'text-red-400' :
                                       curator.avgUtilization > 0.85 ? 'text-amber-400' :
-                                      curator.avgUtilization > 0.70 ? 'text-yellow-400' : 'text-zinc-300'
+                                      curator.avgUtilization > 0.70 ? 'text-yellow-400' : 'text-slate-300'
                                     )}>
                                       {(curator.avgUtilization * 100).toFixed(0)}%
                                     </span>
@@ -332,14 +332,14 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                                 )}
                                 {(curator.liquidationVolume7d ?? 0) > 0 && (
                                   <div>
-                                    <p className="text-[10px] text-zinc-600 mb-1 flex items-center gap-1">
+                                    <p className="text-[10px] text-slate-600 mb-1 flex items-center gap-1">
                                       <TrendingDown className="h-3 w-3" />
                                       7d Liquidations
                                     </p>
                                     <span className={cn(
                                       'font-mono text-[14px]',
                                       curator.liquidationVolume7d! > 1_000_000 ? 'text-red-400' :
-                                      curator.liquidationVolume7d! > 100_000 ? 'text-amber-400' : 'text-zinc-300'
+                                      curator.liquidationVolume7d! > 100_000 ? 'text-amber-400' : 'text-slate-300'
                                     )}>
                                       {formatTvl(curator.liquidationVolume7d!)}
                                     </span>
@@ -347,11 +347,11 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                                 )}
                                 {(curator.liquidationVolume24h ?? 0) > 0 && (
                                   <div>
-                                    <p className="text-[10px] text-zinc-600 mb-1">24h Liquidations</p>
+                                    <p className="text-[10px] text-slate-600 mb-1">24h Liquidations</p>
                                     <span className={cn(
                                       'font-mono text-[14px]',
                                       curator.liquidationVolume24h! > 500_000 ? 'text-red-400' :
-                                      curator.liquidationVolume24h! > 50_000 ? 'text-amber-400' : 'text-zinc-300'
+                                      curator.liquidationVolume24h! > 50_000 ? 'text-amber-400' : 'text-slate-300'
                                     )}>
                                       {formatTvl(curator.liquidationVolume24h!)}
                                     </span>
@@ -359,7 +359,7 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                                 )}
                                 {curator.yellowWarningCount !== undefined && curator.yellowWarningCount > 0 && (
                                   <div>
-                                    <p className="text-[10px] text-zinc-600 mb-1">Yellow Warnings</p>
+                                    <p className="text-[10px] text-slate-600 mb-1">Yellow Warnings</p>
                                     <span className="font-mono text-[14px] text-yellow-400">
                                       {curator.yellowWarningCount}
                                     </span>

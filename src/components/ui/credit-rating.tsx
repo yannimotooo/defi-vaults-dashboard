@@ -68,7 +68,7 @@ export function RatingBadge({
         {rating}
       </span>
       {showLabel && (
-        <span className={cn('text-zinc-400', size === 'sm' ? 'text-[10px]' : 'text-[12px]')}>
+        <span className={cn('text-slate-400', size === 'sm' ? 'text-[10px]' : 'text-[12px]')}>
           {label}
         </span>
       )}
@@ -131,9 +131,9 @@ export function PillarBadge({ pillar, rating, compact = false }: PillarBadgeProp
         </span>
 
         {/* Tooltip */}
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-[11px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-2 bg-[#111827]/90 border border-slate-700/40 rounded-lg text-[11px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
           <p className="text-white font-medium mb-1">{config.label}</p>
-          <p className="text-zinc-500">{config.description}</p>
+          <p className="text-slate-500">{config.description}</p>
           <p className={cn('mt-1', colors.text)}>
             Rating: {rating.rating} ({RATING_LABELS[rating.rating]})
           </p>
@@ -147,13 +147,13 @@ export function PillarBadge({ pillar, rating, compact = false }: PillarBadgeProp
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <Icon className={cn('h-4 w-4', colors.text)} />
-          <span className="text-[12px] text-zinc-300 font-medium">{config.label}</span>
+          <span className="text-[12px] text-slate-300 font-medium">{config.label}</span>
         </div>
         <span className={cn('font-mono text-[14px] font-semibold', colors.text)}>
           {rating.rating}
         </span>
       </div>
-      <p className="text-[10px] text-zinc-500">{config.description}</p>
+      <p className="text-[10px] text-slate-500">{config.description}</p>
     </div>
   );
 }
@@ -179,9 +179,9 @@ export function ThreePillarSummary({
     return (
       <div className="flex items-center gap-3">
         <PillarBadge pillar="capital" rating={capitalSafety} compact />
-        <span className="text-zinc-700">|</span>
+        <span className="text-slate-600">|</span>
         <PillarBadge pillar="liquidity" rating={liquidityHealth} compact />
-        <span className="text-zinc-700">|</span>
+        <span className="text-slate-600">|</span>
         <PillarBadge pillar="curator" rating={curatorQuality} compact />
       </div>
     );
@@ -207,7 +207,7 @@ interface RatingFactorRowProps {
 function RatingFactorRow({ factor }: RatingFactorRowProps) {
   const assessmentConfig = {
     STRONG: { color: 'text-emerald-400', bg: 'bg-emerald-500/10', icon: CheckCircle },
-    ADEQUATE: { color: 'text-zinc-400', bg: 'bg-zinc-500/10', icon: Minus },
+    ADEQUATE: { color: 'text-slate-400', bg: 'bg-slate-500/10', icon: Minus },
     WEAK: { color: 'text-amber-400', bg: 'bg-amber-500/10', icon: AlertTriangle },
     CRITICAL: { color: 'text-red-400', bg: 'bg-red-500/10', icon: AlertTriangle },
   };
@@ -216,14 +216,14 @@ function RatingFactorRow({ factor }: RatingFactorRowProps) {
   const Icon = config.icon;
 
   return (
-    <div className="flex items-start justify-between py-2 border-b border-zinc-800/50 last:border-0">
+    <div className="flex items-start justify-between py-2 border-b border-slate-700/40 last:border-0">
       <div className="flex-1">
         <div className="flex items-center gap-2">
           <Icon className={cn('h-3.5 w-3.5', config.color)} />
-          <span className="text-[12px] text-zinc-300">{factor.name}</span>
-          <span className="text-[10px] text-zinc-600">({(factor.weight * 100).toFixed(0)}%)</span>
+          <span className="text-[12px] text-slate-300">{factor.name}</span>
+          <span className="text-[10px] text-slate-600">({(factor.weight * 100).toFixed(0)}%)</span>
         </div>
-        <p className="text-[11px] text-zinc-500 mt-0.5 pl-5">{factor.detail}</p>
+        <p className="text-[11px] text-slate-500 mt-0.5 pl-5">{factor.detail}</p>
       </div>
       <span className={cn('text-[10px] px-1.5 py-0.5 rounded', config.bg, config.color)}>
         {factor.assessment}
@@ -250,7 +250,7 @@ export function PillarDetailCard({ pillar, rating, defaultExpanded = false }: Pi
 
   const outlookConfig = {
     POSITIVE: { icon: TrendingUp, color: 'text-emerald-400', label: 'Positive' },
-    STABLE: { icon: Minus, color: 'text-zinc-400', label: 'Stable' },
+    STABLE: { icon: Minus, color: 'text-slate-400', label: 'Stable' },
     NEGATIVE: { icon: TrendingDown, color: 'text-red-400', label: 'Negative' },
     WATCH: { icon: AlertTriangle, color: 'text-amber-400', label: 'Watch' },
   };
@@ -259,10 +259,10 @@ export function PillarDetailCard({ pillar, rating, defaultExpanded = false }: Pi
   const OutlookIcon = outlook.icon;
 
   return (
-    <div className={cn('rounded-lg border', colors.border, 'bg-zinc-900/50')}>
+    <div className={cn('rounded-lg border', colors.border, 'bg-[#111827]/60')}>
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full px-4 py-3 flex items-center justify-between hover:bg-zinc-800/30 transition-colors"
+        className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-700/25 transition-colors"
       >
         <div className="flex items-center gap-3">
           <div className={cn('p-1.5 rounded', colors.bg)}>
@@ -270,7 +270,7 @@ export function PillarDetailCard({ pillar, rating, defaultExpanded = false }: Pi
           </div>
           <div className="text-left">
             <p className="text-[13px] text-white font-medium">{config.label}</p>
-            <p className="text-[11px] text-zinc-500">{config.description}</p>
+            <p className="text-[11px] text-slate-500">{config.description}</p>
           </div>
         </div>
 
@@ -283,15 +283,15 @@ export function PillarDetailCard({ pillar, rating, defaultExpanded = false }: Pi
             {rating.rating}
           </span>
           {expanded ? (
-            <ChevronUp className="h-4 w-4 text-zinc-500" />
+            <ChevronUp className="h-4 w-4 text-slate-500" />
           ) : (
-            <ChevronDown className="h-4 w-4 text-zinc-500" />
+            <ChevronDown className="h-4 w-4 text-slate-500" />
           )}
         </div>
       </button>
 
       {expanded && (
-        <div className="px-4 pb-4 border-t border-zinc-800/50">
+        <div className="px-4 pb-4 border-t border-slate-700/40">
           <div className="mt-3 space-y-0">
             {rating.factors.map((factor, i) => (
               <RatingFactorRow key={i} factor={factor} />
@@ -324,7 +324,7 @@ export function CreditRatingCard({ rating, vaultName, showDetails = true }: Cred
         <div className="flex items-start justify-between">
           <div>
             {vaultName && (
-              <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-1">
+              <p className="text-[11px] text-slate-500 uppercase tracking-wider mb-1">
                 Credit Rating
               </p>
             )}
@@ -336,7 +336,7 @@ export function CreditRatingCard({ rating, vaultName, showDetails = true }: Cred
                 <p className="text-[14px] text-white font-medium">
                   {RATING_LABELS[rating.compositeRating]}
                 </p>
-                <p className="text-[11px] text-zinc-500">
+                <p className="text-[11px] text-slate-500">
                   {rating.investmentGrade ? 'Investment Grade' : 'Speculative Grade'}
                 </p>
               </div>
@@ -345,7 +345,7 @@ export function CreditRatingCard({ rating, vaultName, showDetails = true }: Cred
 
           {/* Three pillar summary */}
           <div className="text-right">
-            <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-2">
+            <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2">
               Pillar Ratings
             </p>
             <ThreePillarSummary
@@ -358,7 +358,7 @@ export function CreditRatingCard({ rating, vaultName, showDetails = true }: Cred
         </div>
 
         {/* Rationale */}
-        <p className="mt-3 text-[12px] text-zinc-400 leading-relaxed">
+        <p className="mt-3 text-[12px] text-slate-400 leading-relaxed">
           {rating.ratingRationale}
         </p>
 
@@ -366,7 +366,7 @@ export function CreditRatingCard({ rating, vaultName, showDetails = true }: Cred
         <div className="mt-4 grid grid-cols-2 gap-4">
           {rating.keyStrengths.length > 0 && (
             <div>
-              <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+              <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
                 <CheckCircle className="h-3 w-3 text-emerald-400" />
                 Key Strengths
               </p>
@@ -382,7 +382,7 @@ export function CreditRatingCard({ rating, vaultName, showDetails = true }: Cred
 
           {rating.keyRisks.length > 0 && (
             <div>
-              <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+              <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
                 <AlertTriangle className="h-3 w-3 text-amber-400" />
                 Key Risks
               </p>
@@ -403,7 +403,7 @@ export function CreditRatingCard({ rating, vaultName, showDetails = true }: Cred
         <div>
           <button
             onClick={() => setDetailsExpanded(!detailsExpanded)}
-            className="flex items-center gap-2 text-[12px] text-zinc-500 hover:text-zinc-300 transition-colors mb-3"
+            className="flex items-center gap-2 text-[12px] text-slate-500 hover:text-slate-300 transition-colors mb-3"
           >
             <Info className="h-3.5 w-3.5" />
             {detailsExpanded ? 'Hide' : 'Show'} detailed breakdown
@@ -457,11 +457,11 @@ export function CompactRating({ rating, showPillars = false }: CompactRatingProp
           <span className={RATING_COLORS[rating.capitalSafety.rating].text}>
             {rating.capitalSafety.rating}
           </span>
-          <span className="text-zinc-700">/</span>
+          <span className="text-slate-600">/</span>
           <span className={RATING_COLORS[rating.liquidityHealth.rating].text}>
             {rating.liquidityHealth.rating}
           </span>
-          <span className="text-zinc-700">/</span>
+          <span className="text-slate-600">/</span>
           <span className={RATING_COLORS[rating.curatorQuality.rating].text}>
             {rating.curatorQuality.rating}
           </span>
@@ -469,7 +469,7 @@ export function CompactRating({ rating, showPillars = false }: CompactRatingProp
       )}
 
       {/* Hover tooltip - positioned below to avoid clipping */}
-      <div className="absolute top-full left-0 mt-2 px-3 py-2.5 bg-zinc-900 border border-zinc-700 rounded-lg text-[11px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl min-w-[220px]">
+      <div className="absolute top-full left-0 mt-2 px-3 py-2.5 bg-[#111827]/90 border border-slate-700/40 rounded-lg text-[11px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl min-w-[220px]">
         <div className="flex items-center justify-between mb-2">
           <span className="text-white font-medium">
             {rating.compositeRating} - {RATING_LABELS[rating.compositeRating]}
@@ -481,9 +481,9 @@ export function CompactRating({ rating, showPillars = false }: CompactRatingProp
           </span>
         </div>
 
-        <div className="space-y-1.5 pt-2 border-t border-zinc-800">
+        <div className="space-y-1.5 pt-2 border-t border-slate-700/40">
           <div className="flex items-center justify-between">
-            <span className="text-zinc-500 flex items-center gap-1">
+            <span className="text-slate-500 flex items-center gap-1">
               <Shield className="h-3 w-3" /> Capital
             </span>
             <span className={RATING_COLORS[rating.capitalSafety.rating].text}>
@@ -491,7 +491,7 @@ export function CompactRating({ rating, showPillars = false }: CompactRatingProp
             </span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-zinc-500 flex items-center gap-1">
+            <span className="text-slate-500 flex items-center gap-1">
               <Droplets className="h-3 w-3" /> Liquidity
             </span>
             <span className={RATING_COLORS[rating.liquidityHealth.rating].text}>
@@ -499,7 +499,7 @@ export function CompactRating({ rating, showPillars = false }: CompactRatingProp
             </span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-zinc-500 flex items-center gap-1">
+            <span className="text-slate-500 flex items-center gap-1">
               <Users className="h-3 w-3" /> Curator
             </span>
             <span className={RATING_COLORS[rating.curatorQuality.rating].text}>
@@ -509,7 +509,7 @@ export function CompactRating({ rating, showPillars = false }: CompactRatingProp
         </div>
 
         {rating.keyRisks.length > 0 && (
-          <div className="mt-2 pt-2 border-t border-zinc-800">
+          <div className="mt-2 pt-2 border-t border-slate-700/40">
             <p className="text-amber-400 text-[10px]">{rating.keyRisks[0]}</p>
           </div>
         )}
@@ -527,8 +527,8 @@ export function RatingScaleLegend() {
   const speculative: CreditRating[] = ['BB', 'B', 'CCC', 'CC', 'C'];
 
   return (
-    <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
-      <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-3">
+    <div className="p-4 bg-[#111827]/60 rounded-lg border border-slate-700/40">
+      <p className="text-[11px] text-slate-500 uppercase tracking-wider mb-3">
         Credit Rating Scale
       </p>
 
@@ -548,7 +548,7 @@ export function RatingScaleLegend() {
                 >
                   {r}
                 </span>
-                <span className="text-[10px] text-zinc-500">{RATING_LABELS[r]}</span>
+                <span className="text-[10px] text-slate-500">{RATING_LABELS[r]}</span>
               </div>
             ))}
           </div>
@@ -569,14 +569,14 @@ export function RatingScaleLegend() {
                 >
                   {r}
                 </span>
-                <span className="text-[10px] text-zinc-500">{RATING_LABELS[r]}</span>
+                <span className="text-[10px] text-slate-500">{RATING_LABELS[r]}</span>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      <p className="mt-3 text-[10px] text-zinc-600 leading-relaxed">
+      <p className="mt-3 text-[10px] text-slate-600 leading-relaxed">
         Ratings inspired by S&P/Moody&apos;s methodology. Investment grade (BBB and above) indicates
         lower risk of capital loss. Speculative grade indicates elevated risk requiring careful consideration.
       </p>

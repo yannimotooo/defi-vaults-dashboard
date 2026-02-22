@@ -48,9 +48,9 @@ export function TvlByChainChart({ data }: TvlByChainChartProps) {
                     if (active && payload && payload.length) {
                       const data = payload[0].payload;
                       return (
-                        <div className="rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 shadow-xl">
+                        <div className="rounded-lg border border-slate-700/40 bg-[#111827]/90 backdrop-blur-sm px-3 py-2 shadow-xl">
                           <p className="text-[13px] text-white">{data.name}</p>
-                          <p className="text-[13px] font-mono text-zinc-400">{formatTvl(data.value)}</p>
+                          <p className="text-[13px] font-mono text-slate-400">{formatTvl(data.value)}</p>
                         </div>
                       );
                     }
@@ -65,11 +65,11 @@ export function TvlByChainChart({ data }: TvlByChainChartProps) {
               <div key={item.name} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
-                  <span className="text-[13px] text-zinc-300">{item.name}</span>
+                  <span className="text-[13px] text-slate-300">{item.name}</span>
                 </div>
                 <div className="text-right">
                   <span className="text-[13px] font-mono text-white">{formatTvl(item.value)}</span>
-                  <span className="text-[11px] text-zinc-600 ml-2">
+                  <span className="text-[11px] text-slate-600 ml-2">
                     {((item.value / total) * 100).toFixed(1)}%
                   </span>
                 </div>

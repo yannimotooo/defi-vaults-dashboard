@@ -16,12 +16,12 @@ export function DataSourceBadge({ source, verified = true, url }: DataSourceBadg
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-zinc-400 hover:text-zinc-300 transition-colors"
+          className="text-slate-400 hover:text-slate-300 transition-colors"
         >
           {source}
         </a>
       ) : (
-        <span className="text-zinc-400">{source}</span>
+        <span className="text-slate-400">{source}</span>
       )}
     </div>
   );
@@ -100,8 +100,8 @@ export function DataConfidenceBadge({
         : (duneTvl ? 'Data sources differ (5-15%)' : 'Single source only, limited verification'),
     },
     low: {
-      color: 'bg-zinc-500',
-      textColor: 'text-zinc-400',
+      color: 'bg-slate-500',
+      textColor: 'text-slate-400',
       label: lowDetails.label,
       description: lowDetails.description,
     },
@@ -120,10 +120,10 @@ export function DataConfidenceBadge({
       <span className={`text-[10px] ${textColor}`}>{label}</span>
 
       {showTooltip && (
-        <div className="absolute bottom-full right-0 mb-2 px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded-lg text-[11px] text-zinc-400 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+        <div className="absolute bottom-full right-0 mb-2 px-2 py-1.5 bg-[#111827]/90 border border-slate-700/40 rounded-lg text-[11px] text-slate-400 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
           <p>{description}</p>
           {difference && (
-            <p className="text-zinc-500 mt-0.5">
+            <p className="text-slate-500 mt-0.5">
               Difference: {difference}%
             </p>
           )}

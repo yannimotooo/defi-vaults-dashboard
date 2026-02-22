@@ -31,7 +31,7 @@ export function ApyQualityBadge({
   const quality = getQuality();
 
   if (apy === 0) {
-    return <span className="text-[11px] text-zinc-600">—</span>;
+    return <span className="text-[11px] text-slate-600">—</span>;
   }
 
   if (compact) {
@@ -41,7 +41,7 @@ export function ApyQualityBadge({
           {Math.round(organicPct)}%
         </span>
         {showBar && (
-          <div className="w-8 h-1 bg-zinc-800 rounded-full overflow-hidden">
+          <div className="w-8 h-1 bg-slate-800/60 rounded-full overflow-hidden">
             <div
               className={cn('h-full rounded-full', quality.barColor)}
               style={{ width: `${Math.min(organicPct, 100)}%` }}
@@ -49,10 +49,10 @@ export function ApyQualityBadge({
           </div>
         )}
         {/* Tooltip */}
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1.5 bg-zinc-900 border border-zinc-700 rounded-lg text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
-          <p className="text-zinc-300 font-medium mb-1">{quality.label} Yield</p>
-          <p className="text-zinc-500">Base: <span className="text-emerald-400">{apyBase.toFixed(2)}%</span></p>
-          <p className="text-zinc-500">Rewards: <span className="text-amber-400">{apyReward.toFixed(2)}%</span></p>
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1.5 bg-[#111827]/90 border border-slate-700/40 rounded-lg text-[10px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+          <p className="text-slate-300 font-medium mb-1">{quality.label} Yield</p>
+          <p className="text-slate-500">Base: <span className="text-emerald-400">{apyBase.toFixed(2)}%</span></p>
+          <p className="text-slate-500">Rewards: <span className="text-amber-400">{apyReward.toFixed(2)}%</span></p>
         </div>
       </div>
     );
@@ -64,19 +64,19 @@ export function ApyQualityBadge({
         <span className={cn('text-[11px] font-medium', quality.color)}>
           {quality.label}
         </span>
-        <span className="text-[11px] text-zinc-500">
+        <span className="text-[11px] text-slate-500">
           {Math.round(organicPct)}% organic
         </span>
       </div>
       {showBar && (
-        <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+        <div className="w-full h-1.5 bg-slate-800/60 rounded-full overflow-hidden">
           <div
             className={cn('h-full rounded-full transition-all', quality.barColor)}
             style={{ width: `${Math.min(organicPct, 100)}%` }}
           />
         </div>
       )}
-      <div className="flex items-center justify-between text-[10px] text-zinc-600">
+      <div className="flex items-center justify-between text-[10px] text-slate-600">
         <span>Base: {apyBase.toFixed(1)}%</span>
         <span>Rewards: {apyReward.toFixed(1)}%</span>
       </div>
@@ -104,7 +104,7 @@ export function ApyWithQuality({
   };
 
   if (apy === 0) {
-    return <span className="text-[11px] text-zinc-600">—</span>;
+    return <span className="text-[11px] text-slate-600">—</span>;
   }
 
   return (
@@ -113,18 +113,18 @@ export function ApyWithQuality({
         {apy.toFixed(2)}%
       </span>
       {/* Tooltip with breakdown */}
-      <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-[11px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+      <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-[#111827]/90 border border-slate-700/40 rounded-lg text-[11px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
         <div className="space-y-1.5">
           <div className="flex items-center justify-between gap-4">
-            <span className="text-zinc-500">Base APY:</span>
+            <span className="text-slate-500">Base APY:</span>
             <span className="font-mono text-emerald-400">{apyBase.toFixed(2)}%</span>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <span className="text-zinc-500">Rewards:</span>
+            <span className="text-slate-500">Rewards:</span>
             <span className="font-mono text-amber-400">{apyReward.toFixed(2)}%</span>
           </div>
-          <div className="border-t border-zinc-700 pt-1.5 flex items-center justify-between gap-4">
-            <span className="text-zinc-500">Organic:</span>
+          <div className="border-t border-slate-700/40 pt-1.5 flex items-center justify-between gap-4">
+            <span className="text-slate-500">Organic:</span>
             <span className={cn('font-mono', getColor())}>{Math.round(organicPct)}%</span>
           </div>
         </div>

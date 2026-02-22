@@ -31,16 +31,16 @@ export function TvlByProtocolChart({ data }: TvlByProtocolChartProps) {
               <XAxis
                 type="number"
                 tickFormatter={(value) => formatTvl(value)}
-                stroke="#3f3f46"
+                stroke="#334155"
                 fontSize={11}
-                fontFamily="monospace"
+                fontFamily="var(--font-jetbrains-mono), monospace"
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis
                 type="category"
                 dataKey="name"
-                stroke="#71717a"
+                stroke="#64748b"
                 fontSize={13}
                 width={110}
                 tickLine={false}
@@ -51,9 +51,9 @@ export function TvlByProtocolChart({ data }: TvlByProtocolChartProps) {
                   if (active && payload && payload.length) {
                     const data = payload[0].payload;
                     return (
-                      <div className="rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 shadow-xl">
+                      <div className="rounded-lg border border-slate-700/40 bg-[#111827]/90 backdrop-blur-sm px-3 py-2 shadow-xl">
                         <p className="text-[13px] text-white mb-1">{data.fullName}</p>
-                        <p className="text-[13px] font-mono text-zinc-400">{formatTvl(data.tvl)}</p>
+                        <p className="text-[13px] font-mono text-slate-400">{formatTvl(data.tvl)}</p>
                         <p className={cn(
                           'text-[12px] font-mono',
                           data.change >= 0 ? 'text-emerald-400' : 'text-red-400'

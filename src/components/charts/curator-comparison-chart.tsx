@@ -2,8 +2,8 @@
 
 import { useState, useMemo } from 'react';
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   Tooltip,
@@ -123,7 +123,7 @@ export function CuratorComparisonChart({
           <CardTitle>{title}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[200px] flex items-center justify-center text-zinc-500 text-[14px]">
+          <div className="h-[200px] flex items-center justify-center text-slate-500 text-[14px]">
             No data available
           </div>
         </CardContent>
@@ -135,16 +135,19 @@ export function CuratorComparisonChart({
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between flex-wrap gap-4">
-          <CardTitle>{title}</CardTitle>
-          <div className="flex gap-1">
+          <div>
+            <p className="text-[11px] uppercase tracking-widest text-slate-500 font-medium mb-1">Historical</p>
+            <CardTitle>{title}</CardTitle>
+          </div>
+          <div className="flex gap-1 bg-slate-800/40 rounded-lg p-1">
             {(['7d', '30d', '90d', '1y', 'all'] as Period[]).map((p) => (
               <button
                 key={p}
                 onClick={() => setPeriod(p)}
-                className={`px-3 py-1.5 text-[12px] font-medium rounded transition-colors ${
+                className={`px-3 py-1 text-[12px] font-medium rounded-md transition-all ${
                   period === p
-                    ? 'bg-zinc-700 text-white'
-                    : 'text-zinc-500 hover:text-zinc-300'
+                    ? 'bg-slate-700/80 text-white shadow-sm'
+                    : 'text-slate-500 hover:text-slate-300'
                 }`}
               >
                 {p === 'all' ? 'All' : p.toUpperCase()}
@@ -161,15 +164,15 @@ export function CuratorComparisonChart({
               <button
                 key={curator.slug}
                 onClick={() => toggleCurator(curator.slug)}
-                className={`flex items-center gap-2 px-2 py-1 rounded text-[12px] transition-all ${
+                className={`flex items-center gap-2 px-2 py-1 rounded-md text-[12px] transition-all ${
                   isHidden ? 'opacity-40' : 'opacity-100'
-                } hover:bg-zinc-800`}
+                } hover:bg-slate-800/60`}
               >
                 <div
                   className="w-3 h-0.5 rounded"
                   style={{ backgroundColor: color }}
                 />
-                <span className="text-zinc-300">{curator.name}</span>
+                <span className="text-slate-300">{curator.name}</span>
               </button>
             );
           })}
@@ -178,12 +181,23 @@ export function CuratorComparisonChart({
       <CardContent className="p-0 pr-4 pb-4">
         <div style={{ height }}>
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ left: 0, right: 0, top: 10, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+            <AreaChart data={chartData} margin={{ left: 0, right: 0, top: 10, bottom: 0 }}>
+              <defs>
+                {curators.map((curator, index) => {
+                  const color = CURATOR_COLORS[curator.name] || FALLBACK_CURATOR_COLORS[index % FALLBACK_CURATOR_COLORS.length];
+                  return (
+                    <linearGradient key={curator.slug} id={`gradient-${curator.slug}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={color} stopOpacity={0.25} />
+                      <stop offset="100%" stopColor={color} stopOpacity={0.02} />
+                    </linearGradient>
+                  );
+                })}
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
               <XAxis
                 dataKey="date"
                 tickFormatter={formatDate}
-                stroke="#52525b"
+                stroke="#475569"
                 fontSize={11}
                 tickLine={false}
                 axisLine={false}
@@ -191,7 +205,7 @@ export function CuratorComparisonChart({
               />
               <YAxis
                 tickFormatter={(value) => formatTvl(value)}
-                stroke="#52525b"
+                stroke="#475569"
                 fontSize={11}
                 tickLine={false}
                 axisLine={false}
@@ -201,15 +215,15 @@ export function CuratorComparisonChart({
                 content={({ active, payload, label }) => {
                   if (active && payload && payload.length && label) {
                     return (
-                      <div className="rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 shadow-xl min-w-[180px]">
-                        <p className="text-[12px] text-zinc-500 mb-2">
+                      <div className="rounded-xl border border-slate-700/40 bg-[#111827]/95 backdrop-blur-xl px-4 py-3 shadow-2xl min-w-[200px]">
+                        <p className="text-[11px] uppercase tracking-wider text-slate-500 mb-2">
                           {new Date(label as number).toLocaleDateString('en-US', {
                             month: 'short',
                             day: 'numeric',
                             year: 'numeric',
                           })}
                         </p>
-                        <div className="space-y-1">
+                        <div className="space-y-1.5">
                           {payload
                             .filter(p => p.value !== undefined)
                             .sort((a, b) => (b.value as number) - (a.value as number))
@@ -222,11 +236,11 @@ export function CuratorComparisonChart({
                                       className="w-2 h-2 rounded-full"
                                       style={{ backgroundColor: entry.color }}
                                     />
-                                    <span className="text-[12px] text-zinc-400">
+                                    <span className="text-[12px] text-slate-400">
                                       {curator?.name || entry.dataKey}
                                     </span>
                                   </div>
-                                  <span className="text-[12px] font-mono text-white">
+                                  <span className="text-[12px] text-white" style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>
                                     {formatTvl(entry.value as number)}
                                   </span>
                                 </div>
@@ -243,19 +257,20 @@ export function CuratorComparisonChart({
                 const color = CURATOR_COLORS[curator.name] || FALLBACK_CURATOR_COLORS[index % FALLBACK_CURATOR_COLORS.length];
                 const isHidden = hiddenCurators.has(curator.slug);
                 return (
-                  <Line
+                  <Area
                     key={curator.slug}
                     type="monotone"
                     dataKey={curator.slug}
                     stroke={color}
                     strokeWidth={2}
+                    fill={`url(#gradient-${curator.slug})`}
                     dot={false}
                     hide={isHidden}
                     connectNulls
                   />
                 );
               })}
-            </LineChart>
+            </AreaChart>
           </ResponsiveContainer>
         </div>
       </CardContent>
