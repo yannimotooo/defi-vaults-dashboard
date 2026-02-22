@@ -7,6 +7,7 @@ import { DataConfidenceBadge } from '@/components/ui/data-source-badge';
 import { RiskBadge } from '@/components/ui/risk-badge';
 import { formatTvl, formatFlow, cn } from '@/lib/utils';
 import { CURATOR_COLORS, FALLBACK_CURATOR_COLORS, getProtocolColor } from '@/lib/colors';
+import { ChainIcon, ProtocolIcon } from '@/components/ui/protocol-icon';
 import type { Curator } from '@/types';
 import { ChevronDown, ChevronRight, ExternalLink, AlertTriangle, TrendingDown } from 'lucide-react';
 
@@ -88,10 +89,7 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                           <p className="text-[10px] sm:text-[11px] text-slate-600 mt-0.5 flex items-center gap-1.5 truncate">
                             {curator.protocols.slice(0, 2).map((protocol, i) => (
                               <span key={protocol} className="flex items-center gap-1">
-                                <span
-                                  className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                                  style={{ backgroundColor: getProtocolColor(protocol) }}
-                                />
+                                <ProtocolIcon name={protocol} size={12} className="flex-shrink-0" />
                                 <span className="truncate">{protocol}</span>
                                 {i < Math.min(curator.protocols.length, 2) - 1 && <span className="text-slate-600 ml-0.5">·</span>}
                               </span>
@@ -210,8 +208,9 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                                 {curator.chains.map((chain) => (
                                   <span
                                     key={chain}
-                                    className="px-2 py-0.5 text-[12px] text-slate-300 bg-[#1a1f2e]/60 rounded"
+                                    className="px-2 py-0.5 text-[12px] text-slate-300 bg-[#1a1f2e]/60 rounded flex items-center gap-1.5"
                                   >
+                                    <ChainIcon name={chain} size={12} />
                                     {chain}
                                   </span>
                                 ))}
@@ -227,10 +226,7 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                                     key={protocol}
                                     className="px-2 py-0.5 text-[12px] text-slate-300 bg-[#1a1f2e]/60 rounded flex items-center gap-1.5"
                                   >
-                                    <span
-                                      className="w-2 h-2 rounded-full"
-                                      style={{ backgroundColor: getProtocolColor(protocol) }}
-                                    />
+                                    <ProtocolIcon name={protocol} size={12} />
                                     {protocol}
                                   </span>
                                 ))}

@@ -6,6 +6,7 @@ import { CompactRating, PillarDetailCard } from '@/components/ui/credit-rating';
 import { ApyWithQuality } from '@/components/ui/apy-quality-badge';
 import { formatTvl, cn } from '@/lib/utils';
 import { getChainColor, getProtocolColor } from '@/lib/colors';
+import { ChainIcon, ProtocolIcon } from '@/components/ui/protocol-icon';
 import {
   ArrowUpDown,
   ChevronDown,
@@ -248,6 +249,9 @@ export function VaultTable({
                         canExpand && 'cursor-pointer',
                         expandedVault === vault.id && 'bg-slate-700/20'
                       )}
+                      style={{
+                        borderLeft: `3px solid ${vault.stablecoin ? '#60a5fa' : vault.exposure === 'single' ? '#a78bfa' : '#34d399'}`,
+                      }}
                     >
                       <td className="px-3 sm:px-5 py-3">
                         <div className="flex items-center gap-2 sm:gap-3">
@@ -282,20 +286,14 @@ export function VaultTable({
                       </td>
                       <td className="hidden sm:table-cell px-3 sm:px-5 py-3">
                         <div className="flex items-center gap-2">
-                          <div
-                            className="w-2 h-2 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: getChainColor(vault.chain) }}
-                          />
+                          <ChainIcon name={vault.chain} size={14} className="flex-shrink-0" />
                           <span className="text-[13px] text-slate-300">{vault.chain}</span>
                         </div>
                       </td>
                       {showProject && (
                         <td className="hidden lg:table-cell px-3 sm:px-5 py-3">
                           <div className="flex items-center gap-2">
-                            <div
-                              className="w-2 h-2 rounded-full flex-shrink-0"
-                              style={{ backgroundColor: getProtocolColor(vault.project) }}
-                            />
+                            <ProtocolIcon name={vault.project} size={14} className="flex-shrink-0" />
                             <span className="text-[13px] text-slate-400 truncate">{vault.project}</span>
                           </div>
                         </td>

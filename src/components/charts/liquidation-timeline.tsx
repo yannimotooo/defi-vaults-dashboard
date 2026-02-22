@@ -218,9 +218,9 @@ export function LiquidationStats({
 }: LiquidationStatsProps) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-[#2d3548]/40 rounded-[14px] overflow-hidden border border-[#2d3548]/60">
-      <div className="bg-[#1a1f2e] p-4 border-t-2 border-t-indigo-500">
+      <div className="bg-[#1a1f2e] p-3 sm:p-4 border-t-2 border-t-indigo-500">
         <div className="text-[10px] uppercase tracking-widest text-slate-500 font-medium">24h Volume</div>
-        <div className="text-[22px] font-semibold text-slate-100 mt-1.5" style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>
+        <div className="text-[18px] sm:text-[22px] font-semibold text-slate-100 mt-1.5" style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>
           {formatTvl(volume24h)}
         </div>
         <div className="text-slate-600 text-[11px] mt-1">
@@ -228,9 +228,9 @@ export function LiquidationStats({
         </div>
       </div>
 
-      <div className="bg-[#1a1f2e] p-4 border-t-2 border-t-amber-400">
+      <div className="bg-[#1a1f2e] p-3 sm:p-4 border-t-2 border-t-amber-400">
         <div className="text-[10px] uppercase tracking-widest text-slate-500 font-medium">7d Volume</div>
-        <div className="text-[22px] font-semibold text-slate-100 mt-1.5" style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>
+        <div className="text-[18px] sm:text-[22px] font-semibold text-slate-100 mt-1.5" style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>
           {formatTvl(volume7d)}
         </div>
         <div className="text-slate-600 text-[11px] mt-1">
@@ -238,9 +238,9 @@ export function LiquidationStats({
         </div>
       </div>
 
-      <div className="bg-[#1a1f2e] p-4 border-t-2 border-t-cyan-400">
+      <div className="bg-[#1a1f2e] p-3 sm:p-4 border-t-2 border-t-cyan-400">
         <div className="text-[10px] uppercase tracking-widest text-slate-500 font-medium">Daily Avg</div>
-        <div className="text-[22px] font-semibold text-slate-100 mt-1.5" style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>
+        <div className="text-[18px] sm:text-[22px] font-semibold text-slate-100 mt-1.5" style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>
           {formatTvl(volume7d / 7)}
         </div>
         <div className="text-slate-600 text-[11px] mt-1">
@@ -248,9 +248,9 @@ export function LiquidationStats({
         </div>
       </div>
 
-      <div className="bg-[#1a1f2e] p-4 border-t-2 border-t-rose-400">
+      <div className="bg-[#1a1f2e] p-3 sm:p-4 border-t-2 border-t-rose-400">
         <div className="text-[10px] uppercase tracking-widest text-slate-500 font-medium">7d Bad Debt</div>
-        <div className={`text-[22px] font-semibold mt-1.5 ${
+        <div className={`text-[18px] sm:text-[22px] font-semibold mt-1.5 ${
           badDebt7d > 10000 ? 'text-red-400' : badDebt7d > 0 ? 'text-amber-400' : 'text-emerald-400'
         }`} style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>
           {badDebt7d > 0 ? formatTvl(badDebt7d) : '$0'}

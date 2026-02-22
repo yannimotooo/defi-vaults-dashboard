@@ -1,6 +1,7 @@
 'use client';
 
 import { formatTvl } from '@/lib/utils';
+import { ProtocolIcon, ChainIcon } from '@/components/ui/protocol-icon';
 
 interface LiquidationEvent {
   id: string;
@@ -84,18 +85,23 @@ export function LiquidationTable({
                 event.hasSignificantBadDebt ? 'bg-red-500/[0.03]' :
                 event.badDebtUsd > 0 ? 'bg-amber-500/[0.02]' : ''
               }`}
+              style={{
+                borderLeft: event.hasSignificantBadDebt ? '3px solid #ef4444' :
+                  event.badDebtUsd > 0 ? '3px solid #f59e0b' : '3px solid transparent',
+              }}
             >
               <td className="py-3 px-2 text-slate-400">
                 {formatTimeAgo(event.timestamp)}
               </td>
               {showProtocol && (
                 <td className="py-3 px-2">
-                  <span className={`font-medium ${getProtocolColor(event.protocol)}`}>
-                    {event.protocol}
-                  </span>
-                  <span className="text-slate-600 text-xs ml-1">
-                    {event.chain}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <ProtocolIcon name={event.protocol} size={14} className="flex-shrink-0" />
+                    <span className={`font-medium ${getProtocolColor(event.protocol)}`}>
+                      {event.protocol}
+                    </span>
+                    <ChainIcon name={event.chain} size={12} className="flex-shrink-0 opacity-60" />
+                  </div>
                 </td>
               )}
               <td className="py-3 px-2">
@@ -191,7 +197,7 @@ export function ProtocolLiquidationSummary({ summaries }: ProtocolLiquidationSum
         >
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full ${getProtocolColor(summary.protocol)}`} />
+              <ProtocolIcon name={summary.protocol} size={18} />
               <span className="font-medium text-slate-200">{summary.protocol}</span>
             </div>
             <div className="text-right">

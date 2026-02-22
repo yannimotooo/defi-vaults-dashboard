@@ -1,102 +1,54 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
+import useSWR from 'swr';
 import { DataFreshnessBadge } from '@/components/ui/data-freshness-badge';
 import { OverviewTab } from '@/components/tabs/OverviewTab';
-import { CuratorsTab } from '@/components/tabs/CuratorsTab';
-import { ProtocolsTab } from '@/components/tabs/ProtocolsTab';
-import { VaultsTab } from '@/components/tabs/VaultsTab';
-import { LiquidationsTab } from '@/components/tabs/LiquidationsTab';
+
+const CuratorsTab = lazy(() => import('@/components/tabs/CuratorsTab').then(m => ({ default: m.CuratorsTab })));
+const ProtocolsTab = lazy(() => import('@/components/tabs/ProtocolsTab').then(m => ({ default: m.ProtocolsTab })));
+const VaultsTab = lazy(() => import('@/components/tabs/VaultsTab').then(m => ({ default: m.VaultsTab })));
+const LiquidationsTab = lazy(() => import('@/components/tabs/LiquidationsTab').then(m => ({ default: m.LiquidationsTab })));
 import type { MarketOverview, Curator, DataValidation, HistoricalCuratorData, VaultData, LiquidationData, Tab } from '@/types';
 import { RefreshCw, LayoutDashboard, Users, Layers, Vault, Zap } from 'lucide-react';
 
+const fetcher = (url: string) => fetch(url).then(res => {
+  if (!res.ok) throw new Error(`Failed to fetch ${url}`);
+  return res.json();
+});
+
 export default function Dashboard() {
-  const [overviewData, setOverviewData] = useState<MarketOverview | null>(null);
-  const [curators, setCurators] = useState<Curator[]>([]);
-  const [curatorValidation, setCuratorValidation] = useState<DataValidation | null>(null);
-  const [historicalData, setHistoricalData] = useState<HistoricalCuratorData[]>([]);
-  const [topVaults, setTopVaults] = useState<VaultData[]>([]);
-  const [liquidationData, setLiquidationData] = useState<LiquidationData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('overview');
-  const abortControllersRef = useRef<AbortController[]>([]);
 
-  const fetchData = async () => {
-    // Abort any in-flight secondary requests from previous fetch
-    abortControllersRef.current.forEach(c => c.abort());
-    abortControllersRef.current = [];
+  const swrOpts = { refreshInterval: 5 * 60 * 1000, revalidateOnFocus: false };
 
-    try {
-      setLoading(true);
+  // Core data — always fetched
+  const { data: overviewData, error: overviewError, isLoading: overviewLoading, mutate: mutateOverview } = useSWR<MarketOverview>('/api/overview', fetcher, swrOpts);
+  const { data: curatorResponse, mutate: mutateCurators } = useSWR<{ curators: Curator[]; validation: DataValidation }>('/api/curators', fetcher, swrOpts);
 
-      const [overviewRes, curatorsRes] = await Promise.all([
-        fetch('/api/overview'),
-        fetch('/api/curators'),
-      ]);
+  // Secondary data — fetched lazily based on tab or always (historical needed for overview sparklines)
+  const { data: historicalResponse } = useSWR<{ curators: HistoricalCuratorData[] }>('/api/curators/historical', fetcher, swrOpts);
+  const { data: vaultsResponse } = useSWR<{ vaults: VaultData[] }>(
+    activeTab === 'vaults' || activeTab === 'overview' ? '/api/vaults?limit=100' : null,
+    fetcher, swrOpts
+  );
+  const { data: riskResponse } = useSWR<{ multiProtocolLiquidations: LiquidationData }>(
+    activeTab === 'liquidations' || activeTab === 'overview' ? '/api/risk' : null,
+    fetcher, swrOpts
+  );
 
-      if (!overviewRes.ok) throw new Error('Failed to fetch overview');
+  const curators = curatorResponse?.curators ?? [];
+  const curatorValidation = curatorResponse?.validation ?? null;
+  const historicalData = historicalResponse?.curators ?? [];
+  const topVaults = vaultsResponse?.vaults ?? [];
+  const liquidationData = riskResponse?.multiProtocolLiquidations ?? null;
+  const loading = overviewLoading;
+  const error = overviewError?.message ?? null;
 
-      const overview = await overviewRes.json();
-      setOverviewData(overview);
-
-      if (curatorsRes.ok) {
-        const curatorData = await curatorsRes.json();
-        setCurators(curatorData.curators || []);
-        setCuratorValidation(curatorData.validation || null);
-      }
-
-      // Non-blocking secondary fetches with tracked abort controllers
-      const historicalController = new AbortController();
-      const vaultsController = new AbortController();
-      const riskController = new AbortController();
-      abortControllersRef.current = [historicalController, vaultsController, riskController];
-
-      fetch('/api/curators/historical', { signal: historicalController.signal })
-        .then(res => res.json())
-        .then(data => {
-          if (data.curators) setHistoricalData(data.curators);
-        })
-        .catch(err => {
-          if (err.name !== 'AbortError') console.error('[Historical]', err);
-        });
-
-      fetch('/api/vaults?limit=100', { signal: vaultsController.signal })
-        .then(res => res.json())
-        .then(data => {
-          if (data.vaults) setTopVaults(data.vaults);
-        })
-        .catch(err => {
-          if (err.name !== 'AbortError') console.error('[Vaults]', err);
-        });
-
-      fetch('/api/risk', { signal: riskController.signal })
-        .then(res => res.json())
-        .then(data => {
-          if (data.multiProtocolLiquidations) setLiquidationData(data.multiProtocolLiquidations);
-        })
-        .catch(err => {
-          if (err.name !== 'AbortError') console.error('[Risk]', err);
-        });
-
-      setLastUpdated(new Date());
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load data');
-    } finally {
-      setLoading(false);
-    }
+  const refreshAll = () => {
+    mutateOverview();
+    mutateCurators();
   };
-
-  useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 5 * 60 * 1000);
-    return () => {
-      clearInterval(interval);
-      abortControllersRef.current.forEach(c => c.abort());
-    };
-  }, []);
 
   if (loading && !overviewData) {
     return (
@@ -115,7 +67,7 @@ export default function Dashboard() {
         <div className="text-center">
           <p className="text-red-400 mb-4">{error}</p>
           <button
-            onClick={fetchData}
+            onClick={refreshAll}
             className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 transition-colors"
           >
             Retry
@@ -164,7 +116,7 @@ export default function Dashboard() {
                   </span>
                 )}
                 <button
-                  onClick={fetchData}
+                  onClick={refreshAll}
                   disabled={loading}
                   className="p-2 rounded-lg hover:bg-slate-800/60 transition-colors disabled:opacity-50"
                   title="Refresh data"
@@ -204,21 +156,23 @@ export default function Dashboard() {
             <OverviewTab overviewData={overviewData} curators={curators} historicalData={historicalData} onNavigate={setActiveTab} />
           )}
 
-          {activeTab === 'curators' && (
-            <CuratorsTab curators={curators} historicalData={historicalData} />
-          )}
+          <Suspense fallback={<TabSkeleton />}>
+            {activeTab === 'curators' && (
+              <CuratorsTab curators={curators} historicalData={historicalData} />
+            )}
 
-          {activeTab === 'protocols' && (
-            <ProtocolsTab overviewData={overviewData} />
-          )}
+            {activeTab === 'protocols' && (
+              <ProtocolsTab overviewData={overviewData} />
+            )}
 
-          {activeTab === 'vaults' && (
-            <VaultsTab vaults={topVaults} />
-          )}
+            {activeTab === 'vaults' && (
+              <VaultsTab vaults={topVaults} />
+            )}
 
-          {activeTab === 'liquidations' && (
-            <LiquidationsTab liquidationData={liquidationData} />
-          )}
+            {activeTab === 'liquidations' && (
+              <LiquidationsTab liquidationData={liquidationData} />
+            )}
+          </Suspense>
         </div>
 
         {/* Footer */}
@@ -236,6 +190,22 @@ export default function Dashboard() {
           </div>
         </footer>
       </main>
+    </div>
+  );
+}
+
+function TabSkeleton() {
+  return (
+    <div className="space-y-6 animate-pulse">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="h-24 rounded-[14px] bg-[#1a1f2e]" />
+        ))}
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="h-[300px] rounded-[14px] bg-[#1a1f2e]" />
+        <div className="h-[300px] rounded-[14px] bg-[#1a1f2e]" />
+      </div>
     </div>
   );
 }

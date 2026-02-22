@@ -45,7 +45,7 @@ export function CuratorTvlChart({ curators }: CuratorTvlChartProps) {
           <span className="text-[11px] text-slate-600">Click bar for details</span>
         </div>
       </CardHeader>
-      <CardContent className="p-0 pr-5 pb-5">
+      <CardContent className="p-0 pr-2 sm:pr-5 pb-5">
         <div className="h-[380px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
@@ -67,8 +67,8 @@ export function CuratorTvlChart({ curators }: CuratorTvlChartProps) {
                 type="category"
                 dataKey="name"
                 stroke="#64748b"
-                fontSize={13}
-                width={130}
+                fontSize={11}
+                width={100}
                 tickLine={false}
                 axisLine={false}
               />
@@ -143,6 +143,6 @@ function formatCuratorNameForChart(name: string): string {
   };
 
   if (shortNames[name]) return shortNames[name];
-  if (name.length > 18) return name.slice(0, 16) + '...';
+  if (name.length > 14) return name.slice(0, 12) + '...';
   return name;
 }

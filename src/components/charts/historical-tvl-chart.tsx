@@ -102,16 +102,16 @@ export function HistoricalTvlChart({
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
             <CardTitle>{title}</CardTitle>
             {stats && (
-              <div className="flex items-center gap-4 mt-2">
-                <span className="text-[24px] font-semibold text-white font-mono">
+              <div className="flex items-center gap-3 mt-1.5">
+                <span className="text-[18px] sm:text-[24px] font-semibold text-white font-mono">
                   {formatTvl(stats.latest)}
                 </span>
                 <span
-                  className={`text-[14px] font-mono ${
+                  className={`text-[13px] font-mono ${
                     stats.change >= 0 ? 'text-emerald-400' : 'text-red-400'
                   }`}
                 >
@@ -122,12 +122,12 @@ export function HistoricalTvlChart({
             )}
           </div>
           {showPeriodSelector && (
-            <div className="flex gap-0.5 bg-[#141922] rounded-full p-0.5 border border-[#2d3548]/50">
+            <div className="flex gap-0.5 bg-[#141922] rounded-full p-0.5 border border-[#2d3548]/50 self-start sm:self-auto">
               {(['7d', '30d', '90d', '1y', 'all'] as Period[]).map((p) => (
                 <button
                   key={p}
                   onClick={() => setPeriod(p)}
-                  className={`px-3 py-1 text-[11px] font-medium rounded-full transition-all ${
+                  className={`px-2.5 sm:px-3 py-1 text-[10px] sm:text-[11px] font-medium rounded-full transition-all ${
                     period === p
                       ? 'bg-[#2d3548] text-white'
                       : 'text-slate-500 hover:text-slate-300'
@@ -140,7 +140,7 @@ export function HistoricalTvlChart({
           )}
         </div>
       </CardHeader>
-      <CardContent className="p-0 pr-4 pb-4">
+      <CardContent className="p-0 pr-2 sm:pr-4 pb-4">
         <div style={{ height }}>
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={chartData} margin={{ left: 0, right: 0, top: 10, bottom: 0 }}>

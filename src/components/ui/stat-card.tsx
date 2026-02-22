@@ -48,9 +48,9 @@ export function StatCard({
       : value;
 
   return (
-    <div className={cn('p-5', accent && `border-t-2 ${accentColors[accent]}`)}>
+    <div className={cn('p-3 sm:p-5', accent && `border-t-2 ${accentColors[accent]}`)}>
       <div className="flex items-start justify-between">
-        <p className="text-[11px] uppercase tracking-widest text-slate-500 font-medium">{title}</p>
+        <p className="text-[10px] sm:text-[11px] uppercase tracking-widest text-slate-500 font-medium">{title}</p>
         {sparklineData && sparklineData.length >= 2 && (
           <Sparkline
             data={sparklineData}
@@ -61,7 +61,7 @@ export function StatCard({
         )}
       </div>
       <p
-        className="mt-2 text-[28px] font-semibold text-white tracking-tight"
+        className="mt-1.5 sm:mt-2 text-[20px] sm:text-[28px] font-semibold text-white tracking-tight"
         style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}
       >
         {formattedValue}

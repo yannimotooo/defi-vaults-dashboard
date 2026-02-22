@@ -4,6 +4,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { formatTvl } from '@/lib/utils';
 import { CHAIN_COLORS, FALLBACK_CURATOR_COLORS } from '@/lib/colors';
+import { ChainIcon } from '@/components/ui/protocol-icon';
 import type { ChainTVL } from '@/types';
 
 interface TvlByChainChartProps {
@@ -72,7 +73,7 @@ export function TvlByChainChart({ data }: TvlByChainChartProps) {
             {chartData.map((item) => (
               <div key={item.name} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
+                  <ChainIcon name={item.name} size={14} />
                   <span className="text-[13px] text-slate-300">{item.name}</span>
                 </div>
                 <div className="text-right">

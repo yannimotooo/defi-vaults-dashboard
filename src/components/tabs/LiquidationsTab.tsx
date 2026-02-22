@@ -25,7 +25,7 @@ export function LiquidationsTab({ liquidationData }: LiquidationsTabProps) {
       )}
 
       {/* 7-Day Liquidation Timeline */}
-      <div className="bg-[#141922]/60 rounded-xl border border-[#2d3548]/60 p-6 mb-8">
+      <div className="bg-[#141922]/60 rounded-xl border border-[#2d3548]/60 p-4 sm:p-6 mb-8">
         <h3 className="text-[15px] font-semibold text-slate-100 mb-4">
           7-Day Liquidation Volume
         </h3>
@@ -44,12 +44,12 @@ export function LiquidationsTab({ liquidationData }: LiquidationsTabProps) {
       {/* Two Column Layout: Recent Events + Protocol Summary */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent Liquidations (2/3 width) */}
-        <div className="lg:col-span-2 bg-[#141922]/60 rounded-xl border border-[#2d3548]/60 p-6">
-          <div className="flex items-center justify-between mb-4">
+        <div className="lg:col-span-2 bg-[#141922]/60 rounded-xl border border-[#2d3548]/60 p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-4">
             <h3 className="text-[15px] font-semibold text-slate-100">
               Recent Liquidations
             </h3>
-            <span className="text-[12px] text-slate-500">
+            <span className="text-[11px] sm:text-[12px] text-slate-500">
               24h events across all protocols
             </span>
           </div>
@@ -67,7 +67,7 @@ export function LiquidationsTab({ liquidationData }: LiquidationsTabProps) {
         </div>
 
         {/* Protocol Summary (1/3 width) */}
-        <div className="bg-[#141922]/60 rounded-xl border border-[#2d3548]/60 p-6">
+        <div className="bg-[#141922]/60 rounded-xl border border-[#2d3548]/60 p-4 sm:p-6">
           <h3 className="text-[15px] font-semibold text-slate-100 mb-4">
             By Protocol
           </h3>

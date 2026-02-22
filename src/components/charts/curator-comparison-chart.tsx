@@ -134,7 +134,7 @@ export function CuratorComparisonChart({
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
           <div>
             <p className="text-[11px] uppercase tracking-widest text-slate-500 font-medium mb-1">Historical</p>
             <CardTitle>{title}</CardTitle>
@@ -144,7 +144,7 @@ export function CuratorComparisonChart({
               <button
                 key={p}
                 onClick={() => setPeriod(p)}
-                className={`px-3 py-1 text-[11px] font-medium rounded-full transition-all ${
+                className={`px-2.5 sm:px-3 py-1 text-[10px] sm:text-[11px] font-medium rounded-full transition-all ${
                   period === p
                     ? 'bg-[#2d3548] text-white'
                     : 'text-slate-500 hover:text-slate-300'
@@ -178,7 +178,7 @@ export function CuratorComparisonChart({
           })}
         </div>
       </CardHeader>
-      <CardContent className="p-0 pr-4 pb-4">
+      <CardContent className="p-0 pr-2 sm:pr-4 pb-4">
         <div style={{ height }}>
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={chartData} margin={{ left: 0, right: 0, top: 10, bottom: 0 }}>
