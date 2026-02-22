@@ -180,9 +180,24 @@ const SYMBOL_TO_COINGECKO_ID: Record<string, string> = {
   'APE': 'apecoin',
   'SHIB': 'shiba-inu',
   'PEPE': 'pepe',
+  // BTC variants (additional)
+  'RSWBTC': 'renzo-restaked-bitcoin',
   // L1s
   'SOL': 'solana',
   'AVAX': 'avalanche-2',
+  // Solana ecosystem
+  'BONK': 'bonk',
+  'JUP': 'jupiter-exchange-solana',
+  'JITOSOL': 'jito-staked-sol',
+  'PYTH': 'pyth-network',
+  'RENDER': 'render-token',
+  'BSOL': 'blazestake-staked-sol',
+  'MSOL': 'msol',
+  'STSOL': 'lido-staked-sol',
+  // Solana stablecoins
+  'USDS': 'usds',
+  'PYUSD': 'paypal-usd',
+  'USD1': 'world-liberty-financial-usd',
 };
 
 // CoinGecko price cache (5 min TTL)
