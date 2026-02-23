@@ -14,6 +14,7 @@ export interface MorphoVault {
     symbol: string;
     decimals: number;
   };
+  // Normalized fields (populated from either V1 state or V2 top-level)
   state: {
     totalAssets: string;
     totalAssetsUsd: number;
@@ -28,6 +29,9 @@ export interface MorphoVault {
       image: string | null;
     }>;
   };
+  // V2-only fields (management fee exists on Morpho V2 vaults)
+  performanceFee?: number; // Decimal (0.1 = 10%)
+  managementFee?: number;  // Decimal (0.01 = 1%) — annual fee on TVL
 }
 
 export interface MorphoCurator {
@@ -57,6 +61,7 @@ export interface CuratorFeeData {
 }
 
 // GraphQL query for Vault V2 (current) - preferred
+// V2 schema has flat top-level fields (no `state` wrapper) and curators at top level
 const VAULTS_V2_QUERY = `
   query VaultsV2($first: Int!, $skip: Int!) {
     vaultV2s(
@@ -75,20 +80,17 @@ const VAULTS_V2_QUERY = `
           symbol
           decimals
         }
-        state {
-          totalAssets
-          totalAssetsUsd
-          apy
-          netApy
-          fee
-        }
-        metadata {
-          curators {
+        totalAssetsUsd
+        apy
+        netApy
+        performanceFee
+        managementFee
+        curators {
+          items {
             name
             image
           }
         }
-        performanceFee
         curator {
           address
         }
@@ -143,12 +145,43 @@ const VAULTS_V1_QUERY = `
   }
 `;
 
+// Normalize a V2 API response item into the MorphoVault format
+// V2 has flat fields; V1 nests under `state` — we normalize both to same shape
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function normalizeVault(raw: any, isV2: boolean): MorphoVault {
+  if (isV2) {
+    // V2: flat top-level fields, curators at top level
+    return {
+      address: raw.address,
+      name: raw.name,
+      symbol: raw.symbol,
+      asset: raw.asset,
+      state: {
+        totalAssets: raw.totalAssets || '0',
+        totalAssetsUsd: raw.totalAssetsUsd || 0,
+        apy: raw.apy || 0,
+        netApy: raw.netApy || 0,
+        fee: raw.performanceFee || 0, // Normalize to same field name as V1
+        curator: raw.curator?.address || null,
+      },
+      metadata: {
+        curators: raw.curators?.items || [],
+      },
+      performanceFee: raw.performanceFee || 0,
+      managementFee: raw.managementFee || 0,
+    };
+  }
+  // V1: already in correct shape
+  return raw as MorphoVault;
+}
+
 // Fetch vaults using a specific query
 async function fetchVaultsWithQuery(
   query: string,
   dataPath: 'vaults' | 'vaultV2s'
 ): Promise<MorphoVault[]> {
   const allVaults: MorphoVault[] = [];
+  const isV2 = dataPath === 'vaultV2s';
   let skip = 0;
   const pageSize = 100;
   let hasMore = true;
@@ -179,12 +212,13 @@ async function fetchVaultsWithQuery(
         break;
       }
 
-      const vaults = data.data?.[dataPath]?.items || [];
+      const rawVaults = data.data?.[dataPath]?.items || [];
+      const vaults = rawVaults.map((v: unknown) => normalizeVault(v, isV2));
       allVaults.push(...vaults);
 
       const totalCount = data.data?.[dataPath]?.pageInfo?.countTotal || 0;
       skip += pageSize;
-      hasMore = skip < totalCount && vaults.length === pageSize;
+      hasMore = skip < totalCount && rawVaults.length === pageSize;
     } catch (error) {
       console.error(`Error in fetchVaultsWithQuery (${dataPath}):`, error);
       break;
@@ -266,6 +300,7 @@ export async function getCuratorFeeData(curatorSlug: string): Promise<CuratorFee
 
     // TVL-weighted average fees and APYs
     let weightedPerformanceFee = 0;
+    let weightedManagementFee = 0;
     let weightedGrossApy = 0;
     let weightedNetApy = 0;
     let estimatedTotalFeeRevenue = 0;
@@ -276,13 +311,18 @@ export async function getCuratorFeeData(curatorSlug: string): Promise<CuratorFee
 
       // Performance fee from Morpho is stored as decimal (0.1 = 10%)
       const performanceFee = (vault.state.fee || 0) * 100;
+      // Management fee (V2 only) — annual fee on TVL, stored as decimal (0.01 = 1%)
+      const managementFee = (vault.managementFee || 0) * 100;
       const grossApy = (vault.state.apy || 0) * 100;
       const netApy = (vault.state.netApy || 0) * 100;
 
-      // Estimated annual fee revenue = TVL * gross APY * performance fee %
-      const estimatedFeeRevenue = tvl * (grossApy / 100) * (performanceFee / 100);
+      // Fee revenue: performance fee on yield + management fee on TVL
+      const perfFeeRevenue = tvl * (grossApy / 100) * (performanceFee / 100);
+      const mgmtFeeRevenue = tvl * (managementFee / 100);
+      const estimatedFeeRevenue = perfFeeRevenue + mgmtFeeRevenue;
 
       weightedPerformanceFee += performanceFee * weight;
+      weightedManagementFee += managementFee * weight;
       weightedGrossApy += grossApy * weight;
       weightedNetApy += netApy * weight;
       estimatedTotalFeeRevenue += estimatedFeeRevenue;
@@ -309,7 +349,7 @@ export async function getCuratorFeeData(curatorSlug: string): Promise<CuratorFee
       vaultCount: curatorVaults.length,
       totalTvl,
       avgPerformanceFee: weightedPerformanceFee,
-      avgManagementFee: 0, // Morpho doesn't have separate management fees
+      avgManagementFee: weightedManagementFee,
       avgGrossApy: weightedGrossApy,
       avgNetApy: weightedNetApy,
       estimatedAnnualFeeRevenue: estimatedTotalFeeRevenue,
@@ -358,6 +398,7 @@ export async function getAllCuratorsFeeData(): Promise<CuratorFeeData[]> {
       if (totalTvl < 1000000) continue; // Skip small curators
 
       let weightedPerformanceFee = 0;
+      let weightedManagementFee = 0;
       let weightedGrossApy = 0;
       let weightedNetApy = 0;
       let estimatedTotalFeeRevenue = 0;
@@ -367,11 +408,16 @@ export async function getAllCuratorsFeeData(): Promise<CuratorFeeData[]> {
         const weight = totalTvl > 0 ? tvl / totalTvl : 0;
 
         const performanceFee = (vault.state.fee || 0) * 100;
+        const managementFee = (vault.managementFee || 0) * 100;
         const grossApy = (vault.state.apy || 0) * 100;
         const netApy = (vault.state.netApy || 0) * 100;
-        const estimatedFeeRevenue = tvl * (grossApy / 100) * (performanceFee / 100);
+        // Fee revenue: performance fee on yield + management fee on TVL
+        const perfFeeRevenue = tvl * (grossApy / 100) * (performanceFee / 100);
+        const mgmtFeeRevenue = tvl * (managementFee / 100);
+        const estimatedFeeRevenue = perfFeeRevenue + mgmtFeeRevenue;
 
         weightedPerformanceFee += performanceFee * weight;
+        weightedManagementFee += managementFee * weight;
         weightedGrossApy += grossApy * weight;
         weightedNetApy += netApy * weight;
         estimatedTotalFeeRevenue += estimatedFeeRevenue;
@@ -394,7 +440,7 @@ export async function getAllCuratorsFeeData(): Promise<CuratorFeeData[]> {
         vaultCount: vaults.length,
         totalTvl,
         avgPerformanceFee: weightedPerformanceFee,
-        avgManagementFee: 0,
+        avgManagementFee: weightedManagementFee,
         avgGrossApy: weightedGrossApy,
         avgNetApy: weightedNetApy,
         estimatedAnnualFeeRevenue: estimatedTotalFeeRevenue,
