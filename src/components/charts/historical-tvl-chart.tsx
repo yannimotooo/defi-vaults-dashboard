@@ -31,7 +31,7 @@ interface HistoricalTvlChartProps {
 export function HistoricalTvlChart({
   data,
   title = 'TVL Over Time',
-  color = '#34d399',
+  color = '#059669',
   showPeriodSelector = true,
   height = 300,
 }: HistoricalTvlChartProps) {

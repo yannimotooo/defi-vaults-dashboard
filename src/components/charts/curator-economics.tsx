@@ -126,7 +126,7 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
                   Curator Economics
                 </CardTitle>
               </div>
-              <span className="text-[11px] text-purple-400 font-mono px-2 py-0.5 bg-purple-500/10 rounded border border-purple-500/20">
+              <span className="text-[11px] text-violet-600 font-mono px-2 py-0.5 bg-violet-50 rounded border border-violet-200">
                 Kamino On-Chain
               </span>
             </div>
@@ -254,7 +254,7 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
               </div>
             )}
 
-            <div className="flex items-start gap-2 text-[11px] text-purple-400/80 bg-purple-500/5 rounded-lg p-3 mt-4">
+            <div className="flex items-start gap-2 text-[11px] text-violet-600 bg-violet-50/50 rounded-lg p-3 mt-4">
               <Info className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
               <p>Fee data fetched directly from Solana blockchain via Kamino SDK. This is actual on-chain data.</p>
             </div>
@@ -276,7 +276,7 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
                   Curator Economics
                 </CardTitle>
               </div>
-              <span className="text-[11px] text-amber-500 font-mono px-2 py-0.5 bg-amber-500/10 rounded border border-amber-500/20">
+              <span className="text-[11px] text-amber-600 font-mono px-2 py-0.5 bg-amber-50 rounded border border-amber-200">
                 Estimate Only
               </span>
             </div>
@@ -309,7 +309,7 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
                 </p>
               </div>
             </div>
-            <div className="flex items-start gap-2 text-[11px] text-amber-500/80 bg-amber-500/5 rounded-lg p-3">
+            <div className="flex items-start gap-2 text-[11px] text-amber-600 bg-amber-50 rounded-lg p-3">
               <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
               <p>{kaminoEstimate.disclaimer}</p>
             </div>
@@ -398,7 +398,7 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
                 Net APY
               </span>
             </div>
-            <p className="text-[24px] font-mono font-semibold text-emerald-500">
+            <p className="text-[24px] font-mono font-semibold text-emerald-600">
               {feeData.avgNetApy.toFixed(2)}%
             </p>
             <p className="text-[11px] text-gray-400 mt-1">
@@ -554,7 +554,7 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
         {kaminoOnChain && kaminoOnChain.vaultCount > 0 && (
           <div className="mt-6 pt-4 border-t border-gray-200">
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-[12px] text-purple-400 uppercase tracking-wider">
+              <span className="text-[12px] text-violet-600 uppercase tracking-wider">
                 Kamino (Solana) On-Chain Data
               </span>
               <span className="text-[11px] text-gray-500 font-mono">
@@ -562,15 +562,15 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
               </span>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-purple-500/5 rounded-lg p-3 border border-purple-500/20">
+              <div className="bg-violet-50/50 rounded-lg p-3 border border-violet-200">
                 <span className="text-[11px] text-gray-500">Avg Performance Fee</span>
-                <p className="text-[18px] font-mono font-semibold text-purple-400">
+                <p className="text-[18px] font-mono font-semibold text-violet-600">
                   {kaminoOnChain.avgPerformanceFeePct.toFixed(1)}%
                 </p>
               </div>
-              <div className="bg-purple-500/5 rounded-lg p-3 border border-purple-500/20">
+              <div className="bg-violet-50/50 rounded-lg p-3 border border-violet-200">
                 <span className="text-[11px] text-gray-500">Avg Management Fee</span>
-                <p className="text-[18px] font-mono font-semibold text-purple-400">
+                <p className="text-[18px] font-mono font-semibold text-violet-600">
                   {kaminoOnChain.avgManagementFeePct.toFixed(2)}%
                 </p>
               </div>
@@ -587,7 +587,7 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
             </div>
           )}
           <div className="flex items-start gap-2 text-[11px] text-gray-500">
-            <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 text-amber-500/70" />
+            <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 text-amber-600" />
             <p>
               <strong>Disclaimer:</strong> Fee data shown is on-chain from Morpho (V1 + V2), Euler V2, and Kamino (Solana via SDK).
               Curators may have off-chain fee arrangements, revenue sharing agreements, or other

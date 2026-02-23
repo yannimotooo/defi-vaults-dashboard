@@ -21,11 +21,7 @@ export function CapitalFlowsChart({ curators }: CapitalFlowsChartProps) {
   const chartData = useMemo(() => {
     const data = curators
       .map((c, i) => {
-        let flow = period === '7d' ? c.netFlow7d : c.netFlow30d;
-        // If 30d flow is 0 but 7d flow exists, estimate from 7d
-        if (period === '30d' && flow === 0 && c.netFlow7d !== 0) {
-          flow = c.netFlow7d * 4;
-        }
+        const flow = period === '7d' ? c.netFlow7d : c.netFlow30d;
         return {
           name: formatName(c.name),
           fullName: c.name,
@@ -34,7 +30,6 @@ export function CapitalFlowsChart({ curators }: CapitalFlowsChartProps) {
           tvl: c.totalTvl,
           flowPercent: c.totalTvl > 0 ? (flow / c.totalTvl) * 100 : 0,
           color: getCuratorColor(c.name, i),
-          estimated: period === '30d' && c.netFlow30d === 0 && c.netFlow7d !== 0,
         };
       })
       .filter(d => Math.abs(d.flow) > 1000)

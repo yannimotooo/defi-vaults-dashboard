@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAllProtocols, filterRiskCurators, extractChains, getYieldPools, filterCuratorVaultsFromPools, type VaultPool } from '@/lib/defillama';
+import { getAllProtocols, filterRiskCurators, extractChains, getYieldPools, filterCuratorVaultsFromPools, getProtocol30dChange, type VaultPool } from '@/lib/defillama';
 import { getMorphoCuratorData, crossReferenceCuratorData } from '@/lib/dune';
 import { getAllCuratorsFeeData, getMorphoCuratorsTvl } from '@/lib/morpho';
 import { getEulerCuratorFeeData, getEulerCuratorsTvl } from '@/lib/euler';
@@ -298,6 +298,20 @@ export async function GET() {
       curatorSlugs.map(slug => [slug, getCuratorRealMetrics(slug, allYieldPools)])
     );
 
+    // Fetch real 30d changes from historical TVL data
+    // (change_1m is often missing from DeFiLlama's /protocols list endpoint)
+    const change30dResults = await Promise.all(
+      curatorSlugs.map(async (slug) => {
+        try {
+          const change = await getProtocol30dChange(slug);
+          return { slug, change30d: change };
+        } catch {
+          return { slug, change30d: undefined };
+        }
+      })
+    );
+    const change30dMap = new Map(change30dResults.map(r => [r.slug, r.change30d]));
+
     // Transform to our Curator type with real metrics when available
     const curators: Curator[] = curatorProtocols
       .filter(p => p.tvl > 0)
@@ -453,9 +467,14 @@ export async function GET() {
           chains,
           protocols,
           avgApy,
-          // Calculate net flow from change percentages (use DeFiLlama changes as Morpho doesn't have this)
+          // Calculate net flow from change percentages
           netFlow7d: p.change_7d ? (totalTvl * p.change_7d) / 100 : 0,
-          netFlow30d: p.change_1m ? (totalTvl * p.change_1m) / 100 : 0,
+          // Use DeFiLlama change_1m if available, otherwise fall back to computed 30d change from historical TVL
+          netFlow30d: p.change_1m
+            ? (totalTvl * p.change_1m) / 100
+            : change30dMap.get(p.slug) != null
+              ? (totalTvl * change30dMap.get(p.slug)!) / 100
+              : 0,
           // TVL source tracking (use authoritative sources when available)
           tvlSource,
           morphoTvl: morphoTvl > 0 ? morphoTvl : undefined,

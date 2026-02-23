@@ -250,7 +250,7 @@ export function VaultTable({
                         expandedVault === vault.id && 'bg-gray-50'
                       )}
                       style={{
-                        borderLeft: `3px solid ${vault.stablecoin ? '#60a5fa' : vault.exposure === 'single' ? '#a78bfa' : '#34d399'}`,
+                        borderLeft: `3px solid ${vault.stablecoin ? '#3B82F6' : vault.exposure === 'single' ? '#8B5CF6' : '#10B981'}`,
                       }}
                     >
                       <td className="px-3 sm:px-5 py-3">

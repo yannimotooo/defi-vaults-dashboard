@@ -98,7 +98,7 @@ export function ApyWithQuality({
 
   const getColor = () => {
     if (organicPct >= 80) return 'text-emerald-600';
-    if (organicPct >= 50) return 'text-emerald-500';
+    if (organicPct >= 50) return 'text-emerald-600';
     if (organicPct >= 20) return 'text-amber-600';
     return 'text-orange-600';
   };

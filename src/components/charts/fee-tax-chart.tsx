@@ -145,17 +145,17 @@ export function FeeTaxChart({ curators }: FeeTaxChartProps) {
                             <span className="font-mono text-gray-900">{data.grossApy.toFixed(2)}%</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-amber-500">- Perf Fee ({data.perfFeePct.toFixed(0)}%)</span>
+                            <span className="text-amber-600">- Perf Fee ({data.perfFeePct.toFixed(0)}%)</span>
                             <span className="font-mono text-amber-600">-{data.perfFeeImpact.toFixed(2)}%</span>
                           </div>
                           {data.mgmtFeeImpact > 0 && (
                             <div className="flex justify-between">
-                              <span className="text-red-500">- Mgmt Fee</span>
+                              <span className="text-red-600">- Mgmt Fee</span>
                               <span className="font-mono text-red-600">-{data.mgmtFeeImpact.toFixed(2)}%</span>
                             </div>
                           )}
                           <div className="flex justify-between pt-1.5 border-t border-gray-200">
-                            <span className="text-emerald-500">Net APY</span>
+                            <span className="text-emerald-600">Net APY</span>
                             <span className="font-mono text-emerald-600">{data.netApy.toFixed(2)}%</span>
                           </div>
                           <div className="flex justify-between">

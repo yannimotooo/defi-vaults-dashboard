@@ -194,11 +194,11 @@ export function RealVsFarmedChart({ vaults, curators }: RealVsFarmedChartProps) 
                         <p className="font-medium text-gray-900 text-[14px] mb-2">{data.fullName}</p>
                         <div className="space-y-1.5 text-[13px]">
                           <div className="flex justify-between">
-                            <span className="text-emerald-500">Organic Yield</span>
+                            <span className="text-emerald-600">Organic Yield</span>
                             <span className="font-mono text-emerald-600">{data.organicApy.toFixed(2)}%</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-violet-500">Incentive Yield</span>
+                            <span className="text-violet-600">Incentive Yield</span>
                             <span className="font-mono text-violet-600">{data.farmedApy.toFixed(2)}%</span>
                           </div>
                           <div className="flex justify-between pt-1.5 border-t border-gray-200">

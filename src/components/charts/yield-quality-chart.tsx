@@ -186,7 +186,7 @@ export function YieldQualityChart({
                 <p className="text-[11px] text-gray-500 uppercase tracking-wider mb-1">
                   Reward Yield
                 </p>
-                <p className="text-[18px] font-mono font-semibold text-purple-400">
+                <p className="text-[18px] font-mono font-semibold text-violet-600">
                   {analysis.weightedRewardApy.toFixed(2)}%
                 </p>
                 <p className="text-[12px] text-gray-400">

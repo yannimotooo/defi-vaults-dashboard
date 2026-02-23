@@ -71,11 +71,11 @@ describe('formatApy', () => {
 
 describe('getChangeColor', () => {
   it('returns green for positive values', () => {
-    expect(getChangeColor(5)).toBe('text-green-500');
+    expect(getChangeColor(5)).toBe('text-green-600');
   });
 
   it('returns red for negative values', () => {
-    expect(getChangeColor(-3)).toBe('text-red-500');
+    expect(getChangeColor(-3)).toBe('text-red-600');
   });
 
   it('returns gray for zero', () => {
