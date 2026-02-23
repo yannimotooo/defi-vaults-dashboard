@@ -22,7 +22,7 @@ export function RealVsFarmedChart({ vaults, curators }: RealVsFarmedChartProps) 
     // Group vaults by curator
     const curatorVaults = new Map<string, VaultData[]>();
     for (const vault of vaults) {
-      if (!vault.curator || vault.isRawMarket) continue;
+      if (!vault.curator || vault.isRawMarket || vault.curator === 'Unknown') continue;
       const key = vault.curator;
       if (!curatorVaults.has(key)) curatorVaults.set(key, []);
       curatorVaults.get(key)!.push(vault);
@@ -87,7 +87,7 @@ export function RealVsFarmedChart({ vaults, curators }: RealVsFarmedChartProps) 
     if (sortBy === 'tvl') {
       filtered.sort((a, b) => b.totalTvl - a.totalTvl);
     } else if (sortBy === 'organicPct') {
-      filtered.sort((a, b) => a.organicPercent - b.organicPercent); // lowest organic first (most farmed)
+      filtered.sort((a, b) => b.organicPercent - a.organicPercent); // highest organic first
     } else {
       filtered.sort((a, b) => b.totalApy - a.totalApy);
     }
@@ -158,14 +158,24 @@ export function RealVsFarmedChart({ vaults, curators }: RealVsFarmedChartProps) 
         </div>
       </CardHeader>
       <CardContent className="flex-1 p-0 pr-2 sm:pr-5 pb-4">
-        <div className="h-[300px]">
+        <div className="h-[360px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={chartData}
               layout="vertical"
               margin={{ left: 0, right: 0, top: 5, bottom: 5 }}
-              barCategoryGap="18%"
+              barCategoryGap="14%"
             >
+              <defs>
+                <linearGradient id="yieldGradientOrganic" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor="#10B981" stopOpacity={0.55} />
+                  <stop offset="100%" stopColor="#10B981" stopOpacity={1} />
+                </linearGradient>
+                <linearGradient id="yieldGradientFarmed" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.55} />
+                  <stop offset="100%" stopColor="#8B5CF6" stopOpacity={1} />
+                </linearGradient>
+              </defs>
               <XAxis
                 type="number"
                 tickFormatter={(v) => `${v.toFixed(1)}%`}
@@ -183,6 +193,7 @@ export function RealVsFarmedChart({ vaults, curators }: RealVsFarmedChartProps) 
                 width={105}
                 tickLine={false}
                 axisLine={false}
+                interval={0}
                 tick={(props: { x?: string | number; y?: string | number; payload?: { value: string } }) => {
                   const x = Number(props.x || 0);
                   const y = Number(props.y || 0);
@@ -271,7 +282,7 @@ export function RealVsFarmedChart({ vaults, curators }: RealVsFarmedChartProps) 
               <Bar
                 dataKey="organicApy"
                 stackId="yield"
-                fill="#10B981"
+                fill="url(#yieldGradientOrganic)"
                 radius={[0, 0, 0, 0]}
                 maxBarSize={22}
                 cursor="pointer"
@@ -280,8 +291,8 @@ export function RealVsFarmedChart({ vaults, curators }: RealVsFarmedChartProps) 
               <Bar
                 dataKey="farmedApy"
                 stackId="yield"
-                fill="#8B5CF6"
-                radius={[0, 4, 4, 0]}
+                fill="url(#yieldGradientFarmed)"
+                radius={[0, 6, 6, 0]}
                 maxBarSize={22}
                 cursor="pointer"
                 onClick={(data) => handleBarClick(data)}

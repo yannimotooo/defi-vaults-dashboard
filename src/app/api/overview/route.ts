@@ -102,7 +102,7 @@ function cleanProtocolName(name: string): string {
   return name
     .replace(' V2', ' v2')
     .replace(' V3', ' v3')
-    .replace('Morpho Blue', 'Morpho')
+    .replace('Morpho Blue', 'Morpho V2')
     .replace('Kamino Lend', 'Kamino');
 }
 

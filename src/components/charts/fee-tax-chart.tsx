@@ -55,7 +55,8 @@ export function FeeTaxChart({ curators }: FeeTaxChartProps) {
           feeRatio: grossApy > 0 ? ((grossApy - actualNetApy) / grossApy) * 100 : 0,
           tvl: c.totalTvl,
         };
-      });
+      })
+      .filter(d => d.grossApy > 0.01 || d.netApy > 0.01); // Exclude empty bars
 
     if (sortBy === 'feeImpact') {
       withFees.sort((a, b) => b.feeRatio - a.feeRatio);
@@ -142,6 +143,20 @@ export function FeeTaxChart({ curators }: FeeTaxChartProps) {
               margin={{ left: 0, right: 0, top: 5, bottom: 5 }}
               barCategoryGap="18%"
             >
+              <defs>
+                <linearGradient id="feeGradientNet" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor="#10B981" stopOpacity={0.55} />
+                  <stop offset="100%" stopColor="#10B981" stopOpacity={1} />
+                </linearGradient>
+                <linearGradient id="feeGradientPerf" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor="#F59E0B" stopOpacity={0.55} />
+                  <stop offset="100%" stopColor="#F59E0B" stopOpacity={1} />
+                </linearGradient>
+                <linearGradient id="feeGradientMgmt" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor="#EF4444" stopOpacity={0.55} />
+                  <stop offset="100%" stopColor="#EF4444" stopOpacity={1} />
+                </linearGradient>
+              </defs>
               <XAxis
                 type="number"
                 tickFormatter={(v) => `${v.toFixed(1)}%`}
@@ -219,7 +234,7 @@ export function FeeTaxChart({ curators }: FeeTaxChartProps) {
               <Bar
                 dataKey="netApy"
                 stackId="a"
-                fill="#10B981"
+                fill="url(#feeGradientNet)"
                 radius={[0, 0, 0, 0]}
                 maxBarSize={22}
                 cursor="pointer"
@@ -228,7 +243,7 @@ export function FeeTaxChart({ curators }: FeeTaxChartProps) {
               <Bar
                 dataKey="perfFeeImpact"
                 stackId="a"
-                fill="#F59E0B"
+                fill="url(#feeGradientPerf)"
                 radius={[0, 0, 0, 0]}
                 maxBarSize={22}
                 cursor="pointer"
@@ -237,8 +252,8 @@ export function FeeTaxChart({ curators }: FeeTaxChartProps) {
               <Bar
                 dataKey="mgmtFeeImpact"
                 stackId="a"
-                fill="#EF4444"
-                radius={[0, 4, 4, 0]}
+                fill="url(#feeGradientMgmt)"
+                radius={[0, 6, 6, 0]}
                 maxBarSize={22}
                 cursor="pointer"
                 onClick={(data) => handleBarClick(data)}

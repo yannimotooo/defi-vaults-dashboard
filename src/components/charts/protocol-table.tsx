@@ -38,7 +38,10 @@ export function ProtocolTable({ data }: ProtocolTableProps) {
               {data.map((protocol, index) => (
                 <tr
                   key={protocol.slug}
-                  className="border-b border-gray-100 hover:bg-gray-50 transition-all"
+                  className={cn(
+                    'border-b border-gray-100 hover:bg-gray-50 transition-all',
+                    index % 2 === 1 && 'bg-gray-50/50'
+                  )}
                 >
                   <td className="px-5 py-4">
                     <span className="font-mono text-gray-500 text-[13px]">{index + 1}</span>

@@ -215,7 +215,7 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
                           {kaminoOnChain.vaults.slice(0, 10).map((vault, index) => (
                             <tr
                               key={index}
-                              className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                              className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${index % 2 === 1 ? 'bg-gray-50/50' : ''}`}
                             >
                               <td className="py-2">
                                 <div>
@@ -496,7 +496,7 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
                       {feeData.vaultFees.slice(0, 10).map((vault, index) => (
                         <tr
                           key={index}
-                          className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                          className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${index % 2 === 1 ? 'bg-gray-50/50' : ''}`}
                         >
                           <td className="py-2">
                             <div>

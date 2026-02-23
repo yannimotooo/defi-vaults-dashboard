@@ -28,7 +28,7 @@ export function TvlByProtocolChart({ data }: TvlByProtocolChartProps) {
         <CardTitle>TVL by Protocol</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-10 max-w-[600px] mx-auto">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-10">
           <div className="h-[180px] w-[180px] sm:h-[200px] sm:w-[200px] flex-shrink-0 relative">
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10">
               <span className="text-[10px] uppercase tracking-wider text-gray-500">Total</span>
@@ -78,7 +78,7 @@ export function TvlByProtocolChart({ data }: TvlByProtocolChartProps) {
             {chartData.map((item) => (
               <div key={item.name} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <ProtocolIcon name={item.name} size={14} />
+                  <ProtocolIcon name={item.name} size={16} />
                   <span className="text-[13px] text-gray-700">{item.name}</span>
                 </div>
                 <div className="text-right">

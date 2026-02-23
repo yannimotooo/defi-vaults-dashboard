@@ -55,7 +55,8 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                     onClick={() => toggleExpanded(curator.slug)}
                     className={cn(
                       'border-b border-gray-100 hover:bg-gray-50 transition-all cursor-pointer',
-                      expandedCurator === curator.slug && 'bg-gray-50'
+                      expandedCurator === curator.slug && 'bg-gray-50',
+                      expandedCurator !== curator.slug && index % 2 === 1 && 'bg-gray-50/50'
                     )}
                     style={{
                       borderLeft: `3px solid ${CURATOR_COLORS[curator.name] || FALLBACK_CURATOR_COLORS[index % FALLBACK_CURATOR_COLORS.length]}`,

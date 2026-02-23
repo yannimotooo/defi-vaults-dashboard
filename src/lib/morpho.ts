@@ -267,6 +267,7 @@ export async function getMorphoVaultsWithFees(): Promise<MorphoVault[]> {
 }
 
 import { CURATOR_NAME_VARIANTS as CURATOR_NAME_MAPPING } from '@/lib/curator-names';
+import { CURATOR_FEE_OVERRIDES } from '@/lib/curator-fee-overrides';
 
 // Get fee data for a specific curator
 export async function getCuratorFeeData(curatorSlug: string): Promise<CuratorFeeData | null> {
@@ -350,15 +351,24 @@ export async function getCuratorFeeData(curatorSlug: string): Promise<CuratorFee
     // Get display name for curator
     const displayName = curatorNames[0] || curatorSlug;
 
+    // Apply manual fee overrides for curators with known but not on-chain fees
+    let finalManagementFee = weightedManagementFee;
+    let finalFeeRevenue = estimatedTotalFeeRevenue;
+    const override = CURATOR_FEE_OVERRIDES[displayName];
+    if (override?.managementFee && weightedManagementFee === 0) {
+      finalManagementFee = override.managementFee * 100;
+      finalFeeRevenue += totalTvl * override.managementFee;
+    }
+
     return {
       curatorName: displayName,
       vaultCount: curatorVaults.length,
       totalTvl,
       avgPerformanceFee: weightedPerformanceFee,
-      avgManagementFee: weightedManagementFee,
+      avgManagementFee: finalManagementFee,
       avgGrossApy: weightedGrossApy,
       avgNetApy: weightedNetApy,
-      estimatedAnnualFeeRevenue: estimatedTotalFeeRevenue,
+      estimatedAnnualFeeRevenue: finalFeeRevenue,
       vaultFees,
     };
   } catch (error) {
@@ -441,15 +451,27 @@ export async function getAllCuratorsFeeData(): Promise<CuratorFeeData[]> {
 
       vaultFees.sort((a, b) => b.tvl - a.tvl);
 
+      // Apply manual fee overrides for curators with known but not on-chain fees
+      let finalManagementFee = weightedManagementFee;
+      let finalFeeRevenue = estimatedTotalFeeRevenue;
+      const override = CURATOR_FEE_OVERRIDES[curatorName];
+      if (override?.managementFee && weightedManagementFee === 0) {
+        finalManagementFee = override.managementFee * 100; // Convert decimal to percentage
+        // Add management fee revenue to total
+        const mgmtFeeRevenue = totalTvl * override.managementFee;
+        finalFeeRevenue += mgmtFeeRevenue;
+        console.log(`[Morpho Fees] Applied override for ${curatorName}: managementFee=${override.managementFee * 100}% (${override.source || 'manual'})`);
+      }
+
       curatorFeeData.push({
         curatorName,
         vaultCount: vaults.length,
         totalTvl,
         avgPerformanceFee: weightedPerformanceFee,
-        avgManagementFee: weightedManagementFee,
+        avgManagementFee: finalManagementFee,
         avgGrossApy: weightedGrossApy,
         avgNetApy: weightedNetApy,
-        estimatedAnnualFeeRevenue: estimatedTotalFeeRevenue,
+        estimatedAnnualFeeRevenue: finalFeeRevenue,
         vaultFees,
       });
     }

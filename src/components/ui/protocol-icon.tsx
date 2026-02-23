@@ -84,8 +84,12 @@ function DefaultProtocolIcon({ size = 16, className, label }: IconProps & { labe
 const PROTOCOL_ICON_MAP: Record<string, (props: IconProps) => ReactNode> = {
   'Morpho': MorphoIcon,
   'morpho': MorphoIcon,
+  'Morpho V2': MorphoIcon,
+  'Morpho v2': MorphoIcon,
   'Euler': EulerIcon,
   'euler': EulerIcon,
+  'Euler v2': EulerIcon,
+  'Euler V2': EulerIcon,
   'Kamino': KaminoIcon,
   'kamino': KaminoIcon,
   'Aave': AaveIcon,
@@ -94,12 +98,24 @@ const PROTOCOL_ICON_MAP: Record<string, (props: IconProps) => ReactNode> = {
   'spark': SparkIcon,
   'Yearn': YearnIcon,
   'yearn': YearnIcon,
+  'Yearn Finance': YearnIcon,
   'Compound': CompoundIcon,
   'compound': CompoundIcon,
 };
 
 export function ProtocolIcon({ name, size = 16, className }: IconProps & { name: string }) {
-  const IconComponent = PROTOCOL_ICON_MAP[name];
+  // Try exact match first
+  let IconComponent = PROTOCOL_ICON_MAP[name];
+  // Fallback: prefix match (handles "Euler v2", "Yearn Finance", etc.)
+  if (!IconComponent) {
+    const lower = name.toLowerCase();
+    for (const [key, component] of Object.entries(PROTOCOL_ICON_MAP)) {
+      if (lower.startsWith(key.toLowerCase()) || key.toLowerCase().startsWith(lower)) {
+        IconComponent = component;
+        break;
+      }
+    }
+  }
   if (IconComponent) return <IconComponent size={size} className={className} />;
   return <DefaultProtocolIcon size={size} className={className} label={name} />;
 }
