@@ -5,6 +5,7 @@ import { getAllCuratorsFeeData, getMorphoCuratorsTvl } from '@/lib/morpho';
 import { getEulerCuratorFeeData, getEulerCuratorsTvl } from '@/lib/euler';
 import { getRiskMetrics } from '@/lib/risk';
 import { getKaminoCuratorsTvl, type KaminoCuratorTvlData } from '@/lib/kamino-onchain';
+import { DataSourceTracker } from '@/lib/data-source-tracker';
 import type { Curator } from '@/types';
 
 // Simple in-memory cache for Kamino data (expensive Solana RPC call)
@@ -182,7 +183,8 @@ function lookupFeeData(
 
 export async function GET() {
   try {
-    // Fetch data from all sources in parallel
+    // Fetch data from all sources in parallel (tracked for visibility)
+    const tracker = new DataSourceTracker();
     const [
       allProtocols,
       duneCuratorData,
@@ -194,15 +196,15 @@ export async function GET() {
       riskData,          // Risk metrics
       kaminoCuratorData, // Kamino Solana data with on-chain TVL
     ] = await Promise.all([
-      getAllProtocols(),
-      getMorphoCuratorData().catch(e => { console.error('[Curators] Dune data failed:', e.message); return []; }),
-      getAllCuratorsFeeData().catch(e => { console.error('[Curators] Morpho fees failed:', e.message); return []; }),
-      getEulerCuratorFeeData().catch(e => { console.error('[Curators] Euler fees failed:', e.message); return []; }),
-      getYieldPools().catch(e => { console.error('[Curators] Yield pools failed:', e.message); return []; }),
-      getMorphoCuratorsTvl().catch(e => { console.error('[Curators] Morpho TVL failed:', e.message); return []; }),
-      getEulerCuratorsTvl().catch(e => { console.error('[Curators] Euler TVL failed:', e.message); return []; }),
-      getRiskMetrics().catch(e => { console.error('[Curators] Risk metrics failed:', e.message); return null; }),
-      getKaminoCuratorData().catch(e => { console.error('[Curators] Kamino data failed:', e.message); return []; }),
+      tracker.track('DeFiLlama Protocols', getAllProtocols(), []),
+      tracker.track('Dune Curator Data', getMorphoCuratorData(), []),
+      tracker.track('Morpho Fees', getAllCuratorsFeeData(), []),
+      tracker.track('Euler Fees', getEulerCuratorFeeData(), []),
+      tracker.track('DeFiLlama Yield Pools', getYieldPools(), []),
+      tracker.track('Morpho On-Chain TVL', getMorphoCuratorsTvl(), []),
+      tracker.track('Euler On-Chain TVL', getEulerCuratorsTvl(), []),
+      tracker.track('Risk Metrics', getRiskMetrics(), null),
+      tracker.track('Kamino On-Chain TVL', getKaminoCuratorData(), []),
     ]);
 
     // Create Morpho TVL lookup map (normalized curator name -> data)
@@ -552,7 +554,7 @@ export async function GET() {
       curatorsWithEulerData: eulerCuratorCount,
     };
 
-    return NextResponse.json({ curators, validation });
+    return NextResponse.json({ curators, validation, _meta: { dataSources: tracker.getSummary() } });
   } catch (error) {
     console.error('Error fetching curators:', error);
     return NextResponse.json(

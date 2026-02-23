@@ -3,6 +3,7 @@ import { getCuratorVaults, getTopVaults } from '@/lib/defillama';
 import { getAllVaultsTvl } from '@/lib/dune';
 import { getVaultRiskWithCreditRatings, type VaultWithCreditRating } from '@/lib/risk';
 import { getVaultToCuratorMap } from '@/lib/morpho';
+import { DataSourceTracker } from '@/lib/data-source-tracker';
 
 // Symbol prefix to curator mapping for DeFiLlama data
 // This catches vaults where the symbol encodes the curator name
@@ -30,6 +31,7 @@ const SYMBOL_PREFIX_TO_CURATOR: Record<string, string> = {
 
 // Morpho vault APY data interface
 interface MorphoVaultApy {
+  address: string;
   symbol: string;
   name: string;
   tvlUsd: number;
@@ -82,6 +84,7 @@ async function getMorphoVaultApyData(): Promise<MorphoVaultApy[]> {
     query GetVaultApys {
       vaults(first: 500, orderBy: TotalAssets, orderDirection: Desc) {
         items {
+          address
           name
           symbol
           state {
@@ -110,7 +113,8 @@ async function getMorphoVaultApyData(): Promise<MorphoVaultApy[]> {
     const data = await response.json();
     const vaults = data?.data?.vaults?.items || [];
 
-    const result = vaults.map((v: { name: string; symbol: string; state: { totalAssetsUsd: number; apy: number; netApy: number } }) => ({
+    const result = vaults.map((v: { address?: string; name: string; symbol: string; state: { totalAssetsUsd: number; apy: number; netApy: number } }) => ({
+      address: (v.address || '').toLowerCase(),
       symbol: v.symbol,
       name: v.name,
       tvlUsd: v.state?.totalAssetsUsd || 0,
@@ -139,13 +143,20 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50', 10);
     const includeRisk = searchParams.get('risk') !== 'false'; // Include risk by default
 
-    // Fetch from all sources in parallel
+    // Fetch from all sources in parallel (tracked for visibility)
+    const tracker = new DataSourceTracker();
     const [vaults, duneVaults, vaultRiskData, morphoApyData, curatorMap] = await Promise.all([
-      curatorSlug ? getCuratorVaults(curatorSlug) : getTopVaults(limit),
-      getAllVaultsTvl().catch(e => { console.error('[Vaults] Dune TVL failed:', e.message); return []; }),
-      includeRisk ? getVaultRiskWithCreditRatings().catch(e => { console.error('[Vaults] Risk data failed:', e.message); return []; }) : Promise.resolve([]),
-      getMorphoVaultApyData().catch(e => { console.error('[Vaults] Morpho APY failed:', e.message); return []; }),
-      getVaultToCuratorMap().catch(e => { console.error('[Vaults] Curator map failed:', e.message); return new Map<string, string>(); }),
+      tracker.track(
+        curatorSlug ? 'DeFiLlama Curator Vaults' : 'DeFiLlama Top Vaults',
+        curatorSlug ? getCuratorVaults(curatorSlug) : getTopVaults(limit),
+        [],
+      ),
+      tracker.track('Dune TVL', getAllVaultsTvl(), []),
+      includeRisk
+        ? tracker.track('Morpho Risk', getVaultRiskWithCreditRatings(), [])
+        : Promise.resolve([]),
+      tracker.track('Morpho APY', getMorphoVaultApyData(), []),
+      tracker.track('Curator Map', getVaultToCuratorMap(), new Map<string, string>()),
     ]);
 
     // Create lookup maps
@@ -179,7 +190,14 @@ export async function GET(request: NextRequest) {
       morphoByNameSubstr.set(nameNorm, vault);
       morphoByNameSubstr.set(symbolNorm, vault);
     }
-    console.log(`[Vaults] Morpho APY data available for ${morphoApyData.length} vaults`);
+    // Address-based lookup (most reliable for Morpho vaults)
+    const morphoApyByAddress = new Map<string, MorphoVaultApy>();
+    for (const vault of morphoApyData) {
+      if (vault.address) {
+        morphoApyByAddress.set(vault.address, vault);
+      }
+    }
+    console.log(`[Vaults] Morpho APY data available for ${morphoApyData.length} vaults (${morphoApyByAddress.size} with addresses)`);
 
     // Transform to a cleaner format with risk data
     const transformedVaults = vaults.map(vault => {
@@ -202,15 +220,16 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Try to get APY from Morpho API if DeFiLlama has 0
-      // This fixes morpho-v1 pools that show 0% APY in DeFiLlama
+      // Get APY — prefer Morpho API for Morpho vaults (always fresher than DeFiLlama)
       let finalApy = vault.apy || 0;
       let finalApyBase = vault.apyBase || 0;
       let apySource = 'defillama';
 
-      if (finalApy === 0 && vault.project.toLowerCase().includes('morpho')) {
-        // Try to find matching Morpho vault APY
-        let morphoApy = morphoApyMap.get(normalizeName(vault.symbol))
+      if (vault.project.toLowerCase().includes('morpho')) {
+        // Priority: 1) address match (most reliable), 2) symbol, 3) name substring
+        const poolAddress = (vault.pool || '').toLowerCase();
+        let morphoApy = morphoApyByAddress.get(poolAddress)
+          || morphoApyMap.get(normalizeName(vault.symbol))
           || morphoApyMap.get(normalizeName(vault.poolMeta || ''));
         if (!morphoApy) {
           const vaultSymNorm = normalizeName(vault.symbol);
@@ -351,6 +370,7 @@ export async function GET(request: NextRequest) {
       vaultsWithMorphoApy,
       vaultsWithCurator,
       rawMarketCount,
+      _meta: { dataSources: tracker.getSummary() },
     });
   } catch (error) {
     console.error('Error fetching vaults:', error);

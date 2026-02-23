@@ -66,6 +66,27 @@ export function FeeTaxChart({ curators }: FeeTaxChartProps) {
     return withFees.slice(0, 10);
   }, [curators, sortBy]);
 
+  // TVL-weighted average fee ratio across all curators with fee data
+  const avgFeeRatio = useMemo(() => {
+    const withFeeData = curators.filter(
+      c => c.grossApy !== undefined && c.grossApy > 0 && c.avgPerformanceFee !== undefined,
+    );
+    if (withFeeData.length === 0) return 0;
+
+    let totalTvl = 0;
+    let weightedFeeRatio = 0;
+
+    for (const c of withFeeData) {
+      const grossApy = c.grossApy || 0;
+      const netApy = c.netApy !== undefined ? c.netApy : c.avgApy;
+      const feeRatio = grossApy > 0 ? ((grossApy - netApy) / grossApy) * 100 : 0;
+      weightedFeeRatio += feeRatio * c.totalTvl;
+      totalTvl += c.totalTvl;
+    }
+
+    return totalTvl > 0 ? weightedFeeRatio / totalTvl : 0;
+  }, [curators]);
+
   const handleBarClick = (data: unknown) => {
     const item = data as { slug?: string };
     if (item?.slug) {
@@ -83,7 +104,14 @@ export function FeeTaxChart({ curators }: FeeTaxChartProps) {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
             <p className="text-[11px] uppercase tracking-widest text-gray-500 font-medium mb-1">Fee Economics</p>
-            <CardTitle>Curator Fees</CardTitle>
+            <div className="flex items-center gap-2.5">
+              <CardTitle>Curator Fees</CardTitle>
+              {avgFeeRatio > 0 && (
+                <span className="text-[11px] font-mono text-gray-500 bg-gray-50 px-2 py-0.5 rounded-full border border-gray-200">
+                  Avg: {avgFeeRatio.toFixed(1)}% of yield
+                </span>
+              )}
+            </div>
           </div>
           <div className="flex gap-0.5 bg-gray-100 rounded-full p-0.5 border border-gray-200">
             {([

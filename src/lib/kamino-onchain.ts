@@ -105,6 +105,7 @@ export interface KaminoVaultOnChain {
   tokenMintDecimals: number;   // Decimals for the token
   sharesIssued: bigint;        // Total shares issued
   tvlUsd?: number;             // Calculated USD value (after price lookup)
+  curatorHint?: string;        // From API metadata, used as fallback in curator identification
 }
 
 export interface KaminoOnChainResult {
@@ -501,6 +502,10 @@ export function identifyKaminoCurator(vault: KaminoVaultOnChain): string {
     return 'Sentora';
   }
 
+  // Log unmapped vaults for discovery — check build logs to find new curators to add
+  const token = getTokenSymbol(vault.tokenMint);
+  console.warn(`[Kamino Curator Discovery] Unmapped vault "${vault.name || 'unnamed'}" (${vault.address.slice(0, 8)}...), admin: ${vault.admin.slice(0, 8)}..., token: ${token}`);
+
   return 'Other';
 }
 
@@ -633,16 +638,19 @@ export async function fetchKaminoVaultMetadata(): Promise<Map<string, KaminoVaul
 
 // Log unique admin addresses for manual curator identification
 export function logUniqueAdmins(vaults: KaminoVaultOnChain[]): void {
-  const adminCount = new Map<string, number>();
+  const adminVaults = new Map<string, KaminoVaultOnChain[]>();
 
   for (const vault of vaults) {
-    adminCount.set(vault.admin, (adminCount.get(vault.admin) || 0) + 1);
+    if (!adminVaults.has(vault.admin)) adminVaults.set(vault.admin, []);
+    adminVaults.get(vault.admin)!.push(vault);
   }
 
   console.log('[Kamino] Unique admin addresses:');
-  for (const [admin, count] of adminCount.entries()) {
-    const curator = KNOWN_ADMIN_TO_CURATOR[admin] || 'Unknown';
-    console.log(`  ${admin}: ${count} vaults (${curator})`);
+  for (const [admin, avaults] of adminVaults.entries()) {
+    const curator = KNOWN_ADMIN_TO_CURATOR[admin] || 'UNMAPPED';
+    const vaultNames = avaults.map(v => v.name || 'unnamed').slice(0, 5).join(', ');
+    const suffix = avaults.length > 5 ? ` +${avaults.length - 5} more` : '';
+    console.log(`  ${admin}: ${avaults.length} vaults (${curator}) — [${vaultNames}${suffix}]`);
   }
 }
 

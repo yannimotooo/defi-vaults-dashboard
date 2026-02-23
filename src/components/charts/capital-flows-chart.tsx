@@ -38,6 +38,12 @@ export function CapitalFlowsChart({ curators }: CapitalFlowsChartProps) {
     return data;
   }, [curators, period]);
 
+  // Find the biggest mover by absolute flow
+  const biggestMover = useMemo(() => {
+    if (chartData.length === 0) return null;
+    return chartData.reduce((max, d) => Math.abs(d.flow) > Math.abs(max.flow) ? d : max, chartData[0]);
+  }, [chartData]);
+
   const handleBarClick = (data: unknown) => {
     const item = data as { slug?: string };
     if (item?.slug) {
@@ -59,7 +65,17 @@ export function CapitalFlowsChart({ curators }: CapitalFlowsChartProps) {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
             <p className="text-[11px] uppercase tracking-widest text-gray-500 font-medium mb-1">Capital Movement</p>
-            <CardTitle>Where&apos;s the Money Going?</CardTitle>
+            <div className="flex items-center gap-3">
+              <CardTitle>Where&apos;s the Money Going?</CardTitle>
+              {biggestMover && (
+                <span className="text-[11px] text-gray-400 hidden lg:inline">
+                  Biggest mover:{' '}
+                  <span className={`font-mono font-medium ${biggestMover.flow >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                    {biggestMover.fullName} ({formatFlow(biggestMover.flow)})
+                  </span>
+                </span>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <div className="flex gap-0.5 bg-gray-100 rounded-full p-0.5 border border-gray-200">
@@ -90,6 +106,16 @@ export function CapitalFlowsChart({ curators }: CapitalFlowsChartProps) {
               margin={{ left: 0, right: 0, top: 5, bottom: 5 }}
               barCategoryGap="18%"
             >
+              <defs>
+                <linearGradient id="flowGradientPos" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor="#10B981" stopOpacity={0.55} />
+                  <stop offset="100%" stopColor="#10B981" stopOpacity={1} />
+                </linearGradient>
+                <linearGradient id="flowGradientNeg" x1="1" y1="0" x2="0" y2="0">
+                  <stop offset="0%" stopColor="#EF4444" stopOpacity={0.55} />
+                  <stop offset="100%" stopColor="#EF4444" stopOpacity={1} />
+                </linearGradient>
+              </defs>
               <XAxis
                 type="number"
                 domain={domain}
@@ -145,7 +171,7 @@ export function CapitalFlowsChart({ curators }: CapitalFlowsChartProps) {
               />
               <Bar
                 dataKey="flow"
-                radius={[4, 4, 4, 4]}
+                radius={[6, 6, 6, 6]}
                 maxBarSize={24}
                 cursor="pointer"
                 onClick={(data) => handleBarClick(data)}
@@ -153,7 +179,7 @@ export function CapitalFlowsChart({ curators }: CapitalFlowsChartProps) {
                 {chartData.map((entry, index) => (
                   <Cell
                     key={`cell-${index}`}
-                    fill={entry.flow >= 0 ? '#10B981' : '#EF4444'}
+                    fill={entry.flow >= 0 ? 'url(#flowGradientPos)' : 'url(#flowGradientNeg)'}
                     className="hover:opacity-80 transition-opacity"
                   />
                 ))}

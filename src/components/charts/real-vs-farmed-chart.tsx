@@ -180,9 +180,25 @@ export function RealVsFarmedChart({ vaults, curators }: RealVsFarmedChartProps) 
                 dataKey="name"
                 stroke="#6B7280"
                 fontSize={11}
-                width={90}
+                width={105}
                 tickLine={false}
                 axisLine={false}
+                tick={(props: { x?: string | number; y?: string | number; payload?: { value: string } }) => {
+                  const x = Number(props.x || 0);
+                  const y = Number(props.y || 0);
+                  const payload = props.payload || { value: '' };
+                  const entry = chartData.find(d => d.name === payload.value);
+                  const pct = entry?.organicPercent || 0;
+                  const dotColor = pct >= 60 ? '#10B981' : pct >= 30 ? '#F59E0B' : '#EF4444';
+                  return (
+                    <g transform={`translate(${x},${y})`}>
+                      <circle cx={-6} cy={0} r={3} fill={dotColor} />
+                      <text x={-14} y={0} dy={4} textAnchor="end" fill="#6B7280" fontSize={11}>
+                        {payload.value}
+                      </text>
+                    </g>
+                  );
+                }}
               />
               <Tooltip
                 content={({ active, payload }) => {
@@ -227,7 +243,7 @@ export function RealVsFarmedChart({ vaults, curators }: RealVsFarmedChartProps) 
               />
               <Legend
                 content={() => (
-                  <div className="flex items-center justify-center gap-4 mt-2 text-[11px]">
+                  <div className="flex items-center justify-center gap-3 sm:gap-4 mt-2 text-[11px] flex-wrap">
                     <span className="flex items-center gap-1.5">
                       <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500" />
                       <span className="text-gray-500">Organic (base)</span>
@@ -235,6 +251,19 @@ export function RealVsFarmedChart({ vaults, curators }: RealVsFarmedChartProps) 
                     <span className="flex items-center gap-1.5">
                       <span className="w-2.5 h-2.5 rounded-sm bg-violet-500" />
                       <span className="text-gray-500">Incentives</span>
+                    </span>
+                    <span className="text-gray-300 hidden sm:inline">|</span>
+                    <span className="flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      <span className="text-gray-400">≥60%</span>
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                      <span className="text-gray-400">30-60%</span>
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                      <span className="text-gray-400">&lt;30%</span>
                     </span>
                   </div>
                 )}

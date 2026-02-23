@@ -7,6 +7,7 @@ import {
   type KaminoCuratorOnChainData,
 } from '@/lib/kamino';
 import { getVedaCuratorFeeData, type VedaCuratorFeeData } from '@/lib/veda';
+import { DataSourceTracker } from '@/lib/data-source-tracker';
 
 export const revalidate = 300; // 5 minutes
 
@@ -133,10 +134,11 @@ export async function GET(request: Request) {
       // Get fee data for a specific curator from all sources
       const curatorName = slugToName[curatorSlug] || curatorSlug;
 
+      const singleTracker = new DataSourceTracker();
       const [morphoFeeData, eulerFeeData, kaminoOnChainData] = await Promise.all([
-        getCuratorFeeData(curatorSlug).catch(() => null),
-        getEulerCuratorFeeDataByName(curatorName).catch(() => null),
-        fetchKaminoOnChainData().catch(() => null),
+        singleTracker.track('Morpho Fees', getCuratorFeeData(curatorSlug), null),
+        singleTracker.track('Euler Fees', getEulerCuratorFeeDataByName(curatorName), null),
+        singleTracker.track('Kamino On-Chain', fetchKaminoOnChainData(), null),
       ]);
 
       // Get Kamino estimate as fallback
@@ -195,12 +197,13 @@ export async function GET(request: Request) {
       });
     }
 
-    // Get fee data for all curators from all sources
+    // Get fee data for all curators from all sources (tracked for visibility)
+    const allTracker = new DataSourceTracker();
     const [morphoAllData, eulerAllData, kaminoOnChainData, vedaData] = await Promise.all([
-      getAllCuratorsFeeData().catch(() => []),
-      getEulerCuratorFeeData().catch(() => []),
-      fetchKaminoOnChainData().catch(() => null),
-      getVedaCuratorFeeData().catch(() => []),
+      allTracker.track('Morpho All Fees', getAllCuratorsFeeData(), []),
+      allTracker.track('Euler All Fees', getEulerCuratorFeeData(), []),
+      allTracker.track('Kamino On-Chain', fetchKaminoOnChainData(), null),
+      allTracker.track('Veda Fees', getVedaCuratorFeeData(), []),
     ]);
 
     // Create a map to merge data by curator name

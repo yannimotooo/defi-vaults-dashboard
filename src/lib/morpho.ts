@@ -233,8 +233,14 @@ export async function getMorphoVaultsWithFees(): Promise<MorphoVault[]> {
   try {
     // Fetch V2 vaults first (preferred), then V1 as fallback
     const [v2Vaults, v1Vaults] = await Promise.all([
-      fetchVaultsWithQuery(VAULTS_V2_QUERY, 'vaultV2s').catch(() => []),
-      fetchVaultsWithQuery(VAULTS_V1_QUERY, 'vaults').catch(() => []),
+      fetchVaultsWithQuery(VAULTS_V2_QUERY, 'vaultV2s').catch(e => {
+        console.warn('[Morpho] V2 query failed:', e instanceof Error ? e.message : e);
+        return [];
+      }),
+      fetchVaultsWithQuery(VAULTS_V1_QUERY, 'vaults').catch(e => {
+        console.warn('[Morpho] V1 query failed:', e instanceof Error ? e.message : e);
+        return [];
+      }),
     ]);
 
     // Combine and deduplicate by address
