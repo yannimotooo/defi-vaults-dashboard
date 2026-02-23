@@ -35,7 +35,7 @@ export function CuratorTvlChart({ curators }: CuratorTvlChartProps) {
   };
 
   return (
-    <Card>
+    <Card className="flex flex-col">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
@@ -45,8 +45,8 @@ export function CuratorTvlChart({ curators }: CuratorTvlChartProps) {
           <span className="text-[11px] text-slate-600">Click bar for details</span>
         </div>
       </CardHeader>
-      <CardContent className="p-0 pr-2 sm:pr-5 pb-5">
-        <div className="h-[380px]">
+      <CardContent className="flex-1 p-0 pr-2 sm:pr-5 pb-5">
+        <div className="h-full min-h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={chartData}

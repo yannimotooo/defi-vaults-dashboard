@@ -63,9 +63,9 @@ export function CuratorsTab({ curators, historicalData }: CuratorsTabProps) {
       )}
 
       {/* Current TVL Breakdown */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8" style={{ gridAutoRows: '1fr' }}>
         <CuratorTvlChart curators={curators} />
-        <Card className="h-[380px] flex flex-col">
+        <Card className="flex flex-col">
           <CardHeader>
             <CardTitle>Market Share</CardTitle>
           </CardHeader>
