@@ -106,7 +106,7 @@ export function RiskHeatmap({ curators }: RiskHeatmapProps) {
                 return (
                   <tr
                     key={curator.slug}
-                    className="border-t border-gray-100 hover:bg-gray-50 transition-colors"
+                    className="border-t border-gray-200 hover:bg-gray-50 transition-colors"
                     style={{ borderLeft: `3px solid ${color}` }}
                   >
                     <td className="px-4 py-2.5">

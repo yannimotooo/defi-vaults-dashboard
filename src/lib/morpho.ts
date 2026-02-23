@@ -354,7 +354,9 @@ export async function getCuratorFeeData(curatorSlug: string): Promise<CuratorFee
     // Apply manual fee overrides for curators with known but not on-chain fees
     let finalManagementFee = weightedManagementFee;
     let finalFeeRevenue = estimatedTotalFeeRevenue;
-    const override = CURATOR_FEE_OVERRIDES[displayName];
+    const override = Object.entries(CURATOR_FEE_OVERRIDES).find(
+      ([key]) => key.toLowerCase() === displayName.toLowerCase()
+    )?.[1];
     if (override?.managementFee && weightedManagementFee === 0) {
       finalManagementFee = override.managementFee * 100;
       finalFeeRevenue += totalTvl * override.managementFee;
@@ -454,7 +456,9 @@ export async function getAllCuratorsFeeData(): Promise<CuratorFeeData[]> {
       // Apply manual fee overrides for curators with known but not on-chain fees
       let finalManagementFee = weightedManagementFee;
       let finalFeeRevenue = estimatedTotalFeeRevenue;
-      const override = CURATOR_FEE_OVERRIDES[curatorName];
+      const override = Object.entries(CURATOR_FEE_OVERRIDES).find(
+        ([key]) => key.toLowerCase() === curatorName.toLowerCase()
+      )?.[1];
       if (override?.managementFee && weightedManagementFee === 0) {
         finalManagementFee = override.managementFee * 100; // Convert decimal to percentage
         // Add management fee revenue to total

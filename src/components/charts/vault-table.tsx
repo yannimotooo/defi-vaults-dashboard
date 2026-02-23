@@ -245,7 +245,7 @@ export function VaultTable({
                     <tr
                       onClick={() => canExpand && setExpandedVault(expandedVault === vault.id ? null : vault.id)}
                       className={cn(
-                        'border-b border-gray-100 hover:bg-gray-50 transition-colors',
+                        'border-b border-gray-200 hover:bg-gray-50 transition-colors',
                         canExpand && 'cursor-pointer',
                         expandedVault === vault.id && 'bg-gray-50'
                       )}

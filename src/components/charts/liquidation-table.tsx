@@ -81,7 +81,7 @@ export function LiquidationTable({
           {displayEvents.map((event) => (
             <tr
               key={event.id}
-              className={`border-b border-gray-100 hover:bg-gray-50 transition-all ${
+              className={`border-b border-gray-200 hover:bg-gray-50 transition-all ${
                 event.hasSignificantBadDebt ? 'bg-red-50/50' :
                 event.badDebtUsd > 0 ? 'bg-amber-50/50' : ''
               }`}

@@ -2,7 +2,7 @@
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { formatTvl } from '@/lib/utils';
+import { formatTvl, cn } from '@/lib/utils';
 import { PROTOCOL_COLORS, FALLBACK_CURATOR_COLORS } from '@/lib/colors';
 import { ProtocolIcon } from '@/components/ui/protocol-icon';
 import type { ProtocolTVL } from '@/types';
@@ -28,8 +28,8 @@ export function TvlByProtocolChart({ data }: TvlByProtocolChartProps) {
         <CardTitle>TVL by Protocol</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-10">
-          <div className="h-[180px] w-[180px] sm:h-[200px] sm:w-[200px] flex-shrink-0 relative">
+        <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-6 items-center">
+          <div className="h-[200px] w-[200px] mx-auto flex-shrink-0 relative">
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10">
               <span className="text-[10px] uppercase tracking-wider text-gray-500">Total</span>
               <span className="text-[16px] font-semibold text-gray-900" style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>
@@ -74,21 +74,32 @@ export function TvlByProtocolChart({ data }: TvlByProtocolChartProps) {
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <div className="flex-1 min-w-[200px] space-y-2">
-            {chartData.map((item) => (
-              <div key={item.name} className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <ProtocolIcon name={item.name} size={16} />
-                  <span className="text-[13px] text-gray-700">{item.name}</span>
-                </div>
-                <div className="text-right">
-                  <span className="text-[13px] font-mono text-gray-900">{formatTvl(item.value)}</span>
-                  <span className="text-[11px] text-gray-400 ml-2">
-                    {((item.value / total) * 100).toFixed(1)}%
+          <div className="space-y-1">
+            {chartData.map((item, index) => {
+              const pct = (item.value / total) * 100;
+              return (
+                <div
+                  key={item.name}
+                  className={cn(
+                    'flex items-center gap-3 py-1.5 px-2 rounded-lg',
+                    index % 2 === 1 && 'bg-gray-50/70'
+                  )}
+                >
+                  <ProtocolIcon name={item.name} size={18} />
+                  <span className="text-[13px] text-gray-700 min-w-[120px]">{item.name}</span>
+                  <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{ width: `${pct}%`, backgroundColor: item.color }}
+                    />
+                  </div>
+                  <span className="text-[13px] font-mono text-gray-900 min-w-[70px] text-right">{formatTvl(item.value)}</span>
+                  <span className="text-[11px] text-gray-400 min-w-[40px] text-right">
+                    {pct.toFixed(1)}%
                   </span>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </CardContent>

@@ -160,7 +160,7 @@ export function YieldQualityChart({
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Summary Stats */}
-          <div className="space-y-4 bg-gray-50/60 rounded-xl p-4 border border-gray-100">
+          <div className="space-y-4 bg-gray-50 rounded-xl p-4 border border-gray-200 shadow-sm">
             <div>
               <p className="text-[11px] text-gray-500 uppercase tracking-wider mb-1">
                 TVL-Weighted Avg APY
@@ -223,7 +223,7 @@ export function YieldQualityChart({
           </div>
 
           {/* Pie Chart */}
-          <div className="flex flex-col items-center justify-center bg-gray-50/60 rounded-xl p-4 border border-gray-100">
+          <div className="flex flex-col items-center justify-center bg-gray-50 rounded-xl p-4 border border-gray-200 shadow-sm">
             <div className="h-[180px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -273,7 +273,7 @@ export function YieldQualityChart({
           </div>
 
           {/* Vault Categories */}
-          <div className="bg-gray-50/60 rounded-xl p-4 border border-gray-100">
+          <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 shadow-sm">
             <p className="text-[11px] text-gray-500 uppercase tracking-wider mb-3">
               Vault Categories
             </p>

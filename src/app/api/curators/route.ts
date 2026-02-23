@@ -6,6 +6,7 @@ import { getEulerCuratorFeeData, getEulerCuratorsTvl } from '@/lib/euler';
 import { getRiskMetrics } from '@/lib/risk';
 import { getKaminoCuratorsTvl, type KaminoCuratorTvlData } from '@/lib/kamino-onchain';
 import { DataSourceTracker } from '@/lib/data-source-tracker';
+import { CURATOR_FEE_OVERRIDES } from '@/lib/curator-fee-overrides';
 import type { Curator } from '@/types';
 
 // Simple in-memory cache for Kamino data (expensive Solana RPC call)
@@ -327,6 +328,17 @@ export async function GET() {
         // Look up fee data using multiple strategies (name matching is tricky)
         const feeData = lookupFeeData(p.name, p.slug, feeDataMap);
 
+        // Apply fee overrides for curators with known but not on-chain fees
+        const feeOverride = Object.entries(CURATOR_FEE_OVERRIDES).find(
+          ([key]) => key.toLowerCase() === p.name.toLowerCase()
+            || key.toLowerCase() === formatCuratorName(p.name).toLowerCase()
+        )?.[1];
+        const overriddenMgmtFee = (feeData?.avgManagementFee && feeData.avgManagementFee > 0)
+          ? feeData.avgManagementFee
+          : feeOverride?.managementFee
+            ? feeOverride.managementFee * 100 // decimal → percentage
+            : feeData?.avgManagementFee;
+
         // Look up Morpho on-chain TVL (try multiple name formats)
         const morphoData = morphoTvlMap.get(normalizeName(p.name))
           || morphoTvlMap.get(normalizeName(formatCuratorName(p.name)))
@@ -493,7 +505,7 @@ export async function GET() {
           duneTvl: crossRef?.duneTvl,
           // Fee economics from Morpho + Euler
           avgPerformanceFee: feeData?.avgPerformanceFee,
-          avgManagementFee: feeData?.avgManagementFee,
+          avgManagementFee: overriddenMgmtFee,
           estimatedAnnualRevenue: feeData?.estimatedAnnualFeeRevenue,
           grossApy: feeData?.avgGrossApy,
           netApy: feeData?.avgNetApy,

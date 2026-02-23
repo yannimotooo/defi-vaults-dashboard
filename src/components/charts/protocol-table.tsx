@@ -39,8 +39,8 @@ export function ProtocolTable({ data }: ProtocolTableProps) {
                 <tr
                   key={protocol.slug}
                   className={cn(
-                    'border-b border-gray-100 hover:bg-gray-50 transition-all',
-                    index % 2 === 1 && 'bg-gray-50/50'
+                    'border-b border-gray-200 hover:bg-gray-50 transition-all',
+                    index % 2 === 1 && 'bg-gray-50/70'
                   )}
                 >
                   <td className="px-5 py-4">
