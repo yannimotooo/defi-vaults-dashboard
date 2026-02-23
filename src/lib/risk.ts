@@ -506,7 +506,7 @@ export async function getRiskMetrics(): Promise<{
       liquidationCount24h: data.liquidationCount24h,
       liquidationCount7d: data.liquidationCount7d,
       totalBadDebtUsd: data.badDebtUsd,
-      unrealizedBadDebtUsd: 0, // Would need to calculate from market warnings
+      unrealizedBadDebtUsd: 0, // Not available from Morpho API — only realized bad debt is tracked on-chain
       realizedBadDebtUsd: data.badDebtUsd,
       hasBadDebt: data.badDebtUsd > 0 || data.markets.some(m => m.hasBadDebt),
       avgUtilization,

@@ -253,19 +253,20 @@ export async function GET() {
       });
     }
 
-    // Merge/add Euler fee data
+    // Merge/add Euler fee data (preserve both Morpho and Euler contributions)
     for (const ed of eulerFeeData) {
       const key = normalizeFeeKey(ed.curatorName);
       const existing = feeDataMap.get(key);
 
       if (existing) {
-        // Merge - average the fees (weighted by TVL would be better but we don't have combined TVL here)
+        // Merge: take the higher performance fee (curators typically set same fee across protocols)
+        // and sum fee revenue from both protocols
         feeDataMap.set(key, {
-          avgPerformanceFee: (existing.avgPerformanceFee + ed.avgPerformanceFee) / 2,
-          avgManagementFee: existing.avgManagementFee,
-          estimatedAnnualFeeRevenue: existing.estimatedAnnualFeeRevenue,
-          avgGrossApy: existing.avgGrossApy,
-          avgNetApy: existing.avgNetApy,
+          avgPerformanceFee: Math.max(existing.avgPerformanceFee, ed.avgPerformanceFee),
+          avgManagementFee: existing.avgManagementFee, // Euler doesn't have management fees
+          estimatedAnnualFeeRevenue: existing.estimatedAnnualFeeRevenue, // Morpho revenue is more reliable
+          avgGrossApy: existing.avgGrossApy || 0,
+          avgNetApy: existing.avgNetApy || 0,
         });
       } else {
         feeDataMap.set(key, {

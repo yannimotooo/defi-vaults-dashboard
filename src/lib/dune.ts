@@ -314,6 +314,14 @@ export async function getMorphoLiquidationsFromDune(): Promise<DuneLiquidationSu
       const rows = result.result.rows;
 
       // Parse - try multiple column name patterns
+      // Log available columns on first row to catch schema changes
+      if (rows.length > 0) {
+        const availableCols = Object.keys(rows[0]);
+        const usdCols = availableCols.filter(c => c.includes('usd') || c.includes('amount') || c.includes('value'));
+        if (usdCols.length === 0) {
+          console.warn(`[Dune] No USD column found in ${name} result. Available columns: ${availableCols.join(', ')}`);
+        }
+      }
       const dailyData: DuneLiquidationData[] = rows.map((row: Record<string, unknown>) => {
         // Try to extract USD amount from various possible column names
         const amount = Number(

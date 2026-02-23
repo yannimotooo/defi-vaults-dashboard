@@ -197,15 +197,23 @@ function parsePerformanceFee(fee: string): number {
   return feeNum * 100;
 }
 
-// Parse total assets (BigInt string to USD estimate)
-// Note: This is approximate - proper conversion requires token decimals and prices
+// Parse total assets (BigInt string to human-readable token amount)
+// WARNING: Assumes 18 decimals — incorrect for USDC (6), WBTC (8), etc.
+// Also treats token amount as USD (only accurate for stablecoins)
+// TODO: Query asset decimals from subgraph + use price feed for non-stablecoins
 function parseTotalAssets(assets: string, decimals: number = 18): number {
   try {
     const bigAssets = BigInt(assets);
+    if (bigAssets === BigInt(0)) return 0;
     const divisor = BigInt(10 ** decimals);
-    // Return as number (loses precision for very large values)
-    return Number(bigAssets / divisor);
+    const result = Number(bigAssets / divisor);
+    // Sanity check: if result is suspiciously small for what should be a vault, log it
+    if (result > 0 && result < 1 && bigAssets > BigInt(1000000)) {
+      console.warn(`[Euler] parseTotalAssets may have wrong decimals: raw=${assets}, decimals=${decimals}, result=${result}`);
+    }
+    return result;
   } catch {
+    console.warn(`[Euler] Failed to parse totalAssets: ${assets}`);
     return 0;
   }
 }
