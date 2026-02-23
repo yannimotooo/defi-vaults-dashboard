@@ -173,7 +173,7 @@ export default function Dashboard() {
       <main className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-20 sm:pb-8">
         <div className="tab-content-enter" key={activeTab}>
           {activeTab === 'overview' && (
-            <OverviewTab overviewData={overviewData} curators={curators} historicalData={historicalData} onNavigate={setActiveTab} />
+            <OverviewTab overviewData={overviewData} curators={curators} historicalData={historicalData} vaults={topVaults} onNavigate={setActiveTab} />
           )}
 
           <Suspense fallback={<TabSkeleton />}>

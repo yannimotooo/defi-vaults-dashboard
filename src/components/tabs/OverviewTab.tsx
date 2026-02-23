@@ -6,16 +6,20 @@ import { TvlByChainChart } from '@/components/charts/tvl-by-chain';
 import { TvlByProtocolChart } from '@/components/charts/tvl-by-protocol';
 import { CuratorTvlChart } from '@/components/charts/curator-tvl-chart';
 import { RiskSummaryCard } from '@/components/charts/risk-summary-card';
-import type { MarketOverview, Curator, HistoricalCuratorData } from '@/types';
+import { CapitalFlowsChart } from '@/components/charts/capital-flows-chart';
+import { FeeTaxChart } from '@/components/charts/fee-tax-chart';
+import { RealVsFarmedChart } from '@/components/charts/real-vs-farmed-chart';
+import type { MarketOverview, Curator, HistoricalCuratorData, VaultData } from '@/types';
 
 interface OverviewTabProps {
   overviewData: MarketOverview;
   curators: Curator[];
   historicalData: HistoricalCuratorData[];
+  vaults: VaultData[];
   onNavigate: (tab: 'curators') => void;
 }
 
-export function OverviewTab({ overviewData, curators, historicalData, onNavigate }: OverviewTabProps) {
+export function OverviewTab({ overviewData, curators, historicalData, vaults, onNavigate }: OverviewTabProps) {
   // Derive aggregate TVL sparkline from per-curator historical data
   const tvlSparkline = useMemo(() => {
     if (!historicalData || historicalData.length === 0) return undefined;
@@ -78,6 +82,21 @@ export function OverviewTab({ overviewData, curators, historicalData, onNavigate
         <TvlByChainChart data={overviewData.tvlByChain} />
         <TvlByProtocolChart data={overviewData.tvlByProtocol} />
       </div>
+
+      {/* Capital Flows */}
+      {curators.length > 0 && (
+        <div className="mb-8">
+          <CapitalFlowsChart curators={curators} />
+        </div>
+      )}
+
+      {/* Fee Tax + Real vs Farmed Yield */}
+      {curators.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <FeeTaxChart curators={curators} />
+          <RealVsFarmedChart vaults={vaults} curators={curators} />
+        </div>
+      )}
 
       {/* Risk Summary */}
       {curators.length > 0 && (
