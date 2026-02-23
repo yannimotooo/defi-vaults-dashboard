@@ -39,14 +39,14 @@ export function CuratorTvlChart({ curators }: CuratorTvlChartProps) {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[11px] uppercase tracking-widest text-slate-500 font-medium mb-1">Rankings</p>
+            <p className="text-[11px] uppercase tracking-widest text-gray-500 font-medium mb-1">Rankings</p>
             <CardTitle>Top Curators by TVL</CardTitle>
           </div>
-          <span className="text-[11px] text-slate-600">Click bar for details</span>
+          <span className="text-[11px] text-gray-400">Click bar for details</span>
         </div>
       </CardHeader>
       <CardContent className="flex-1 p-0 pr-2 sm:pr-5 pb-5">
-        <div className="h-full min-h-[300px]">
+        <div className="h-[340px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={chartData}
@@ -57,7 +57,7 @@ export function CuratorTvlChart({ curators }: CuratorTvlChartProps) {
               <XAxis
                 type="number"
                 tickFormatter={(value) => formatTvl(value)}
-                stroke="#334155"
+                stroke="#D1D5DB"
                 fontSize={11}
                 fontFamily="var(--font-jetbrains-mono), monospace"
                 axisLine={false}
@@ -66,7 +66,7 @@ export function CuratorTvlChart({ curators }: CuratorTvlChartProps) {
               <YAxis
                 type="category"
                 dataKey="name"
-                stroke="#64748b"
+                stroke="#6B7280"
                 fontSize={11}
                 width={100}
                 tickLine={false}
@@ -77,30 +77,30 @@ export function CuratorTvlChart({ curators }: CuratorTvlChartProps) {
                   if (active && payload && payload.length) {
                     const data = payload[0].payload;
                     return (
-                      <div className="rounded-lg border border-[#2d3548]/60 bg-[#1a1f2e]/95 backdrop-blur-sm p-3 shadow-xl min-w-[200px]">
-                        <p className="font-medium text-white text-[14px] mb-2">{data.fullName}</p>
+                      <div className="rounded-lg border border-gray-200 bg-white backdrop-blur-sm p-3 shadow-lg min-w-[200px]">
+                        <p className="font-medium text-gray-900 text-[14px] mb-2">{data.fullName}</p>
                         <div className="space-y-1.5 text-[13px]">
                           <div className="flex justify-between">
-                            <span className="text-slate-500">TVL</span>
-                            <span className="font-mono text-white">{formatTvl(data.tvl)}</span>
+                            <span className="text-gray-500">TVL</span>
+                            <span className="font-mono text-gray-900">{formatTvl(data.tvl)}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-slate-500">APY</span>
-                            <span className="font-mono text-emerald-400">{data.apy.toFixed(1)}%</span>
+                            <span className="text-gray-500">APY</span>
+                            <span className="font-mono text-emerald-600">{data.apy.toFixed(1)}%</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-slate-500">Vaults</span>
-                            <span className="font-mono text-slate-300">{data.vaults}</span>
+                            <span className="text-gray-500">Vaults</span>
+                            <span className="font-mono text-gray-700">{data.vaults}</span>
                           </div>
-                          <div className="pt-2 mt-2 border-t border-slate-700/40">
+                          <div className="pt-2 mt-2 border-t border-gray-200">
                             <div className="flex flex-wrap gap-1">
                               {data.chains.slice(0, 4).map((chain: string) => (
-                                <span key={chain} className="text-[11px] text-slate-400">
+                                <span key={chain} className="text-[11px] text-gray-500">
                                   {chain}
                                 </span>
                               ))}
                               {data.chains.length > 4 && (
-                                <span className="text-[11px] text-slate-500">+{data.chains.length - 4}</span>
+                                <span className="text-[11px] text-gray-500">+{data.chains.length - 4}</span>
                               )}
                             </div>
                           </div>
@@ -110,7 +110,7 @@ export function CuratorTvlChart({ curators }: CuratorTvlChartProps) {
                   }
                   return null;
                 }}
-                cursor={{ fill: 'rgba(255, 255, 255, 0.02)' }}
+                cursor={{ fill: 'rgba(0, 0, 0, 0.03)' }}
               />
               <Bar
                 dataKey="tvl"

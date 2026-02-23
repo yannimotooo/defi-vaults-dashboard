@@ -125,7 +125,7 @@ export function YieldQualityChart({
           <CardTitle>{title}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[200px] flex items-center justify-center text-slate-500 text-[14px]">
+          <div className="h-[200px] flex items-center justify-center text-gray-500 text-[14px]">
             No yield data available
           </div>
         </CardContent>
@@ -149,10 +149,10 @@ export function YieldQualityChart({
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[11px] uppercase tracking-widest text-slate-500 font-medium mb-1">Yield Analysis</p>
+            <p className="text-[11px] uppercase tracking-widest text-gray-500 font-medium mb-1">Yield Analysis</p>
             <CardTitle>{title}</CardTitle>
           </div>
-          <span className="text-[12px] text-slate-600 font-mono">
+          <span className="text-[12px] text-gray-400 font-mono">
             {vaults.length} vaults
           </span>
         </div>
@@ -162,46 +162,46 @@ export function YieldQualityChart({
           {/* Summary Stats */}
           <div className="space-y-4">
             <div>
-              <p className="text-[11px] text-slate-500 uppercase tracking-wider mb-1">
+              <p className="text-[11px] text-gray-500 uppercase tracking-wider mb-1">
                 TVL-Weighted Avg APY
               </p>
-              <p className="text-[24px] font-mono font-semibold text-white">
+              <p className="text-[24px] font-mono font-semibold text-gray-900">
                 {analysis.weightedAvgApy.toFixed(2)}%
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-[11px] text-slate-500 uppercase tracking-wider mb-1">
+                <p className="text-[11px] text-gray-500 uppercase tracking-wider mb-1">
                   Organic Yield
                 </p>
-                <p className="text-[18px] font-mono font-semibold text-emerald-400">
+                <p className="text-[18px] font-mono font-semibold text-emerald-600">
                   {analysis.weightedBaseApy.toFixed(2)}%
                 </p>
-                <p className="text-[12px] text-slate-600">
+                <p className="text-[12px] text-gray-400">
                   {analysis.organicPercent.toFixed(0)}% of total
                 </p>
               </div>
               <div>
-                <p className="text-[11px] text-slate-500 uppercase tracking-wider mb-1">
+                <p className="text-[11px] text-gray-500 uppercase tracking-wider mb-1">
                   Reward Yield
                 </p>
                 <p className="text-[18px] font-mono font-semibold text-purple-400">
                   {analysis.weightedRewardApy.toFixed(2)}%
                 </p>
-                <p className="text-[12px] text-slate-600">
+                <p className="text-[12px] text-gray-400">
                   {analysis.incentivizedPercent.toFixed(0)}% of total
                 </p>
               </div>
             </div>
 
             {/* Yield Quality Score */}
-            <div className="pt-4 border-t border-slate-700/40">
-              <p className="text-[11px] text-slate-500 uppercase tracking-wider mb-2">
+            <div className="pt-4 border-t border-gray-200">
+              <p className="text-[11px] text-gray-500 uppercase tracking-wider mb-2">
                 Yield Quality Score
               </p>
               <div className="flex items-center gap-3">
-                <div className="flex-1 h-2 bg-[#1a1f2e]/60 rounded-full overflow-hidden">
+                <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all"
                     style={{ width: `${Math.min(analysis.organicPercent, 100)}%` }}
@@ -209,14 +209,14 @@ export function YieldQualityChart({
                 </div>
                 <span className={cn(
                   'text-[14px] font-mono font-semibold',
-                  analysis.organicPercent >= 70 ? 'text-emerald-400' :
-                  analysis.organicPercent >= 40 ? 'text-amber-400' : 'text-red-400'
+                  analysis.organicPercent >= 70 ? 'text-emerald-600' :
+                  analysis.organicPercent >= 40 ? 'text-amber-600' : 'text-red-600'
                 )}>
                   {analysis.organicPercent >= 70 ? 'High' :
                    analysis.organicPercent >= 40 ? 'Medium' : 'Low'}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-600 mt-1">
+              <p className="text-[11px] text-gray-400 mt-1">
                 Higher organic yield = more sustainable
               </p>
             </div>
@@ -245,8 +245,8 @@ export function YieldQualityChart({
                       if (active && payload && payload.length) {
                         const data = payload[0].payload;
                         return (
-                          <div className="rounded-lg border border-slate-700/40 bg-[#1a1f2e]/95 backdrop-blur-sm px-3 py-2 shadow-xl">
-                            <p className="text-[13px] text-white">{data.name}</p>
+                          <div className="rounded-lg border border-gray-200 bg-white backdrop-blur-sm px-3 py-2 shadow-lg">
+                            <p className="text-[13px] text-gray-900">{data.name}</p>
                             <p className="text-[14px] font-mono" style={{ color: data.color }}>
                               {data.value.toFixed(1)}%
                             </p>
@@ -266,7 +266,7 @@ export function YieldQualityChart({
                     className="w-2.5 h-2.5 rounded-full"
                     style={{ backgroundColor: entry.color }}
                   />
-                  <span className="text-[11px] text-slate-400">{entry.name.split(' ')[0]}</span>
+                  <span className="text-[11px] text-gray-500">{entry.name.split(' ')[0]}</span>
                 </div>
               ))}
             </div>
@@ -274,7 +274,7 @@ export function YieldQualityChart({
 
           {/* Vault Categories */}
           <div>
-            <p className="text-[11px] text-slate-500 uppercase tracking-wider mb-3">
+            <p className="text-[11px] text-gray-500 uppercase tracking-wider mb-3">
               Vault Categories
             </p>
             <div className="space-y-3">
@@ -284,8 +284,8 @@ export function YieldQualityChart({
                     className="w-3 h-3 rounded-full"
                     style={{ backgroundColor: cat.color }}
                   />
-                  <span className="flex-1 text-[13px] text-slate-300">{cat.name}</span>
-                  <span className="text-[13px] font-mono text-slate-400">
+                  <span className="flex-1 text-[13px] text-gray-700">{cat.name}</span>
+                  <span className="text-[13px] font-mono text-gray-500">
                     {cat.count} vault{cat.count !== 1 ? 's' : ''}
                   </span>
                 </div>
@@ -294,17 +294,17 @@ export function YieldQualityChart({
 
             {/* Top Organic Vaults */}
             {analysis.topOrganic.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-slate-700/40">
-                <p className="text-[11px] text-slate-500 uppercase tracking-wider mb-2">
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <p className="text-[11px] text-gray-500 uppercase tracking-wider mb-2">
                   Top Organic Yield
                 </p>
                 <div className="space-y-2">
                   {analysis.topOrganic.slice(0, 3).map((v) => (
                     <div key={v.symbol} className="flex items-center justify-between">
-                      <span className="text-[12px] text-slate-400 truncate max-w-[120px]">
+                      <span className="text-[12px] text-gray-500 truncate max-w-[120px]">
                         {v.symbol}
                       </span>
-                      <span className="text-[12px] font-mono text-emerald-400">
+                      <span className="text-[12px] font-mono text-emerald-600">
                         {(v.apyBase || 0).toFixed(1)}%
                       </span>
                     </div>
@@ -357,12 +357,12 @@ export function YieldQualitySummary({
     <div className="flex items-center gap-4">
       <div className="flex-1">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-[12px] text-slate-500">Yield Quality</span>
-          <span className="text-[12px] font-mono text-slate-400">
+          <span className="text-[12px] text-gray-500">Yield Quality</span>
+          <span className="text-[12px] font-mono text-gray-500">
             {analysis.organicPercent.toFixed(0)}% organic
           </span>
         </div>
-        <div className="h-1.5 bg-[#1a1f2e]/60 rounded-full overflow-hidden flex">
+        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden flex">
           <div
             className="h-full bg-emerald-500"
             style={{ width: `${analysis.organicPercent}%` }}

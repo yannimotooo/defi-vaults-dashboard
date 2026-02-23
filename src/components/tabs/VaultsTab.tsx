@@ -13,12 +13,12 @@ interface VaultsTabProps {
 }
 
 const RATING_COLORS: Record<string, string> = {
-  'AAA': 'text-emerald-400 bg-emerald-500/10',
-  'AA': 'text-emerald-400 bg-emerald-500/10',
-  'A': 'text-green-400 bg-green-500/10',
-  'BBB': 'text-yellow-400 bg-yellow-500/10',
-  'BB': 'text-amber-400 bg-amber-500/10',
-  'NR': 'text-slate-400 bg-[#1a1f2e]/60',
+  'AAA': 'text-emerald-600 bg-emerald-50',
+  'AA': 'text-emerald-600 bg-emerald-50',
+  'A': 'text-green-600 bg-green-50',
+  'BBB': 'text-yellow-600 bg-yellow-50',
+  'BB': 'text-amber-600 bg-amber-50',
+  'NR': 'text-gray-500 bg-gray-100',
 };
 
 export function VaultsTab({ vaults }: VaultsTabProps) {
@@ -99,11 +99,11 @@ export function VaultsTab({ vaults }: VaultsTabProps) {
   return (
     <>
       {/* Vault Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-[#2d3548]/40 rounded-[14px] overflow-hidden mb-8 border border-[#2d3548]/60">
-        <div className="bg-[#1a1f2e] accent-border-blue">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-gray-200/50 rounded-xl overflow-hidden mb-8 border border-gray-200">
+        <div className="bg-white">
           <StatCard title="Total Vault TVL" value={stats.totalTvl} accent="blue" />
         </div>
-        <div className="bg-[#1a1f2e] accent-border-amber">
+        <div className="bg-white">
           <StatCard
             title="Rated Coverage"
             value={stats.ratedPct}
@@ -112,7 +112,7 @@ export function VaultsTab({ vaults }: VaultsTabProps) {
             accent="amber"
           />
         </div>
-        <div className="bg-[#1a1f2e] accent-border-emerald">
+        <div className="bg-white">
           <StatCard
             title="Stablecoin APY"
             value={stats.stablecoinAvgApy}
@@ -121,7 +121,7 @@ export function VaultsTab({ vaults }: VaultsTabProps) {
             accent="emerald"
           />
         </div>
-        <div className="bg-[#1a1f2e] accent-border-cyan">
+        <div className="bg-white">
           <StatCard
             title="Investment Grade"
             value={stats.investmentGrade.length}
@@ -135,29 +135,29 @@ export function VaultsTab({ vaults }: VaultsTabProps) {
       {/* Asset Class Breakdown */}
       {vaults.length > 0 && (
         <div className="mb-8">
-          <h3 className="text-[11px] uppercase tracking-widest text-slate-400 font-medium mb-4">APY by Asset Class</h3>
+          <h3 className="text-[11px] uppercase tracking-widest text-gray-500 font-medium mb-4">APY by Asset Class</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {assetClasses.map(cat => (
-              <div key={cat.name} className="bg-[#141922]/70 border border-[#2d3548]/60 rounded-xl p-4 transition-all hover:bg-[#212738]/40 hover:-translate-y-px">
+              <div key={cat.name} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm transition-all hover:shadow-md hover:-translate-y-px">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-lg">{cat.icon}</span>
-                  <span className="text-[14px] text-white font-medium">{cat.name}</span>
-                  <span className="text-[11px] text-slate-500 ml-auto">{cat.stats.count} vaults</span>
+                  <span className="text-[14px] text-gray-900 font-medium">{cat.name}</span>
+                  <span className="text-[11px] text-gray-500 ml-auto">{cat.stats.count} vaults</span>
                 </div>
                 <div className="space-y-2">
                   <div className="flex justify-between text-[12px]">
-                    <span className="text-slate-500">TVL</span>
-                    <span className="text-white" style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>{formatTvl(cat.stats.tvl)}</span>
+                    <span className="text-gray-500">TVL</span>
+                    <span className="text-gray-900" style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>{formatTvl(cat.stats.tvl)}</span>
                   </div>
                   <div className="flex justify-between text-[12px]">
-                    <span className="text-slate-500">Avg APY</span>
-                    <span className={cat.stats.avgApy > 3 ? 'text-emerald-400' : 'text-slate-300'} style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>
+                    <span className="text-gray-500">Avg APY</span>
+                    <span className={cat.stats.avgApy > 3 ? 'text-emerald-600' : 'text-gray-700'} style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>
                       {cat.stats.avgApy.toFixed(2)}%
                     </span>
                   </div>
                   <div className="flex justify-between text-[12px]">
-                    <span className="text-slate-500">Median APY</span>
-                    <span className="text-slate-400" style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>{cat.stats.medianApy.toFixed(2)}%</span>
+                    <span className="text-gray-500">Median APY</span>
+                    <span className="text-gray-500" style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>{cat.stats.medianApy.toFixed(2)}%</span>
                   </div>
                 </div>
               </div>
@@ -175,7 +175,7 @@ export function VaultsTab({ vaults }: VaultsTabProps) {
 
       {/* Featured Vaults */}
       <div className="mb-8">
-        <h3 className="text-[11px] uppercase tracking-widest text-slate-400 font-medium mb-4">Featured Vaults</h3>
+        <h3 className="text-[11px] uppercase tracking-widest text-gray-500 font-medium mb-4">Featured Vaults</h3>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
           {/* Largest by TVL */}
           <Card className="flex flex-col">
@@ -209,11 +209,11 @@ export function VaultsTab({ vaults }: VaultsTabProps) {
                     key={vault.id}
                     vault={vault}
                     highlightValue={`+${vault.apyReward.toFixed(1)}%`}
-                    highlightColor="text-amber-400"
+                    highlightColor="text-amber-600"
                   />
                 ))}
                 {featuredVaults.highestIncentives.length === 0 && (
-                  <p className="text-[12px] text-slate-500 py-4 text-center">No incentivized vaults</p>
+                  <p className="text-[12px] text-gray-400 py-4 text-center">No incentivized vaults</p>
                 )}
               </div>
             </CardContent>
@@ -234,7 +234,7 @@ export function VaultsTab({ vaults }: VaultsTabProps) {
                     key={vault.id}
                     vault={vault}
                     highlightValue={`${vault.apy.toFixed(2)}%`}
-                    highlightColor="text-emerald-400"
+                    highlightColor="text-emerald-600"
                   />
                 ))}
               </div>
@@ -247,33 +247,33 @@ export function VaultsTab({ vaults }: VaultsTabProps) {
       <VaultTable vaults={vaults} title="All Curator Vaults" showProject={true} maxDisplay={25} />
 
       {/* Credit Rating Methodology */}
-      <div id="methodology" className="mt-12 pt-8 border-t border-slate-700/30">
-        <h3 className="text-[11px] uppercase tracking-widest text-slate-400 font-medium mb-4">Credit Rating Methodology</h3>
-        <div className="bg-[#141922]/60 border border-[#2d3548]/60 rounded-xl p-6">
-          <p className="text-[13px] text-slate-400 mb-6">
+      <div id="methodology" className="mt-12 pt-8 border-t border-gray-200">
+        <h3 className="text-[11px] uppercase tracking-widest text-gray-500 font-medium mb-4">Credit Rating Methodology</h3>
+        <div className="bg-gray-50 border border-gray-200 rounded-xl p-6">
+          <p className="text-[13px] text-gray-500 mb-6">
             Our three-pillar credit rating system assesses vault risk across capital safety, liquidity health,
             and curator quality. Lower scores indicate higher quality.
           </p>
 
           {/* Rating Scale */}
           <div className="mb-8">
-            <h4 className="text-[11px] uppercase tracking-widest text-slate-400 font-medium mb-3">Rating Scale</h4>
+            <h4 className="text-[11px] uppercase tracking-widest text-gray-500 font-medium mb-3">Rating Scale</h4>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2">
               {[
-                { rating: 'AAA', score: '< 5', label: 'Exceptional', color: 'text-emerald-400 bg-emerald-500/10' },
-                { rating: 'AA', score: '< 12', label: 'Excellent', color: 'text-emerald-400 bg-emerald-500/10' },
-                { rating: 'A', score: '< 20', label: 'Good', color: 'text-green-400 bg-green-500/10' },
-                { rating: 'BBB', score: '< 30', label: 'Adequate', color: 'text-yellow-400 bg-yellow-500/10' },
-                { rating: 'BB', score: '< 45', label: 'Speculative', color: 'text-amber-400 bg-amber-500/10' },
+                { rating: 'AAA', score: '< 5', label: 'Exceptional', color: 'text-emerald-600 bg-emerald-50' },
+                { rating: 'AA', score: '< 12', label: 'Excellent', color: 'text-emerald-600 bg-emerald-50' },
+                { rating: 'A', score: '< 20', label: 'Good', color: 'text-green-600 bg-green-50' },
+                { rating: 'BBB', score: '< 30', label: 'Adequate', color: 'text-yellow-600 bg-yellow-50' },
+                { rating: 'BB', score: '< 45', label: 'Speculative', color: 'text-amber-600 bg-amber-50' },
               ].map(r => (
-                <div key={r.rating} className={`px-3 py-2 rounded-lg ${r.color.split(' ')[1]} border border-slate-700/30`}>
+                <div key={r.rating} className={`px-3 py-2 rounded-lg ${r.color.split(' ')[1]} border border-gray-200`}>
                   <span className={`text-[13px] font-medium ${r.color.split(' ')[0]}`} style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>{r.rating}</span>
-                  <span className="text-[11px] text-slate-500 ml-2">{r.score}</span>
-                  <p className="text-[10px] text-slate-500 mt-0.5">{r.label}</p>
+                  <span className="text-[11px] text-gray-500 ml-2">{r.score}</span>
+                  <p className="text-[10px] text-gray-500 mt-0.5">{r.label}</p>
                 </div>
               ))}
             </div>
-            <p className="text-[11px] text-slate-600 mt-2">
+            <p className="text-[11px] text-gray-400 mt-2">
               Investment Grade: AAA, AA, A, BBB {'\u2022'} Speculative Grade: BB, B, CCC, CC, C
             </p>
           </div>
@@ -319,18 +319,18 @@ export function VaultsTab({ vaults }: VaultsTabProps) {
           </div>
 
           {/* Key Thresholds */}
-          <div className="bg-slate-800/20 rounded-lg p-4">
-            <h4 className="text-[11px] uppercase tracking-widest text-slate-400 font-medium mb-3">Key LLTV Thresholds</h4>
+          <div className="bg-white rounded-lg p-4 border border-gray-200">
+            <h4 className="text-[11px] uppercase tracking-widest text-gray-500 font-medium mb-3">Key LLTV Thresholds</h4>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-[11px]">
-              <div><span className="text-emerald-400">{'\u2264'}77%</span><p className="text-slate-500">Strong buffer</p></div>
-              <div><span className="text-green-400">{'\u2264'}85%</span><p className="text-slate-500">Adequate</p></div>
-              <div><span className="text-yellow-400">{'\u2264'}90%</span><p className="text-slate-500">Elevated risk</p></div>
-              <div><span className="text-amber-400">{'\u2264'}94.5%</span><p className="text-slate-500">Narrow margin</p></div>
-              <div><span className="text-red-400">&gt;94.5%</span><p className="text-slate-500">Minimal buffer</p></div>
+              <div><span className="text-emerald-600">{'\u2264'}77%</span><p className="text-gray-500">Strong buffer</p></div>
+              <div><span className="text-green-600">{'\u2264'}85%</span><p className="text-gray-500">Adequate</p></div>
+              <div><span className="text-yellow-600">{'\u2264'}90%</span><p className="text-gray-500">Elevated risk</p></div>
+              <div><span className="text-amber-600">{'\u2264'}94.5%</span><p className="text-gray-500">Narrow margin</p></div>
+              <div><span className="text-red-600">&gt;94.5%</span><p className="text-gray-500">Minimal buffer</p></div>
             </div>
           </div>
 
-          <p className="text-[11px] text-slate-600 mt-4">
+          <p className="text-[11px] text-gray-400 mt-4">
             Note: Like S&P&apos;s AAA (held by only 2 US companies), our AAA is reserved for exceptional vaults with
             minimal risk. Most well-managed vaults receive A or AA ratings. Data sourced from Morpho Blue on-chain state.
           </p>
@@ -343,7 +343,7 @@ export function VaultsTab({ vaults }: VaultsTabProps) {
 function FeaturedVaultCard({
   vault,
   highlightValue,
-  highlightColor = 'text-white',
+  highlightColor = 'text-gray-900',
 }: {
   vault: VaultData;
   highlightValue: string;
@@ -353,10 +353,10 @@ function FeaturedVaultCard({
   const ratingColor = RATING_COLORS[rating] || RATING_COLORS['NR'];
 
   return (
-    <div className="bg-[#0f172a]/60 border border-slate-700/30 rounded-lg p-4 transition-all hover:bg-[#212738]/40">
+    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 transition-all hover:bg-gray-100/50">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <span className="text-[14px] text-white font-medium">{vault.symbol}</span>
+          <span className="text-[14px] text-gray-900 font-medium">{vault.symbol}</span>
           <span className={`text-[10px] px-1.5 py-0.5 rounded ${ratingColor}`} style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>
             {rating}
           </span>
@@ -364,18 +364,18 @@ function FeaturedVaultCard({
         <span className={`text-[14px] ${highlightColor}`} style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>{highlightValue}</span>
       </div>
       <div className="flex items-center justify-between text-[12px] mb-2">
-        <span className="text-slate-500">{vault.chain}</span>
-        <span className="text-emerald-400" style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>{vault.apy.toFixed(2)}% APY</span>
+        <span className="text-gray-500">{vault.chain}</span>
+        <span className="text-emerald-600" style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>{vault.apy.toFixed(2)}% APY</span>
       </div>
-      <div className="flex items-center justify-between text-[11px] text-slate-500">
-        <span>Base: <span className="text-emerald-400/80">{(vault.apyBase || vault.apy).toFixed(1)}%</span></span>
-        <span>Rewards: <span className="text-amber-400/80">{(vault.apyReward || 0).toFixed(1)}%</span></span>
+      <div className="flex items-center justify-between text-[11px] text-gray-500">
+        <span>Base: <span className="text-emerald-600">{(vault.apyBase || vault.apy).toFixed(1)}%</span></span>
+        <span>Rewards: <span className="text-amber-600">{(vault.apyReward || 0).toFixed(1)}%</span></span>
       </div>
       {vault.maxUtilization !== undefined && (
-        <div className="mt-2 pt-2 border-t border-slate-700/30 flex items-center justify-between text-[10px]">
-          <span className="text-slate-600">Util: {(vault.maxUtilization * 100).toFixed(0)}%</span>
-          <span className="text-slate-600">LLTV: {((vault.avgLltv || 0) * 100).toFixed(0)}%</span>
-          {vault.hasBadDebt && <span className="text-red-400">Bad Debt</span>}
+        <div className="mt-2 pt-2 border-t border-gray-200 flex items-center justify-between text-[10px]">
+          <span className="text-gray-400">Util: {(vault.maxUtilization * 100).toFixed(0)}%</span>
+          <span className="text-gray-400">LLTV: {((vault.avgLltv || 0) * 100).toFixed(0)}%</span>
+          {vault.hasBadDebt && <span className="text-red-600">Bad Debt</span>}
         </div>
       )}
     </div>
@@ -396,18 +396,18 @@ function MethodologyPillar({
   factors: { name: string; weight: string; desc: string }[];
 }) {
   return (
-    <div className="bg-slate-800/25 rounded-xl p-4 border border-slate-700/20">
+    <div className="bg-white rounded-xl p-4 border border-gray-200">
       <div className="flex items-center gap-2 mb-3">
         <span className="text-[13px]">{icon}</span>
-        <h4 className="text-[13px] font-medium text-slate-200">{title}</h4>
-        <span className="text-[10px] text-slate-500 ml-auto">{weight} weight</span>
+        <h4 className="text-[13px] font-medium text-gray-800">{title}</h4>
+        <span className="text-[10px] text-gray-500 ml-auto">{weight} weight</span>
       </div>
-      <p className="text-[11px] text-slate-500 mb-3">&quot;{question}&quot;</p>
-      <ul className="text-[11px] text-slate-400 space-y-1.5">
+      <p className="text-[11px] text-gray-500 mb-3">&quot;{question}&quot;</p>
+      <ul className="text-[11px] text-gray-500 space-y-1.5">
         {factors.map(f => (
           <li key={f.name} className="flex items-start gap-2">
-            <span className="text-slate-600">{'\u2022'}</span>
-            <span><strong className="text-slate-300">{f.name}</strong> ({f.weight}): {f.desc}</span>
+            <span className="text-gray-400">{'\u2022'}</span>
+            <span><strong className="text-gray-700">{f.name}</strong> ({f.weight}): {f.desc}</span>
           </li>
         ))}
       </ul>

@@ -88,14 +88,14 @@ export function LoadingChart({ progress, stage }: LoadingChartProps) {
     >
       {/* Branding */}
       <div className="flex items-center gap-2.5 mb-8">
-        <div className="h-8 w-8 rounded-lg bg-indigo-500/15 border border-indigo-500/25 flex items-center justify-center">
-          <Vault className="h-4 w-4 text-indigo-400" />
+        <div className="h-8 w-8 rounded-lg bg-indigo-50 border border-indigo-200 flex items-center justify-center">
+          <Vault className="h-4 w-4 text-indigo-600" />
         </div>
         <div>
-          <h1 className="text-[16px] font-semibold text-white leading-tight">
+          <h1 className="text-[16px] font-semibold text-gray-900 leading-tight">
             DeFi Vault Dashboard
           </h1>
-          <p className="text-[11px] text-slate-500">
+          <p className="text-[11px] text-gray-500">
             Cross-chain vault & curator analytics
           </p>
         </div>
@@ -106,7 +106,7 @@ export function LoadingChart({ progress, stage }: LoadingChartProps) {
         <svg
           viewBox={`0 0 ${width} ${height}`}
           className="w-full"
-          style={{ filter: 'drop-shadow(0 0 20px rgba(99, 102, 241, 0.08))' }}
+          style={{ filter: 'drop-shadow(0 0 20px rgba(79, 70, 229, 0.06))' }}
         >
           {/* Y-axis grid lines */}
           {yGrid.map((line, i) => {
@@ -118,15 +118,15 @@ export function LoadingChart({ progress, stage }: LoadingChartProps) {
                   y1={y}
                   x2={width - pad.right}
                   y2={y}
-                  stroke="#1e293b"
+                  stroke="#E5E7EB"
                   strokeDasharray="3 6"
-                  strokeOpacity={0.5}
+                  strokeOpacity={0.8}
                 />
                 <text
                   x={pad.left - 8}
                   y={y + 3.5}
                   textAnchor="end"
-                  fill="#334155"
+                  fill="#9CA3AF"
                   fontSize={9}
                   fontFamily="var(--font-jetbrains-mono), monospace"
                 >
@@ -145,7 +145,7 @@ export function LoadingChart({ progress, stage }: LoadingChartProps) {
                 x={x}
                 y={height - pad.bottom + 18}
                 textAnchor="middle"
-                fill="#334155"
+                fill="#9CA3AF"
                 fontSize={9}
                 fontFamily="var(--font-jetbrains-mono), monospace"
               >
@@ -160,15 +160,15 @@ export function LoadingChart({ progress, stage }: LoadingChartProps) {
             y1={height - pad.bottom}
             x2={width - pad.right}
             y2={height - pad.bottom}
-            stroke="#1e293b"
-            strokeOpacity={0.6}
+            stroke="#E5E7EB"
+            strokeOpacity={0.8}
           />
 
           {/* Area fill (clipped to progress) */}
           <defs>
             <linearGradient id="load-area" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#6366f1" stopOpacity={0.25} />
-              <stop offset="100%" stopColor="#6366f1" stopOpacity={0.02} />
+              <stop offset="0%" stopColor="#4F46E5" stopOpacity={0.15} />
+              <stop offset="100%" stopColor="#4F46E5" stopOpacity={0.02} />
             </linearGradient>
             <clipPath id="load-clip">
               <rect
@@ -186,7 +186,7 @@ export function LoadingChart({ progress, stage }: LoadingChartProps) {
           <path
             d={linePath}
             fill="none"
-            stroke="#6366f1"
+            stroke="#4F46E5"
             strokeWidth={2.5}
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -198,7 +198,7 @@ export function LoadingChart({ progress, stage }: LoadingChartProps) {
           {/* Pulsing tip dot */}
           {clampedProgress > 2 && clampedProgress < 100 && (
             <g>
-              <circle cx={tip.x} cy={tip.y} r={8} fill="#6366f1" opacity={0.15}>
+              <circle cx={tip.x} cy={tip.y} r={8} fill="#4F46E5" opacity={0.12}>
                 <animate
                   attributeName="r"
                   values="6;12;6"
@@ -207,12 +207,12 @@ export function LoadingChart({ progress, stage }: LoadingChartProps) {
                 />
                 <animate
                   attributeName="opacity"
-                  values="0.2;0.05;0.2"
+                  values="0.15;0.04;0.15"
                   dur="1.5s"
                   repeatCount="indefinite"
                 />
               </circle>
-              <circle cx={tip.x} cy={tip.y} r={3.5} fill="#6366f1" />
+              <circle cx={tip.x} cy={tip.y} r={3.5} fill="#4F46E5" />
               <circle cx={tip.x} cy={tip.y} r={1.5} fill="#fff" />
             </g>
           )}
@@ -223,7 +223,7 @@ export function LoadingChart({ progress, stage }: LoadingChartProps) {
               cx={points[points.length - 1].x}
               cy={points[points.length - 1].y}
               r={4}
-              fill="#34d399"
+              fill="#059669"
               className="animate-pulse"
             />
           )}
@@ -232,27 +232,27 @@ export function LoadingChart({ progress, stage }: LoadingChartProps) {
         {/* Progress bar + text */}
         <div className="mt-5 px-1">
           {/* Thin progress bar */}
-          <div className="h-[3px] bg-[#1e293b]/60 rounded-full overflow-hidden mb-3">
+          <div className="h-[3px] bg-gray-200 rounded-full overflow-hidden mb-3">
             <div
               className="h-full rounded-full"
               style={{
                 width: `${clampedProgress}%`,
                 background:
                   clampedProgress >= 100
-                    ? '#34d399'
-                    : 'linear-gradient(90deg, #6366f1, #818cf8)',
+                    ? '#059669'
+                    : 'linear-gradient(90deg, #4F46E5, #6366f1)',
                 transition: 'width 0.5s ease-out, background 0.3s',
               }}
             />
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-[12px] text-slate-500">{stage || 'Initializing...'}</span>
+            <span className="text-[12px] text-gray-500">{stage || 'Initializing...'}</span>
             <span
               className="text-[15px] font-semibold tabular-nums"
               style={{
                 fontFamily: 'var(--font-jetbrains-mono), monospace',
-                color: clampedProgress >= 100 ? '#34d399' : '#818cf8',
+                color: clampedProgress >= 100 ? '#059669' : '#4F46E5',
               }}
             >
               {Math.round(clampedProgress)}%

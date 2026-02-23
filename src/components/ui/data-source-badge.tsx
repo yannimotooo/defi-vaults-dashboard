@@ -16,12 +16,12 @@ export function DataSourceBadge({ source, verified = true, url }: DataSourceBadg
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-slate-400 hover:text-slate-300 transition-colors"
+          className="text-gray-500 hover:text-gray-700 transition-colors"
         >
           {source}
         </a>
       ) : (
-        <span className="text-slate-400">{source}</span>
+        <span className="text-gray-500">{source}</span>
       )}
     </div>
   );
@@ -85,7 +85,7 @@ export function DataConfidenceBadge({
   const config = {
     high: {
       color: 'bg-emerald-500',
-      textColor: 'text-emerald-400',
+      textColor: 'text-emerald-600',
       label: isOnChain ? 'On-chain' : 'Verified',
       description: isOnChain
         ? `Authoritative ${tvlSource === 'morpho' ? 'Morpho' : tvlSource === 'euler' ? 'Euler' : 'Kamino'} smart contract data`
@@ -93,15 +93,15 @@ export function DataConfidenceBadge({
     },
     medium: {
       color: 'bg-amber-500',
-      textColor: 'text-amber-400',
+      textColor: 'text-amber-600',
       label: 'Partial',
       description: hasOnChainData
         ? 'On-chain data available but some metrics missing'
         : (duneTvl ? 'Data sources differ (5-15%)' : 'Single source only, limited verification'),
     },
     low: {
-      color: 'bg-slate-500',
-      textColor: 'text-slate-400',
+      color: 'bg-gray-400',
+      textColor: 'text-gray-500',
       label: lowDetails.label,
       description: lowDetails.description,
     },
@@ -120,10 +120,10 @@ export function DataConfidenceBadge({
       <span className={`text-[10px] ${textColor}`}>{label}</span>
 
       {showTooltip && (
-        <div className="absolute bottom-full right-0 mb-2 px-2 py-1.5 bg-[#1a1f2e]/95 border border-slate-700/40 rounded-lg text-[11px] text-slate-400 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+        <div className="absolute bottom-full right-0 mb-2 px-2 py-1.5 bg-white border border-gray-200 rounded-lg text-[11px] text-gray-500 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-lg">
           <p>{description}</p>
           {difference && (
-            <p className="text-slate-500 mt-0.5">
+            <p className="text-gray-400 mt-0.5">
               Difference: {difference}%
             </p>
           )}

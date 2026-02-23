@@ -86,26 +86,26 @@ export default function CuratorDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0b0f19] text-white flex items-center justify-center">
-        <div className="text-slate-500">Loading curator data...</div>
+      <div className="min-h-screen text-gray-900 flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
+        <div className="text-gray-500">Loading curator data...</div>
       </div>
     );
   }
 
   if (!curator) {
     return (
-      <div className="min-h-screen bg-[#0b0f19] text-white flex items-center justify-center">
+      <div className="min-h-screen text-gray-900 flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
         <div className="text-center">
-          <p className="text-slate-400 mb-4">Curator not found</p>
-          <Link href="/" className="text-blue-400 hover:text-blue-300">
-            ← Back to dashboard
+          <p className="text-gray-500 mb-4">Curator not found</p>
+          <Link href="/" className="text-indigo-600 hover:text-indigo-500">
+            &larr; Back to dashboard
           </Link>
         </div>
       </div>
     );
   }
 
-  const curatorColor = CURATOR_COLORS[curator.name] || '#6366F1';
+  const curatorColor = CURATOR_COLORS[curator.name] || '#4F46E5';
   const rank = allCurators.findIndex(c => c.slug === curator.slug) + 1;
   const totalMarketTvl = allCurators.reduce((sum, c) => sum + c.totalTvl, 0);
   const marketShare = (curator.totalTvl / totalMarketTvl) * 100;
@@ -140,16 +140,16 @@ export default function CuratorDetailPage() {
     .sort((a, b) => b.tvl - a.tvl);
 
   return (
-    <div className="min-h-screen bg-[#0b0f19] text-white">
+    <div className="min-h-screen text-gray-900" style={{ background: 'var(--bg-primary)' }}>
       {/* Header */}
-      <header className="border-b border-slate-700/35 sticky top-0 z-50 bg-[#0b0f19]/95 backdrop-blur-sm">
+      <header className="border-b border-gray-200 sticky top-0 z-50 backdrop-blur-md" style={{ background: 'rgba(255, 255, 255, 0.95)' }}>
         <div className="max-w-[1400px] mx-auto px-6 py-4">
           <div className="flex items-center gap-4">
             <button
               onClick={() => router.back()}
-              className="p-2 rounded-md hover:bg-slate-700/40 transition-colors"
+              className="p-2 rounded-md hover:bg-gray-100 transition-colors"
             >
-              <ArrowLeft className="h-4 w-4 text-slate-400" />
+              <ArrowLeft className="h-4 w-4 text-gray-500" />
             </button>
             <div className="flex items-center gap-3">
               <div
@@ -159,8 +159,8 @@ export default function CuratorDetailPage() {
                 {curator.name.charAt(0)}
               </div>
               <div>
-                <h1 className="text-xl font-semibold text-white">{curator.name}</h1>
-                <p className="text-[13px] text-slate-500">
+                <h1 className="text-xl font-semibold text-gray-900">{curator.name}</h1>
+                <p className="text-[13px] text-gray-500">
                   Rank #{rank} • {curator.protocols.join(', ')}
                 </p>
               </div>
@@ -171,25 +171,25 @@ export default function CuratorDetailPage() {
 
       <main className="max-w-[1400px] mx-auto px-6 py-8">
         {/* Key Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-px bg-slate-700/40 rounded-lg overflow-hidden mb-8 border border-[#2d3548]/60">
-          <div className="bg-[#1a1f2e]">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-px bg-gray-200/50 rounded-xl overflow-hidden mb-8 border border-gray-200">
+          <div className="bg-white">
             <StatCard title="Total TVL" value={curator.totalTvl} />
           </div>
-          <div className="bg-[#1a1f2e]">
+          <div className="bg-white">
             <StatCard title="Market Share" value={marketShare} format="percent" />
           </div>
-          <div className="bg-[#1a1f2e]">
+          <div className="bg-white">
             <StatCard title="Vaults" value={curator.vaultCount} format="number" />
           </div>
-          <div className="bg-[#1a1f2e]">
+          <div className="bg-white">
             <StatCard title="Avg APY" value={curator.avgApy} format="percent" />
           </div>
-          <div className="bg-[#1a1f2e]">
+          <div className="bg-white">
             <div className="p-5">
-              <p className="text-[13px] text-slate-500 font-medium">7d Flow</p>
+              <p className="text-[13px] text-gray-500 font-medium">7d Flow</p>
               <p className={cn(
                 'mt-2 text-[28px] font-semibold tracking-tight font-mono',
-                curator.netFlow7d > 0 ? 'text-emerald-400' : curator.netFlow7d < 0 ? 'text-red-400' : 'text-white'
+                curator.netFlow7d > 0 ? 'text-emerald-600' : curator.netFlow7d < 0 ? 'text-red-600' : 'text-gray-900'
               )}>
                 {formatFlow(curator.netFlow7d)}
               </p>
@@ -246,7 +246,7 @@ export default function CuratorDetailPage() {
               <div className="flex items-center justify-between">
                 <CardTitle>Chain Allocation</CardTitle>
                 {vaults.length === 0 && (
-                  <span className="text-[11px] text-slate-600">No vault data</span>
+                  <span className="text-[11px] text-gray-400">No vault data</span>
                 )}
               </div>
             </CardHeader>
@@ -261,18 +261,18 @@ export default function CuratorDetailPage() {
                             className="w-3 h-3 rounded-full"
                             style={{ backgroundColor: getChainColor(item.chain) }}
                           />
-                          <span className="text-[14px] text-slate-300">{item.chain}</span>
+                          <span className="text-[14px] text-gray-700">{item.chain}</span>
                         </div>
                         <div className="text-right">
-                          <span className="text-[14px] font-mono text-white">
+                          <span className="text-[14px] font-mono text-gray-900">
                             {item.percent.toFixed(1)}%
                           </span>
-                          <span className="text-[12px] font-mono text-slate-600 ml-2">
+                          <span className="text-[12px] font-mono text-gray-400 ml-2">
                             {formatTvl(item.tvl)}
                           </span>
                         </div>
                       </div>
-                      <div className="h-1.5 bg-slate-800/60 rounded-full overflow-hidden">
+                      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                         <div
                           className="h-full rounded-full transition-all"
                           style={{
@@ -285,11 +285,11 @@ export default function CuratorDetailPage() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-4 text-slate-500 text-[13px]">
+                <div className="text-center py-4 text-gray-500 text-[13px]">
                   {curator.chains.length > 0 ? (
                     <div className="space-y-2">
                       <p>Chains: {curator.chains.join(', ')}</p>
-                      <p className="text-[11px] text-slate-600">TVL breakdown unavailable</p>
+                      <p className="text-[11px] text-gray-400">TVL breakdown unavailable</p>
                     </div>
                   ) : (
                     'No chain data available'
@@ -305,7 +305,7 @@ export default function CuratorDetailPage() {
               <div className="flex items-center justify-between">
                 <CardTitle>Protocol Allocation</CardTitle>
                 {vaults.length === 0 && (
-                  <span className="text-[11px] text-slate-600">No vault data</span>
+                  <span className="text-[11px] text-gray-400">No vault data</span>
                 )}
               </div>
             </CardHeader>
@@ -320,18 +320,18 @@ export default function CuratorDetailPage() {
                             className="w-3 h-3 rounded-full"
                             style={{ backgroundColor: getProtocolColor(item.protocol) }}
                           />
-                          <span className="text-[14px] text-slate-300">{item.protocol}</span>
+                          <span className="text-[14px] text-gray-700">{item.protocol}</span>
                         </div>
                         <div className="text-right">
-                          <span className="text-[14px] font-mono text-white">
+                          <span className="text-[14px] font-mono text-gray-900">
                             {item.percent.toFixed(1)}%
                           </span>
-                          <span className="text-[12px] font-mono text-slate-600 ml-2">
+                          <span className="text-[12px] font-mono text-gray-400 ml-2">
                             {formatTvl(item.tvl)}
                           </span>
                         </div>
                       </div>
-                      <div className="h-1.5 bg-slate-800/60 rounded-full overflow-hidden">
+                      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                         <div
                           className="h-full rounded-full transition-all"
                           style={{
@@ -344,11 +344,11 @@ export default function CuratorDetailPage() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-4 text-slate-500 text-[13px]">
+                <div className="text-center py-4 text-gray-500 text-[13px]">
                   {curator.protocols.length > 0 ? (
                     <div className="space-y-2">
                       <p>Protocols: {curator.protocols.join(', ')}</p>
-                      <p className="text-[11px] text-slate-600">TVL breakdown unavailable</p>
+                      <p className="text-[11px] text-gray-400">TVL breakdown unavailable</p>
                     </div>
                   ) : (
                     'No protocol data available'
@@ -367,42 +367,42 @@ export default function CuratorDetailPage() {
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <div>
-                <p className="text-[12px] text-slate-500 uppercase tracking-wider mb-1">7 Day</p>
+                <p className="text-[12px] text-gray-500 uppercase tracking-wider mb-1">7 Day</p>
                 <div className="flex items-center gap-2">
                   {curator.netFlow7d > 0 ? (
-                    <TrendingUp className="h-4 w-4 text-emerald-400" />
+                    <TrendingUp className="h-4 w-4 text-emerald-600" />
                   ) : curator.netFlow7d < 0 ? (
-                    <TrendingDown className="h-4 w-4 text-red-400" />
+                    <TrendingDown className="h-4 w-4 text-red-600" />
                   ) : null}
                   <span className={cn(
                     'text-[18px] font-mono font-semibold',
-                    curator.netFlow7d > 0 ? 'text-emerald-400' : curator.netFlow7d < 0 ? 'text-red-400' : 'text-slate-400'
+                    curator.netFlow7d > 0 ? 'text-emerald-600' : curator.netFlow7d < 0 ? 'text-red-600' : 'text-gray-500'
                   )}>
                     {formatFlow(curator.netFlow7d)}
                   </span>
                 </div>
               </div>
               <div>
-                <p className="text-[12px] text-slate-500 uppercase tracking-wider mb-1">30 Day</p>
+                <p className="text-[12px] text-gray-500 uppercase tracking-wider mb-1">30 Day</p>
                 <div className="flex items-center gap-2">
                   {curator.netFlow30d > 0 ? (
-                    <TrendingUp className="h-4 w-4 text-emerald-400" />
+                    <TrendingUp className="h-4 w-4 text-emerald-600" />
                   ) : curator.netFlow30d < 0 ? (
-                    <TrendingDown className="h-4 w-4 text-red-400" />
+                    <TrendingDown className="h-4 w-4 text-red-600" />
                   ) : null}
                   <span className={cn(
                     'text-[18px] font-mono font-semibold',
-                    curator.netFlow30d > 0 ? 'text-emerald-400' : curator.netFlow30d < 0 ? 'text-red-400' : 'text-slate-400'
+                    curator.netFlow30d > 0 ? 'text-emerald-600' : curator.netFlow30d < 0 ? 'text-red-600' : 'text-gray-500'
                   )}>
                     {formatFlow(curator.netFlow30d)}
                   </span>
                 </div>
               </div>
               <div>
-                <p className="text-[12px] text-slate-500 uppercase tracking-wider mb-1">7d Change %</p>
+                <p className="text-[12px] text-gray-500 uppercase tracking-wider mb-1">7d Change %</p>
                 <span className={cn(
                   'text-[18px] font-mono font-semibold',
-                  curator.netFlow7d > 0 ? 'text-emerald-400' : curator.netFlow7d < 0 ? 'text-red-400' : 'text-slate-400'
+                  curator.netFlow7d > 0 ? 'text-emerald-600' : curator.netFlow7d < 0 ? 'text-red-600' : 'text-gray-500'
                 )}>
                   {curator.totalTvl > 0
                     ? `${curator.netFlow7d >= 0 ? '+' : ''}${((curator.netFlow7d / curator.totalTvl) * 100).toFixed(2)}%`
@@ -410,10 +410,10 @@ export default function CuratorDetailPage() {
                 </span>
               </div>
               <div>
-                <p className="text-[12px] text-slate-500 uppercase tracking-wider mb-1">30d Change %</p>
+                <p className="text-[12px] text-gray-500 uppercase tracking-wider mb-1">30d Change %</p>
                 <span className={cn(
                   'text-[18px] font-mono font-semibold',
-                  curator.netFlow30d > 0 ? 'text-emerald-400' : curator.netFlow30d < 0 ? 'text-red-400' : 'text-slate-400'
+                  curator.netFlow30d > 0 ? 'text-emerald-600' : curator.netFlow30d < 0 ? 'text-red-600' : 'text-gray-500'
                 )}>
                   {curator.totalTvl > 0
                     ? `${curator.netFlow30d >= 0 ? '+' : ''}${((curator.netFlow30d / curator.totalTvl) * 100).toFixed(2)}%`
@@ -432,12 +432,12 @@ export default function CuratorDetailPage() {
           <CardContent className="p-0">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-slate-700/35">
-                  <th className="px-5 py-3 text-left text-[11px] font-medium text-slate-500 uppercase tracking-wider">#</th>
-                  <th className="px-5 py-3 text-left text-[11px] font-medium text-slate-500 uppercase tracking-wider">Curator</th>
-                  <th className="px-5 py-3 text-right text-[11px] font-medium text-slate-500 uppercase tracking-wider">TVL</th>
-                  <th className="px-5 py-3 text-right text-[11px] font-medium text-slate-500 uppercase tracking-wider">APY</th>
-                  <th className="px-5 py-3 text-right text-[11px] font-medium text-slate-500 uppercase tracking-wider">7d Flow</th>
+                <tr className="border-b border-gray-200">
+                  <th className="px-5 py-3 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider">#</th>
+                  <th className="px-5 py-3 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider">Curator</th>
+                  <th className="px-5 py-3 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">TVL</th>
+                  <th className="px-5 py-3 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">APY</th>
+                  <th className="px-5 py-3 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider">7d Flow</th>
                 </tr>
               </thead>
               <tbody>
@@ -445,35 +445,35 @@ export default function CuratorDetailPage() {
                   <tr
                     key={c.slug}
                     className={cn(
-                      'border-b border-slate-700/30 transition-colors',
-                      c.slug === curator.slug ? 'bg-slate-700/25' : 'hover:bg-slate-700/20'
+                      'border-b border-gray-100 transition-colors',
+                      c.slug === curator.slug ? 'bg-indigo-50/50' : 'hover:bg-gray-50'
                     )}
                   >
                     <td className="px-5 py-3">
-                      <span className="font-mono text-slate-500 text-[13px]">{index + 1}</span>
+                      <span className="font-mono text-gray-500 text-[13px]">{index + 1}</span>
                     </td>
                     <td className="px-5 py-3">
                       <Link
                         href={`/curator/${c.slug}`}
                         className={cn(
-                          'text-[14px] hover:text-blue-400 transition-colors',
-                          c.slug === curator.slug ? 'text-white font-medium' : 'text-slate-300'
+                          'text-[14px] hover:text-indigo-600 transition-colors',
+                          c.slug === curator.slug ? 'text-gray-900 font-medium' : 'text-gray-700'
                         )}
                       >
                         {c.name}
-                        {c.slug === curator.slug && ' ←'}
+                        {c.slug === curator.slug && ' \u2190'}
                       </Link>
                     </td>
                     <td className="px-5 py-3 text-right">
-                      <span className="font-mono text-white text-[14px]">{formatTvl(c.totalTvl)}</span>
+                      <span className="font-mono text-gray-900 text-[14px]">{formatTvl(c.totalTvl)}</span>
                     </td>
                     <td className="px-5 py-3 text-right">
-                      <span className="font-mono text-emerald-400 text-[14px]">{c.avgApy.toFixed(1)}%</span>
+                      <span className="font-mono text-emerald-600 text-[14px]">{c.avgApy.toFixed(1)}%</span>
                     </td>
                     <td className="px-5 py-3 text-right">
                       <span className={cn(
                         'font-mono text-[14px]',
-                        c.netFlow7d > 0 ? 'text-emerald-400' : c.netFlow7d < 0 ? 'text-red-400' : 'text-slate-500'
+                        c.netFlow7d > 0 ? 'text-emerald-600' : c.netFlow7d < 0 ? 'text-red-600' : 'text-gray-500'
                       )}>
                         {formatFlow(c.netFlow7d)}
                       </span>
@@ -486,10 +486,10 @@ export default function CuratorDetailPage() {
         </Card>
 
         {/* Footer */}
-        <footer className="mt-16 pt-6 border-t border-slate-700/35">
-          <div className="flex items-center justify-between text-[12px] text-slate-600">
-            <Link href="/" className="hover:text-slate-400 transition-colors">
-              ← Back to Dashboard
+        <footer className="mt-16 pt-6 border-t border-gray-200">
+          <div className="flex items-center justify-between text-[12px] text-gray-400">
+            <Link href="/" className="hover:text-gray-600 transition-colors">
+              &larr; Back to Dashboard
             </Link>
             <span>Data from DeFiLlama</span>
           </div>
@@ -498,5 +498,3 @@ export default function CuratorDetailPage() {
     </div>
   );
 }
-
-// Colors imported from @/lib/colors

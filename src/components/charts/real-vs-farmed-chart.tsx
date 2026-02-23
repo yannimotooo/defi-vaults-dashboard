@@ -120,10 +120,10 @@ export function RealVsFarmedChart({ vaults, curators }: RealVsFarmedChartProps) 
         <div className="flex flex-col gap-2">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
-              <p className="text-[11px] uppercase tracking-widest text-slate-500 font-medium mb-1">Yield Quality</p>
+              <p className="text-[11px] uppercase tracking-widest text-gray-500 font-medium mb-1">Yield Quality</p>
               <CardTitle>Real vs Farmed Yield</CardTitle>
             </div>
-            <div className="flex gap-0.5 bg-[#141922] rounded-full p-0.5 border border-[#2d3548]/50">
+            <div className="flex gap-0.5 bg-gray-100 rounded-full p-0.5 border border-gray-200">
               {([
                 { key: 'tvl' as SortBy, label: 'By TVL' },
                 { key: 'organicPct' as SortBy, label: 'By Organic %' },
@@ -134,8 +134,8 @@ export function RealVsFarmedChart({ vaults, curators }: RealVsFarmedChartProps) 
                   onClick={() => setSortBy(key)}
                   className={`px-2 sm:px-2.5 py-1 text-[10px] sm:text-[11px] font-medium rounded-full transition-all ${
                     sortBy === key
-                      ? 'bg-[#2d3548] text-white'
-                      : 'text-slate-500 hover:text-slate-300'
+                      ? 'bg-white shadow-sm text-gray-900'
+                      : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
                   {label}
@@ -145,13 +145,13 @@ export function RealVsFarmedChart({ vaults, curators }: RealVsFarmedChartProps) 
           </div>
           {/* Summary headline */}
           <div className="flex items-center gap-3">
-            <div className="flex-1 h-1.5 bg-[#1a1f2e]/60 rounded-full overflow-hidden">
+            <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
               <div
                 className="h-full rounded-full bg-emerald-500 transition-all"
                 style={{ width: `${Math.min(overallOrganicPct, 100)}%` }}
               />
             </div>
-            <span className="text-[12px] font-mono text-emerald-400 whitespace-nowrap">
+            <span className="text-[12px] font-mono text-emerald-600 whitespace-nowrap">
               {overallOrganicPct.toFixed(0)}% organic
             </span>
           </div>
@@ -169,7 +169,7 @@ export function RealVsFarmedChart({ vaults, curators }: RealVsFarmedChartProps) 
               <XAxis
                 type="number"
                 tickFormatter={(v) => `${v.toFixed(1)}%`}
-                stroke="#334155"
+                stroke="#D1D5DB"
                 fontSize={11}
                 fontFamily="var(--font-jetbrains-mono), monospace"
                 axisLine={false}
@@ -178,7 +178,7 @@ export function RealVsFarmedChart({ vaults, curators }: RealVsFarmedChartProps) 
               <YAxis
                 type="category"
                 dataKey="name"
-                stroke="#64748b"
+                stroke="#6B7280"
                 fontSize={11}
                 width={90}
                 tickLine={false}
@@ -188,34 +188,34 @@ export function RealVsFarmedChart({ vaults, curators }: RealVsFarmedChartProps) 
                 content={({ active, payload }) => {
                   if (active && payload && payload.length) {
                     const data = payload[0].payload;
-                    const orgColor = data.organicPercent >= 60 ? 'text-emerald-400' : data.organicPercent >= 30 ? 'text-amber-400' : 'text-red-400';
+                    const orgColor = data.organicPercent >= 60 ? 'text-emerald-600' : data.organicPercent >= 30 ? 'text-amber-600' : 'text-red-600';
                     return (
-                      <div className="rounded-lg border border-[#2d3548]/60 bg-[#1a1f2e]/95 backdrop-blur-sm p-3 shadow-xl min-w-[220px]">
-                        <p className="font-medium text-white text-[14px] mb-2">{data.fullName}</p>
+                      <div className="rounded-lg border border-gray-200 bg-white backdrop-blur-sm p-3 shadow-lg min-w-[220px]">
+                        <p className="font-medium text-gray-900 text-[14px] mb-2">{data.fullName}</p>
                         <div className="space-y-1.5 text-[13px]">
                           <div className="flex justify-between">
                             <span className="text-emerald-500">Organic Yield</span>
-                            <span className="font-mono text-emerald-400">{data.organicApy.toFixed(2)}%</span>
+                            <span className="font-mono text-emerald-600">{data.organicApy.toFixed(2)}%</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-violet-500">Incentive Yield</span>
-                            <span className="font-mono text-violet-400">{data.farmedApy.toFixed(2)}%</span>
+                            <span className="font-mono text-violet-600">{data.farmedApy.toFixed(2)}%</span>
                           </div>
-                          <div className="flex justify-between pt-1.5 border-t border-slate-700/40">
-                            <span className="text-slate-500">Total APY</span>
-                            <span className="font-mono text-white">{data.totalApy.toFixed(2)}%</span>
+                          <div className="flex justify-between pt-1.5 border-t border-gray-200">
+                            <span className="text-gray-500">Total APY</span>
+                            <span className="font-mono text-gray-900">{data.totalApy.toFixed(2)}%</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-slate-500">Organic Share</span>
+                            <span className="text-gray-500">Organic Share</span>
                             <span className={`font-mono ${orgColor}`}>{data.organicPercent.toFixed(1)}%</span>
                           </div>
-                          <div className="flex justify-between pt-1.5 border-t border-slate-700/40">
-                            <span className="text-slate-500">Vaults</span>
-                            <span className="font-mono text-slate-300">{data.vaultCount}</span>
+                          <div className="flex justify-between pt-1.5 border-t border-gray-200">
+                            <span className="text-gray-500">Vaults</span>
+                            <span className="font-mono text-gray-700">{data.vaultCount}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-slate-500">TVL</span>
-                            <span className="font-mono text-slate-300">{formatTvl(data.totalTvl)}</span>
+                            <span className="text-gray-500">TVL</span>
+                            <span className="font-mono text-gray-700">{formatTvl(data.totalTvl)}</span>
                           </div>
                         </div>
                       </div>
@@ -223,18 +223,18 @@ export function RealVsFarmedChart({ vaults, curators }: RealVsFarmedChartProps) 
                   }
                   return null;
                 }}
-                cursor={{ fill: 'rgba(255, 255, 255, 0.02)' }}
+                cursor={{ fill: 'rgba(0, 0, 0, 0.03)' }}
               />
               <Legend
                 content={() => (
                   <div className="flex items-center justify-center gap-4 mt-2 text-[11px]">
                     <span className="flex items-center gap-1.5">
                       <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500" />
-                      <span className="text-slate-400">Organic (base)</span>
+                      <span className="text-gray-500">Organic (base)</span>
                     </span>
                     <span className="flex items-center gap-1.5">
                       <span className="w-2.5 h-2.5 rounded-sm bg-violet-500" />
-                      <span className="text-slate-400">Incentives</span>
+                      <span className="text-gray-500">Incentives</span>
                     </span>
                   </div>
                 )}

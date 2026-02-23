@@ -25,8 +25,8 @@ export function LiquidationsTab({ liquidationData }: LiquidationsTabProps) {
       )}
 
       {/* 7-Day Liquidation Timeline */}
-      <div className="bg-[#141922]/60 rounded-xl border border-[#2d3548]/60 p-4 sm:p-6 mb-8">
-        <h3 className="text-[15px] font-semibold text-slate-100 mb-4">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6 mb-8">
+        <h3 className="text-[15px] font-semibold text-gray-900 mb-4">
           7-Day Liquidation Volume
         </h3>
         {liquidationData?.dailyVolume && liquidationData.dailyVolume.length > 0 ? (
@@ -35,7 +35,7 @@ export function LiquidationsTab({ liquidationData }: LiquidationsTabProps) {
             showByProtocol={true}
           />
         ) : (
-          <div className="h-[300px] flex items-center justify-center text-slate-500">
+          <div className="h-[300px] flex items-center justify-center text-gray-400">
             Loading liquidation data...
           </div>
         )}
@@ -44,12 +44,12 @@ export function LiquidationsTab({ liquidationData }: LiquidationsTabProps) {
       {/* Two Column Layout: Recent Events + Protocol Summary */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent Liquidations (2/3 width) */}
-        <div className="lg:col-span-2 bg-[#141922]/60 rounded-xl border border-[#2d3548]/60 p-4 sm:p-6">
+        <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-4">
-            <h3 className="text-[15px] font-semibold text-slate-100">
+            <h3 className="text-[15px] font-semibold text-gray-900">
               Recent Liquidations
             </h3>
-            <span className="text-[11px] sm:text-[12px] text-slate-500">
+            <span className="text-[11px] sm:text-[12px] text-gray-500">
               24h events across all protocols
             </span>
           </div>
@@ -60,15 +60,15 @@ export function LiquidationsTab({ liquidationData }: LiquidationsTabProps) {
               showProtocol={true}
             />
           ) : (
-            <div className="h-[300px] flex items-center justify-center text-slate-500">
+            <div className="h-[300px] flex items-center justify-center text-gray-400">
               Loading events...
             </div>
           )}
         </div>
 
         {/* Protocol Summary (1/3 width) */}
-        <div className="bg-[#141922]/60 rounded-xl border border-[#2d3548]/60 p-4 sm:p-6">
-          <h3 className="text-[15px] font-semibold text-slate-100 mb-4">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6">
+          <h3 className="text-[15px] font-semibold text-gray-900 mb-4">
             By Protocol
           </h3>
           {liquidationData?.protocolSummaries ? (
@@ -76,7 +76,7 @@ export function LiquidationsTab({ liquidationData }: LiquidationsTabProps) {
               summaries={liquidationData.protocolSummaries}
             />
           ) : (
-            <div className="h-[200px] flex items-center justify-center text-slate-500">
+            <div className="h-[200px] flex items-center justify-center text-gray-400">
               Loading protocols...
             </div>
           )}
@@ -84,9 +84,9 @@ export function LiquidationsTab({ liquidationData }: LiquidationsTabProps) {
       </div>
 
       {/* Data Source Note */}
-      <div className="mt-8 p-4 bg-[#0f172a]/60 rounded-lg border border-slate-700/30">
-        <p className="text-[11px] text-slate-500">
-          <span className="text-slate-400 font-medium">Data Sources:</span> Morpho GraphQL API, Aave V3 Subgraph, Euler V2 Subgraph (Goldsky), Spark Subgraph.
+      <div className="mt-8 p-4 bg-gray-50 rounded-lg border border-gray-200">
+        <p className="text-[11px] text-gray-500">
+          <span className="text-gray-600 font-medium">Data Sources:</span> Morpho GraphQL API, Aave V3 Subgraph, Euler V2 Subgraph (Goldsky), Spark Subgraph.
           Kamino (Solana) liquidation data requires on-chain event parsing and may have limited historical depth.
           Bad debt tracking is only available for Morpho protocol.
         </p>

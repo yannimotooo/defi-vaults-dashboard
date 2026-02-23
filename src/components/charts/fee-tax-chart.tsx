@@ -18,12 +18,22 @@ export function FeeTaxChart({ curators }: FeeTaxChartProps) {
 
   const chartData = useMemo(() => {
     const withFees = curators
-      .filter(c => c.grossApy !== undefined && c.grossApy > 0 && c.netApy !== undefined)
+      .filter(c =>
+        (c.grossApy !== undefined && c.grossApy > 0) ||
+        (c.avgPerformanceFee !== undefined && c.avgPerformanceFee > 0) ||
+        (c.avgManagementFee !== undefined && c.avgManagementFee > 0)
+      )
       .map(c => {
-        const grossApy = c.grossApy!;
-        const netApy = c.netApy!;
         const perfFeePct = c.avgPerformanceFee || 0;
         const mgmtFeePct = c.avgManagementFee || 0;
+
+        // Use grossApy if available, otherwise estimate from avgApy + fees
+        const grossApy = c.grossApy && c.grossApy > 0
+          ? c.grossApy
+          : c.avgApy > 0 && perfFeePct > 0
+            ? c.avgApy / (1 - perfFeePct / 100) + mgmtFeePct
+            : c.avgApy + (c.avgApy * perfFeePct / 100) + mgmtFeePct;
+        const netApy = c.netApy !== undefined ? c.netApy : c.avgApy;
 
         // Performance fee takes X% of yield
         const perfFeeImpact = grossApy * (perfFeePct / 100);
@@ -72,10 +82,10 @@ export function FeeTaxChart({ curators }: FeeTaxChartProps) {
       <CardHeader>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <p className="text-[11px] uppercase tracking-widest text-slate-500 font-medium mb-1">Fee Economics</p>
-            <CardTitle>The Fee Tax</CardTitle>
+            <p className="text-[11px] uppercase tracking-widest text-gray-500 font-medium mb-1">Fee Economics</p>
+            <CardTitle>Curator Fees</CardTitle>
           </div>
-          <div className="flex gap-0.5 bg-[#141922] rounded-full p-0.5 border border-[#2d3548]/50">
+          <div className="flex gap-0.5 bg-gray-100 rounded-full p-0.5 border border-gray-200">
             {([
               { key: 'feeImpact' as SortBy, label: 'By Fee %' },
               { key: 'grossApy' as SortBy, label: 'By APY' },
@@ -85,8 +95,8 @@ export function FeeTaxChart({ curators }: FeeTaxChartProps) {
                 onClick={() => setSortBy(key)}
                 className={`px-2.5 sm:px-3 py-1 text-[10px] sm:text-[11px] font-medium rounded-full transition-all ${
                   sortBy === key
-                    ? 'bg-[#2d3548] text-white'
-                    : 'text-slate-500 hover:text-slate-300'
+                    ? 'bg-white shadow-sm text-gray-900'
+                    : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
                 {label}
@@ -107,7 +117,7 @@ export function FeeTaxChart({ curators }: FeeTaxChartProps) {
               <XAxis
                 type="number"
                 tickFormatter={(v) => `${v.toFixed(1)}%`}
-                stroke="#334155"
+                stroke="#D1D5DB"
                 fontSize={11}
                 fontFamily="var(--font-jetbrains-mono), monospace"
                 axisLine={false}
@@ -116,7 +126,7 @@ export function FeeTaxChart({ curators }: FeeTaxChartProps) {
               <YAxis
                 type="category"
                 dataKey="name"
-                stroke="#64748b"
+                stroke="#6B7280"
                 fontSize={11}
                 width={90}
                 tickLine={false}
@@ -127,30 +137,30 @@ export function FeeTaxChart({ curators }: FeeTaxChartProps) {
                   if (active && payload && payload.length) {
                     const data = payload[0].payload;
                     return (
-                      <div className="rounded-lg border border-[#2d3548]/60 bg-[#1a1f2e]/95 backdrop-blur-sm p-3 shadow-xl min-w-[220px]">
-                        <p className="font-medium text-white text-[14px] mb-2">{data.fullName}</p>
+                      <div className="rounded-lg border border-gray-200 bg-white backdrop-blur-sm p-3 shadow-lg min-w-[220px]">
+                        <p className="font-medium text-gray-900 text-[14px] mb-2">{data.fullName}</p>
                         <div className="space-y-1.5 text-[13px]">
                           <div className="flex justify-between">
-                            <span className="text-slate-500">Gross APY</span>
-                            <span className="font-mono text-white">{data.grossApy.toFixed(2)}%</span>
+                            <span className="text-gray-500">Gross APY</span>
+                            <span className="font-mono text-gray-900">{data.grossApy.toFixed(2)}%</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-amber-500">- Perf Fee ({data.perfFeePct.toFixed(0)}%)</span>
-                            <span className="font-mono text-amber-400">-{data.perfFeeImpact.toFixed(2)}%</span>
+                            <span className="font-mono text-amber-600">-{data.perfFeeImpact.toFixed(2)}%</span>
                           </div>
                           {data.mgmtFeeImpact > 0 && (
                             <div className="flex justify-between">
                               <span className="text-red-500">- Mgmt Fee</span>
-                              <span className="font-mono text-red-400">-{data.mgmtFeeImpact.toFixed(2)}%</span>
+                              <span className="font-mono text-red-600">-{data.mgmtFeeImpact.toFixed(2)}%</span>
                             </div>
                           )}
-                          <div className="flex justify-between pt-1.5 border-t border-slate-700/40">
+                          <div className="flex justify-between pt-1.5 border-t border-gray-200">
                             <span className="text-emerald-500">Net APY</span>
-                            <span className="font-mono text-emerald-400">{data.netApy.toFixed(2)}%</span>
+                            <span className="font-mono text-emerald-600">{data.netApy.toFixed(2)}%</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-slate-500">Fee Ratio</span>
-                            <span className="font-mono text-slate-400">{data.feeRatio.toFixed(1)}% of yield</span>
+                            <span className="text-gray-500">Fee Ratio</span>
+                            <span className="font-mono text-gray-500">{data.feeRatio.toFixed(1)}% of yield</span>
                           </div>
                         </div>
                       </div>
@@ -158,22 +168,22 @@ export function FeeTaxChart({ curators }: FeeTaxChartProps) {
                   }
                   return null;
                 }}
-                cursor={{ fill: 'rgba(255, 255, 255, 0.02)' }}
+                cursor={{ fill: 'rgba(0, 0, 0, 0.03)' }}
               />
               <Legend
                 content={() => (
                   <div className="flex items-center justify-center gap-4 mt-2 text-[11px]">
                     <span className="flex items-center gap-1.5">
                       <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500" />
-                      <span className="text-slate-400">Net Yield</span>
+                      <span className="text-gray-500">Net Yield</span>
                     </span>
                     <span className="flex items-center gap-1.5">
                       <span className="w-2.5 h-2.5 rounded-sm bg-amber-500" />
-                      <span className="text-slate-400">Perf Fee</span>
+                      <span className="text-gray-500">Perf Fee</span>
                     </span>
                     <span className="flex items-center gap-1.5">
                       <span className="w-2.5 h-2.5 rounded-sm bg-red-500" />
-                      <span className="text-slate-400">Mgmt Fee</span>
+                      <span className="text-gray-500">Mgmt Fee</span>
                     </span>
                   </div>
                 )}

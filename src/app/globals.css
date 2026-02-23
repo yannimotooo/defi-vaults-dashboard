@@ -1,28 +1,28 @@
 @import "tailwindcss";
 
 :root {
-  /* Deep navy-black base (Morpho-inspired, not pure black) */
-  --bg-primary: #0d1117;
-  --bg-card: #1a1f2e;
-  --bg-card-hover: #242a3a;
-  --bg-surface: #141922;
-  --border: #2d3548;
-  --border-subtle: rgba(45, 53, 72, 0.5);
+  /* Light theme — clean white/grey */
+  --bg-primary: #F9FAFB;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #F3F4F6;
+  --bg-surface: #F3F4F6;
+  --border: #E5E7EB;
+  --border-subtle: rgba(229, 231, 235, 0.6);
 
   /* Text hierarchy */
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
+  --text-primary: #111827;
+  --text-secondary: #6B7280;
+  --text-muted: #9CA3AF;
 
   /* Accent */
-  --accent: #6366f1;
-  --accent-glow: rgba(99, 102, 241, 0.12);
-  --accent-hover: #818cf8;
+  --accent: #4F46E5;
+  --accent-glow: rgba(79, 70, 229, 0.08);
+  --accent-hover: #6366F1;
 
-  /* Semantic */
-  --positive: #34d399;
-  --negative: #f87171;
-  --warning: #fbbf24;
+  /* Semantic (darker for white bg contrast) */
+  --positive: #059669;
+  --negative: #DC2626;
+  --warning: #D97706;
 
   /* Legacy aliases */
   --background: var(--bg-primary);
@@ -46,9 +46,9 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Dotted grid pattern (Morpho-inspired) */
+/* Subtle dotted grid pattern */
 .dotted-grid {
-  background-image: radial-gradient(circle, rgba(99, 102, 241, 0.08) 1px, transparent 1px);
+  background-image: radial-gradient(circle, rgba(79, 70, 229, 0.06) 1px, transparent 1px);
   background-size: 24px 24px;
 }
 
@@ -57,19 +57,21 @@ body {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 14px;
-  transition: background 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: background 0.2s ease, box-shadow 0.2s ease;
 }
 
 .glass-card:hover {
   background: var(--bg-card-hover);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
 /* Accent top border variants */
-.accent-border-blue { border-top: 2px solid #6366f1; }
-.accent-border-emerald { border-top: 2px solid #34d399; }
-.accent-border-amber { border-top: 2px solid #fbbf24; }
-.accent-border-rose { border-top: 2px solid #fb7185; }
-.accent-border-cyan { border-top: 2px solid #22d3ee; }
+.accent-border-blue { border-top: 2px solid #4F46E5; }
+.accent-border-emerald { border-top: 2px solid #059669; }
+.accent-border-amber { border-top: 2px solid #D97706; }
+.accent-border-rose { border-top: 2px solid #E11D48; }
+.accent-border-cyan { border-top: 2px solid #0891B2; }
 
 /* Clean scrollbar */
 ::-webkit-scrollbar {
@@ -82,12 +84,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: #D1D5DB;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #9CA3AF;
 }
 
 /* Safe area for mobile devices with notches */
@@ -128,7 +130,7 @@ html, body {
 }
 
 .skeleton {
-  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+  background: linear-gradient(90deg, #E5E7EB 25%, #D1D5DB 50%, #E5E7EB 75%);
   background-size: 200% 100%;
   animation: skeleton-pulse 1.5s ease-in-out infinite;
   border-radius: 6px;

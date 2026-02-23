@@ -85,7 +85,7 @@ export default function Dashboard() {
       return (
         <div className="min-h-screen flex flex-col items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
           <div className="text-center">
-            <p className="text-red-400 mb-4">{error}</p>
+            <p className="text-red-600 mb-4">{error}</p>
             <button
               onClick={refreshAll}
               className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 transition-colors"
@@ -100,23 +100,23 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen text-white" style={{ background: 'var(--bg-primary)' }}>
+    <div className="min-h-screen text-gray-900" style={{ background: 'var(--bg-primary)' }}>
       {/* Header with dotted grid */}
-      <header className="border-b border-[#2d3548]/60 sticky top-0 z-50 backdrop-blur-md" style={{ background: 'rgba(13, 17, 23, 0.95)' }}>
+      <header className="border-b border-gray-200 sticky top-0 z-50 backdrop-blur-md" style={{ background: 'rgba(255, 255, 255, 0.95)' }}>
         <div className="dotted-grid">
           <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-3">
             <div className="flex items-center justify-between">
               {/* Left: Title + subtitle */}
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2.5">
-                  <div className="h-7 w-7 rounded-lg bg-indigo-500/15 border border-indigo-500/25 flex items-center justify-center">
-                    <Vault className="h-3.5 w-3.5 text-indigo-400" />
+                  <div className="h-7 w-7 rounded-lg bg-indigo-50 border border-indigo-200 flex items-center justify-center">
+                    <Vault className="h-3.5 w-3.5 text-indigo-600" />
                   </div>
                   <div>
-                    <h1 className="text-[15px] sm:text-base font-semibold text-white leading-tight">
+                    <h1 className="text-[15px] sm:text-base font-semibold text-gray-900 leading-tight">
                       DeFi Vault Dashboard
                     </h1>
-                    <p className="text-[11px] text-slate-500 hidden sm:block">Cross-chain vault & curator analytics</p>
+                    <p className="text-[11px] text-gray-500 hidden sm:block">Cross-chain vault & curator analytics</p>
                   </div>
                 </div>
               </div>
@@ -131,17 +131,17 @@ export default function Dashboard() {
                   />
                 )}
                 {curatorValidation?.highConfidenceCount !== undefined && curatorValidation.highConfidenceCount > 0 && (
-                  <span className="hidden lg:inline text-[10px] text-slate-500 px-2 py-1 bg-slate-800/60 rounded-md border border-slate-700/30">
+                  <span className="hidden lg:inline text-[10px] text-gray-500 px-2 py-1 bg-gray-100 rounded-md border border-gray-200">
                     {curatorValidation.highConfidenceCount} verified
                   </span>
                 )}
                 <button
                   onClick={refreshAll}
                   disabled={loading}
-                  className="p-2 rounded-lg hover:bg-slate-800/60 transition-colors disabled:opacity-50"
+                  className="p-2 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50"
                   title="Refresh data"
                 >
-                  <RefreshCw className={`h-4 w-4 text-slate-400 ${loading ? 'animate-spin' : ''}`} />
+                  <RefreshCw className={`h-4 w-4 text-gray-500 ${loading ? 'animate-spin' : ''}`} />
                 </button>
               </div>
             </div>
@@ -159,7 +159,7 @@ export default function Dashboard() {
       </header>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 backdrop-blur-md border-t border-[#2d3548]/60 safe-area-pb" style={{ background: 'rgba(13, 17, 23, 0.96)' }}>
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 backdrop-blur-md border-t border-gray-200 safe-area-pb" style={{ background: 'rgba(255, 255, 255, 0.96)' }}>
         <div className="flex justify-around items-center h-14">
           <MobileTabButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon={<LayoutDashboard className="h-5 w-5" />} label="Overview" />
           <MobileTabButton active={activeTab === 'curators'} onClick={() => setActiveTab('curators')} icon={<Users className="h-5 w-5" />} label="Curators" />
@@ -196,13 +196,13 @@ export default function Dashboard() {
         </div>
 
         {/* Footer */}
-        <footer className="mt-12 sm:mt-16 pt-6 border-t border-[#2d3548]/40">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] sm:text-[12px] text-slate-600">
+        <footer className="mt-12 sm:mt-16 pt-6 border-t border-gray-200">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] sm:text-[12px] text-gray-400">
             <div className="flex items-center gap-4">
-              <a href="https://defillama.com" target="_blank" rel="noopener noreferrer" className="hover:text-slate-400 transition-colors">
+              <a href="https://defillama.com" target="_blank" rel="noopener noreferrer" className="hover:text-gray-600 transition-colors">
                 DeFiLlama
               </a>
-              <a href="https://dune.com" target="_blank" rel="noopener noreferrer" className="hover:text-slate-400 transition-colors">
+              <a href="https://dune.com" target="_blank" rel="noopener noreferrer" className="hover:text-gray-600 transition-colors">
                 Dune
               </a>
             </div>
@@ -219,12 +219,12 @@ function TabSkeleton() {
     <div className="space-y-6 animate-pulse">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="h-24 rounded-[14px] bg-[#1a1f2e]" />
+          <div key={i} className="h-24 rounded-xl bg-gray-100" />
         ))}
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="h-[300px] rounded-[14px] bg-[#1a1f2e]" />
-        <div className="h-[300px] rounded-[14px] bg-[#1a1f2e]" />
+        <div className="h-[300px] rounded-xl bg-gray-100" />
+        <div className="h-[300px] rounded-xl bg-gray-100" />
       </div>
     </div>
   );
@@ -236,8 +236,8 @@ function TabButton({ active, onClick, icon, label }: { active: boolean; onClick:
       onClick={onClick}
       className={`flex items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-medium rounded-lg transition-all duration-150 ${
         active
-          ? 'bg-[#2d3548]/60 text-white'
-          : 'text-slate-500 hover:text-white hover:bg-[#2d3548]/30'
+          ? 'bg-gray-100 text-gray-900'
+          : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
       }`}
     >
       {icon}
@@ -251,7 +251,7 @@ function MobileTabButton({ active, onClick, icon, label }: { active: boolean; on
     <button
       onClick={onClick}
       className={`flex flex-col items-center justify-center gap-1 flex-1 py-2 transition-colors ${
-        active ? 'text-indigo-400' : 'text-slate-500'
+        active ? 'text-indigo-600' : 'text-gray-400'
       }`}
     >
       {icon}

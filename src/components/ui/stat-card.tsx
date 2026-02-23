@@ -14,19 +14,19 @@ interface StatCardProps {
 }
 
 const accentColors = {
-  blue: 'border-t-indigo-500',
-  emerald: 'border-t-emerald-400',
-  amber: 'border-t-amber-400',
-  rose: 'border-t-rose-400',
-  cyan: 'border-t-cyan-400',
+  blue: 'border-t-indigo-600',
+  emerald: 'border-t-emerald-600',
+  amber: 'border-t-amber-500',
+  rose: 'border-t-rose-500',
+  cyan: 'border-t-cyan-600',
 };
 
 const sparklineColors = {
-  blue: '#6366f1',
-  emerald: '#34d399',
-  amber: '#fbbf24',
-  rose: '#fb7185',
-  cyan: '#22d3ee',
+  blue: '#4F46E5',
+  emerald: '#059669',
+  amber: '#D97706',
+  rose: '#E11D48',
+  cyan: '#0891B2',
 };
 
 export function StatCard({
@@ -50,7 +50,7 @@ export function StatCard({
   return (
     <div className={cn('p-3 sm:p-5', accent && `border-t-2 ${accentColors[accent]}`)}>
       <div className="flex items-start justify-between">
-        <p className="text-[10px] sm:text-[11px] uppercase tracking-widest text-slate-500 font-medium">{title}</p>
+        <p className="text-[10px] sm:text-[11px] uppercase tracking-widest text-gray-500 font-medium">{title}</p>
         {sparklineData && sparklineData.length >= 2 && (
           <Sparkline
             data={sparklineData}
@@ -61,7 +61,7 @@ export function StatCard({
         )}
       </div>
       <p
-        className="mt-1.5 sm:mt-2 text-[20px] sm:text-[28px] font-semibold text-white tracking-tight"
+        className="mt-1.5 sm:mt-2 text-[20px] sm:text-[28px] font-semibold text-gray-900 tracking-tight"
         style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}
       >
         {formattedValue}
@@ -72,7 +72,7 @@ export function StatCard({
             <span
               className={cn(
                 'text-[13px] font-medium',
-                change > 0 ? 'text-emerald-400' : change < 0 ? 'text-red-400' : 'text-slate-500',
+                change > 0 ? 'text-emerald-600' : change < 0 ? 'text-red-600' : 'text-gray-500',
               )}
               style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}
             >
@@ -80,7 +80,7 @@ export function StatCard({
               {change.toFixed(2)}%
             </span>
           )}
-          {subtitle && <span className="text-slate-600 text-[12px]">{subtitle}</span>}
+          {subtitle && <span className="text-gray-400 text-[12px]">{subtitle}</span>}
         </div>
       )}
     </div>

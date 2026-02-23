@@ -19,30 +19,30 @@ const riskConfig: Record<RiskLevel, {
   label: string;
 }> = {
   LOW: {
-    color: 'text-emerald-400',
-    bgColor: 'bg-emerald-500/10',
-    borderColor: 'border-emerald-500/20',
+    color: 'text-emerald-600',
+    bgColor: 'bg-emerald-50',
+    borderColor: 'border-emerald-200',
     icon: Shield,
     label: 'Low Risk',
   },
   MEDIUM: {
-    color: 'text-amber-400',
-    bgColor: 'bg-amber-500/10',
-    borderColor: 'border-amber-500/20',
+    color: 'text-amber-600',
+    bgColor: 'bg-amber-50',
+    borderColor: 'border-amber-200',
     icon: AlertTriangle,
     label: 'Medium Risk',
   },
   HIGH: {
-    color: 'text-orange-400',
-    bgColor: 'bg-orange-500/10',
-    borderColor: 'border-orange-500/20',
+    color: 'text-orange-600',
+    bgColor: 'bg-orange-50',
+    borderColor: 'border-orange-200',
     icon: AlertTriangle,
     label: 'High Risk',
   },
   CRITICAL: {
-    color: 'text-red-400',
-    bgColor: 'bg-red-500/10',
-    borderColor: 'border-red-500/20',
+    color: 'text-red-600',
+    bgColor: 'bg-red-50',
+    borderColor: 'border-red-200',
     icon: AlertOctagon,
     label: 'Critical Risk',
   },
@@ -61,10 +61,10 @@ export function RiskBadge({ riskLevel, riskScore, compact = false, showTooltip =
         </div>
 
         {showTooltip && (
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1.5 bg-[#1a1f2e]/95 border border-slate-700/40 rounded text-[11px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1.5 bg-white border border-gray-200 rounded text-[11px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-lg">
             <p className={config.color}>{config.label}</p>
             {riskScore !== undefined && (
-              <p className="text-slate-500">Score: {riskScore}/100</p>
+              <p className="text-gray-500">Score: {riskScore}/100</p>
             )}
           </div>
         )}
@@ -78,7 +78,7 @@ export function RiskBadge({ riskLevel, riskScore, compact = false, showTooltip =
       <div>
         <span className={`text-[12px] font-medium ${config.color}`}>{config.label}</span>
         {riskScore !== undefined && (
-          <span className="text-[11px] text-slate-500 ml-2">({riskScore}/100)</span>
+          <span className="text-[11px] text-gray-500 ml-2">({riskScore}/100)</span>
         )}
       </div>
     </div>
@@ -101,14 +101,14 @@ export function RiskScoreBar({ score, showLabel = true }: RiskScoreBarProps) {
 
   return (
     <div className="flex items-center gap-2">
-      <div className="flex-1 h-1.5 bg-slate-800/60 rounded-full overflow-hidden">
+      <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
         <div
           className={`h-full ${getColor(score)} rounded-full transition-all`}
           style={{ width: `${Math.min(score, 100)}%` }}
         />
       </div>
       {showLabel && (
-        <span className="text-[11px] text-slate-500 font-mono w-8">{score}</span>
+        <span className="text-[11px] text-gray-500 font-mono w-8">{score}</span>
       )}
     </div>
   );

@@ -30,17 +30,17 @@ export function CuratorsTab({ curators, historicalData }: CuratorsTabProps) {
   return (
     <>
       {/* Curator Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-[#2d3548]/40 rounded-[14px] overflow-hidden mb-8 border border-[#2d3548]/60">
-        <div className="bg-[#1a1f2e] accent-border-blue">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-gray-200/50 rounded-xl overflow-hidden mb-8 border border-gray-200">
+        <div className="bg-white">
           <StatCard title="Total Curator TVL" value={stats.totalTvl} accent="blue" />
         </div>
-        <div className="bg-[#1a1f2e] accent-border-amber">
+        <div className="bg-white">
           <StatCard title="Total Curators" value={curators.length} format="number" accent="amber" />
         </div>
-        <div className="bg-[#1a1f2e] accent-border-cyan">
+        <div className="bg-white">
           <StatCard title="Total Vaults" value={stats.totalVaults} format="number" accent="cyan" />
         </div>
-        <div className="bg-[#1a1f2e] accent-border-emerald">
+        <div className="bg-white">
           <StatCard
             title="Avg APY"
             value={stats.avgApy}
@@ -75,13 +75,13 @@ export function CuratorsTab({ curators, historicalData }: CuratorsTabProps) {
                 const share = totalTvl > 0 ? (curator.totalTvl / totalTvl) * 100 : 0;
                 return (
                   <div key={curator.slug} className="flex items-center gap-3">
-                    <span className="text-[12px] text-slate-500 w-4">{index + 1}</span>
+                    <span className="text-[12px] text-gray-400 w-4">{index + 1}</span>
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-[13px] text-slate-300">{curator.name}</span>
-                        <span className="text-[13px] text-slate-400" style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>{share.toFixed(1)}%</span>
+                        <span className="text-[13px] text-gray-700">{curator.name}</span>
+                        <span className="text-[13px] text-gray-500" style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>{share.toFixed(1)}%</span>
                       </div>
-                      <div className="h-1.5 bg-[#1a1f2e]/60 rounded-full overflow-hidden">
+                      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                         <div
                           className="h-full rounded-full transition-all"
                           style={{

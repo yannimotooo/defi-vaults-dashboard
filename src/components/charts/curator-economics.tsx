@@ -100,12 +100,12 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
     return (
       <Card>
         <CardHeader>
-          <p className="text-[11px] uppercase tracking-widest text-slate-500 font-medium mb-1">Fee Structure</p>
+          <p className="text-[11px] uppercase tracking-widest text-gray-500 font-medium mb-1">Fee Structure</p>
           <CardTitle>Curator Economics</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center py-12">
-            <div className="text-slate-500 text-[14px]">Loading fee data...</div>
+            <div className="text-gray-500 text-[14px]">Loading fee data...</div>
           </div>
         </CardContent>
       </Card>
@@ -120,7 +120,7 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[11px] uppercase tracking-widest text-slate-500 font-medium mb-1">Fee Structure</p>
+                <p className="text-[11px] uppercase tracking-widest text-gray-500 font-medium mb-1">Fee Structure</p>
                 <CardTitle className="flex items-center gap-2">
                   <DollarSign className="h-5 w-5" style={{ color: curatorColor }} />
                   Curator Economics
@@ -133,45 +133,45 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-              <div className="bg-[#141922]/70 rounded-lg p-4 border border-[#2d3548]/60">
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                 <div className="flex items-center gap-2 mb-2">
-                  <Percent className="h-4 w-4 text-slate-500" />
-                  <span className="text-[12px] text-slate-500 uppercase tracking-wider">
+                  <Percent className="h-4 w-4 text-gray-500" />
+                  <span className="text-[12px] text-gray-500 uppercase tracking-wider">
                     Avg Performance Fee
                   </span>
                 </div>
-                <p className="text-[24px] font-mono font-semibold text-white">
+                <p className="text-[24px] font-mono font-semibold text-gray-900">
                   {kaminoOnChain.avgPerformanceFeePct.toFixed(1)}%
                 </p>
-                <p className="text-[11px] text-slate-600 mt-1">
+                <p className="text-[11px] text-gray-400 mt-1">
                   Kamino on Solana
                 </p>
               </div>
-              <div className="bg-[#141922]/70 rounded-lg p-4 border border-[#2d3548]/60">
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                 <div className="flex items-center gap-2 mb-2">
-                  <Percent className="h-4 w-4 text-slate-500" />
-                  <span className="text-[12px] text-slate-500 uppercase tracking-wider">
+                  <Percent className="h-4 w-4 text-gray-500" />
+                  <span className="text-[12px] text-gray-500 uppercase tracking-wider">
                     Avg Management Fee
                   </span>
                 </div>
-                <p className="text-[24px] font-mono font-semibold text-white">
+                <p className="text-[24px] font-mono font-semibold text-gray-900">
                   {kaminoOnChain.avgManagementFeePct.toFixed(2)}%
                 </p>
-                <p className="text-[11px] text-slate-600 mt-1">
+                <p className="text-[11px] text-gray-400 mt-1">
                   annual
                 </p>
               </div>
-              <div className="bg-[#141922]/70 rounded-lg p-4 border border-[#2d3548]/60">
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                 <div className="flex items-center gap-2 mb-2">
-                  <Info className="h-4 w-4 text-slate-500" />
-                  <span className="text-[12px] text-slate-500 uppercase tracking-wider">
+                  <Info className="h-4 w-4 text-gray-500" />
+                  <span className="text-[12px] text-gray-500 uppercase tracking-wider">
                     Kamino Vaults
                   </span>
                 </div>
-                <p className="text-[24px] font-mono font-semibold text-white">
+                <p className="text-[24px] font-mono font-semibold text-gray-900">
                   {kaminoOnChain.vaultCount}
                 </p>
-                <p className="text-[11px] text-slate-600 mt-1">
+                <p className="text-[11px] text-gray-400 mt-1">
                   on-chain vaults
                 </p>
               </div>
@@ -179,18 +179,18 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
 
             {/* Kamino Vault Details */}
             {kaminoOnChain.vaults.length > 0 && (
-              <div className="border-t border-slate-700/35 pt-4">
+              <div className="border-t border-gray-200 pt-4">
                 <button
                   onClick={() => setShowVaultDetails(!showVaultDetails)}
-                  className="flex items-center justify-between w-full text-left hover:bg-slate-700/25 rounded-md p-2 -m-2 transition-colors"
+                  className="flex items-center justify-between w-full text-left hover:bg-gray-100 rounded-md p-2 -m-2 transition-colors"
                 >
-                  <span className="text-[13px] text-slate-400">
+                  <span className="text-[13px] text-gray-500">
                     Kamino vault fee breakdown
                   </span>
                   {showVaultDetails ? (
-                    <ChevronUp className="h-4 w-4 text-slate-500" />
+                    <ChevronUp className="h-4 w-4 text-gray-500" />
                   ) : (
-                    <ChevronDown className="h-4 w-4 text-slate-500" />
+                    <ChevronDown className="h-4 w-4 text-gray-500" />
                   )}
                 </button>
 
@@ -199,14 +199,14 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
                     <div className="overflow-x-auto">
                       <table className="w-full">
                         <thead>
-                          <tr className="border-b border-slate-700/30">
-                            <th className="text-left text-[11px] font-medium text-slate-500 uppercase tracking-wider py-2">
+                          <tr className="border-b border-gray-200">
+                            <th className="text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider py-2">
                               Vault
                             </th>
-                            <th className="text-right text-[11px] font-medium text-slate-500 uppercase tracking-wider py-2">
+                            <th className="text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider py-2">
                               Perf Fee
                             </th>
-                            <th className="text-right text-[11px] font-medium text-slate-500 uppercase tracking-wider py-2">
+                            <th className="text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider py-2">
                               Mgmt Fee
                             </th>
                           </tr>
@@ -215,12 +215,12 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
                           {kaminoOnChain.vaults.slice(0, 10).map((vault, index) => (
                             <tr
                               key={index}
-                              className="border-b border-slate-700/20 hover:bg-slate-700/20 transition-colors"
+                              className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                             >
                               <td className="py-2">
                                 <div>
-                                  <p className="text-[13px] text-white">{vault.name}</p>
-                                  <p className="text-[11px] text-slate-600 truncate max-w-[200px] font-mono">
+                                  <p className="text-[13px] text-gray-900">{vault.name}</p>
+                                  <p className="text-[11px] text-gray-400 truncate max-w-[200px] font-mono">
                                     {vault.address.slice(0, 8)}...{vault.address.slice(-8)}
                                   </p>
                                 </div>
@@ -228,14 +228,14 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
                               <td className="text-right py-2">
                                 <span className={cn(
                                   'font-mono text-[13px]',
-                                  vault.performanceFeePct > 15 ? 'text-amber-400' :
-                                  vault.performanceFeePct > 10 ? 'text-slate-300' : 'text-emerald-400'
+                                  vault.performanceFeePct > 15 ? 'text-amber-600' :
+                                  vault.performanceFeePct > 10 ? 'text-gray-700' : 'text-emerald-600'
                                 )}>
                                   {vault.performanceFeePct.toFixed(1)}%
                                 </span>
                               </td>
                               <td className="text-right py-2">
-                                <span className="font-mono text-[13px] text-slate-400">
+                                <span className="font-mono text-[13px] text-gray-500">
                                   {vault.managementFeePct.toFixed(2)}%
                                 </span>
                               </td>
@@ -245,7 +245,7 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
                       </table>
                     </div>
                     {kaminoOnChain.vaults.length > 10 && (
-                      <p className="text-[11px] text-slate-600 text-center pt-2">
+                      <p className="text-[11px] text-gray-400 text-center pt-2">
                         +{kaminoOnChain.vaults.length - 10} more vaults
                       </p>
                     )}
@@ -270,7 +270,7 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[11px] uppercase tracking-widest text-slate-500 font-medium mb-1">Fee Structure</p>
+                <p className="text-[11px] uppercase tracking-widest text-gray-500 font-medium mb-1">Fee Structure</p>
                 <CardTitle className="flex items-center gap-2">
                   <DollarSign className="h-5 w-5" style={{ color: curatorColor }} />
                   Curator Economics
@@ -283,28 +283,28 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="bg-[#141922]/70 rounded-lg p-4 border border-[#2d3548]/60">
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                 <div className="flex items-center gap-2 mb-2">
-                  <Percent className="h-4 w-4 text-slate-500" />
-                  <span className="text-[12px] text-slate-500 uppercase tracking-wider">
+                  <Percent className="h-4 w-4 text-gray-500" />
+                  <span className="text-[12px] text-gray-500 uppercase tracking-wider">
                     Est. Performance Fee
                   </span>
                 </div>
-                <p className="text-[24px] font-mono font-semibold text-white">
+                <p className="text-[24px] font-mono font-semibold text-gray-900">
                   ~{kaminoEstimate.estimatedPerformanceFee}%
                 </p>
-                <p className="text-[11px] text-slate-600 mt-1">
+                <p className="text-[11px] text-gray-400 mt-1">
                   {kaminoEstimate.protocol} on {kaminoEstimate.chain}
                 </p>
               </div>
-              <div className="bg-[#141922]/70 rounded-lg p-4 border border-[#2d3548]/60">
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                 <div className="flex items-center gap-2 mb-2">
-                  <Info className="h-4 w-4 text-slate-500" />
-                  <span className="text-[12px] text-slate-500 uppercase tracking-wider">
+                  <Info className="h-4 w-4 text-gray-500" />
+                  <span className="text-[12px] text-gray-500 uppercase tracking-wider">
                     Data Source
                   </span>
                 </div>
-                <p className="text-[14px] text-slate-300 mt-2">
+                <p className="text-[14px] text-gray-700 mt-2">
                   {kaminoEstimate.dataSource}
                 </p>
               </div>
@@ -321,15 +321,15 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
     return (
       <Card>
         <CardHeader>
-          <p className="text-[11px] uppercase tracking-widest text-slate-500 font-medium mb-1">Fee Structure</p>
+          <p className="text-[11px] uppercase tracking-widest text-gray-500 font-medium mb-1">Fee Structure</p>
           <CardTitle>Curator Economics</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <p className="text-slate-500 text-[14px]">
+            <p className="text-gray-500 text-[14px]">
               {error || 'Fee data not available for this curator'}
             </p>
-            <p className="text-slate-600 text-[12px] mt-2">
+            <p className="text-gray-400 text-[12px] mt-2">
               On-chain fee data from Morpho, Euler, and Kamino.
             </p>
           </div>
@@ -347,13 +347,13 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[11px] uppercase tracking-widest text-slate-500 font-medium mb-1">Fee Structure</p>
+            <p className="text-[11px] uppercase tracking-widest text-gray-500 font-medium mb-1">Fee Structure</p>
             <CardTitle className="flex items-center gap-2">
               <DollarSign className="h-5 w-5" style={{ color: curatorColor }} />
               Curator Economics
             </CardTitle>
           </div>
-          <span className="text-[12px] text-slate-600 font-mono">
+          <span className="text-[12px] text-gray-400 font-mono">
             {feeData.vaultCount} vaults
           </span>
         </div>
@@ -361,62 +361,62 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
       <CardContent>
         {/* Key Metrics Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-[#141922]/70 rounded-lg p-4 border border-[#2d3548]/60">
+          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
             <div className="flex items-center gap-2 mb-2">
-              <Percent className="h-4 w-4 text-slate-500" />
-              <span className="text-[12px] text-slate-500 uppercase tracking-wider">
+              <Percent className="h-4 w-4 text-gray-500" />
+              <span className="text-[12px] text-gray-500 uppercase tracking-wider">
                 Avg Performance Fee
               </span>
             </div>
-            <p className="text-[24px] font-mono font-semibold text-white">
+            <p className="text-[24px] font-mono font-semibold text-gray-900">
               {feeData.avgPerformanceFee.toFixed(1)}%
             </p>
-            <p className="text-[11px] text-slate-600 mt-1">
+            <p className="text-[11px] text-gray-400 mt-1">
               of yield earned
             </p>
           </div>
 
-          <div className="bg-[#141922]/70 rounded-lg p-4 border border-[#2d3548]/60">
+          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
             <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="h-4 w-4 text-slate-500" />
-              <span className="text-[12px] text-slate-500 uppercase tracking-wider">
+              <TrendingUp className="h-4 w-4 text-gray-500" />
+              <span className="text-[12px] text-gray-500 uppercase tracking-wider">
                 Gross APY
               </span>
             </div>
-            <p className="text-[24px] font-mono font-semibold text-emerald-400">
+            <p className="text-[24px] font-mono font-semibold text-emerald-600">
               {feeData.avgGrossApy.toFixed(2)}%
             </p>
-            <p className="text-[11px] text-slate-600 mt-1">
+            <p className="text-[11px] text-gray-400 mt-1">
               before fees
             </p>
           </div>
 
-          <div className="bg-[#141922]/70 rounded-lg p-4 border border-[#2d3548]/60">
+          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
             <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="h-4 w-4 text-slate-500" />
-              <span className="text-[12px] text-slate-500 uppercase tracking-wider">
+              <TrendingUp className="h-4 w-4 text-gray-500" />
+              <span className="text-[12px] text-gray-500 uppercase tracking-wider">
                 Net APY
               </span>
             </div>
             <p className="text-[24px] font-mono font-semibold text-emerald-500">
               {feeData.avgNetApy.toFixed(2)}%
             </p>
-            <p className="text-[11px] text-slate-600 mt-1">
+            <p className="text-[11px] text-gray-400 mt-1">
               after fees
             </p>
           </div>
 
-          <div className="bg-[#141922]/70 rounded-lg p-4 border border-[#2d3548]/60">
+          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
             <div className="flex items-center gap-2 mb-2">
-              <DollarSign className="h-4 w-4 text-slate-500" />
-              <span className="text-[12px] text-slate-500 uppercase tracking-wider">
+              <DollarSign className="h-4 w-4 text-gray-500" />
+              <span className="text-[12px] text-gray-500 uppercase tracking-wider">
                 Est. Annual Revenue
               </span>
             </div>
-            <p className="text-[24px] font-mono font-semibold text-white">
+            <p className="text-[24px] font-mono font-semibold text-gray-900">
               {formatTvl(feeData.estimatedAnnualFeeRevenue)}
             </p>
-            <p className="text-[11px] text-slate-600 mt-1">
+            <p className="text-[11px] text-gray-400 mt-1">
               at current TVL & APY
             </p>
           </div>
@@ -425,12 +425,12 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
         {/* Fee Impact Visualization */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[13px] text-slate-400">Yield Retained by Depositors</span>
-            <span className="text-[13px] font-mono text-slate-300">
+            <span className="text-[13px] text-gray-500">Yield Retained by Depositors</span>
+            <span className="text-[13px] font-mono text-gray-700">
               {(100 - feeImpact).toFixed(1)}%
             </span>
           </div>
-          <div className="h-3 bg-[#1a1f2e]/60 rounded-full overflow-hidden">
+          <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
             <div
               className="h-full rounded-full transition-all"
               style={{
@@ -440,10 +440,10 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
             />
           </div>
           <div className="flex items-center justify-between mt-1">
-            <span className="text-[11px] text-slate-600">
+            <span className="text-[11px] text-gray-400">
               Depositors keep {(100 - feeImpact).toFixed(1)}% of yield
             </span>
-            <span className="text-[11px] text-slate-600">
+            <span className="text-[11px] text-gray-400">
               Curator takes {feeImpact.toFixed(1)}%
             </span>
           </div>
@@ -451,18 +451,18 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
 
         {/* Vault Fee Details Toggle */}
         {feeData.vaultFees.length > 0 && (
-          <div className="border-t border-slate-700/35 pt-4">
+          <div className="border-t border-gray-200 pt-4">
             <button
               onClick={() => setShowVaultDetails(!showVaultDetails)}
-              className="flex items-center justify-between w-full text-left hover:bg-slate-700/25 rounded-md p-2 -m-2 transition-colors"
+              className="flex items-center justify-between w-full text-left hover:bg-gray-100 rounded-md p-2 -m-2 transition-colors"
             >
-              <span className="text-[13px] text-slate-400">
+              <span className="text-[13px] text-gray-500">
                 Fee breakdown by vault
               </span>
               {showVaultDetails ? (
-                <ChevronUp className="h-4 w-4 text-slate-500" />
+                <ChevronUp className="h-4 w-4 text-gray-500" />
               ) : (
-                <ChevronDown className="h-4 w-4 text-slate-500" />
+                <ChevronDown className="h-4 w-4 text-gray-500" />
               )}
             </button>
 
@@ -471,23 +471,23 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b border-slate-700/30">
-                        <th className="text-left text-[11px] font-medium text-slate-500 uppercase tracking-wider py-2">
+                      <tr className="border-b border-gray-200">
+                        <th className="text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider py-2">
                           Vault
                         </th>
-                        <th className="text-right text-[11px] font-medium text-slate-500 uppercase tracking-wider py-2">
+                        <th className="text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider py-2">
                           TVL
                         </th>
-                        <th className="text-right text-[11px] font-medium text-slate-500 uppercase tracking-wider py-2">
+                        <th className="text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider py-2">
                           Perf Fee
                         </th>
-                        <th className="text-right text-[11px] font-medium text-slate-500 uppercase tracking-wider py-2">
+                        <th className="text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider py-2">
                           Gross
                         </th>
-                        <th className="text-right text-[11px] font-medium text-slate-500 uppercase tracking-wider py-2">
+                        <th className="text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider py-2">
                           Net
                         </th>
-                        <th className="text-right text-[11px] font-medium text-slate-500 uppercase tracking-wider py-2">
+                        <th className="text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider py-2">
                           Est. Rev
                         </th>
                       </tr>
@@ -496,42 +496,42 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
                       {feeData.vaultFees.slice(0, 10).map((vault, index) => (
                         <tr
                           key={index}
-                          className="border-b border-slate-700/20 hover:bg-slate-700/20 transition-colors"
+                          className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                         >
                           <td className="py-2">
                             <div>
-                              <p className="text-[13px] text-white">{vault.vaultSymbol}</p>
-                              <p className="text-[11px] text-slate-600 truncate max-w-[150px]">
+                              <p className="text-[13px] text-gray-900">{vault.vaultSymbol}</p>
+                              <p className="text-[11px] text-gray-400 truncate max-w-[150px]">
                                 {vault.vaultName}
                               </p>
                             </div>
                           </td>
                           <td className="text-right py-2">
-                            <span className="font-mono text-[13px] text-slate-300">
+                            <span className="font-mono text-[13px] text-gray-700">
                               {formatTvl(vault.tvl)}
                             </span>
                           </td>
                           <td className="text-right py-2">
                             <span className={cn(
                               'font-mono text-[13px]',
-                              vault.performanceFee > 15 ? 'text-amber-400' :
-                              vault.performanceFee > 10 ? 'text-slate-300' : 'text-emerald-400'
+                              vault.performanceFee > 15 ? 'text-amber-600' :
+                              vault.performanceFee > 10 ? 'text-gray-700' : 'text-emerald-600'
                             )}>
                               {vault.performanceFee.toFixed(1)}%
                             </span>
                           </td>
                           <td className="text-right py-2">
-                            <span className="font-mono text-[13px] text-slate-400">
+                            <span className="font-mono text-[13px] text-gray-500">
                               {vault.grossApy.toFixed(2)}%
                             </span>
                           </td>
                           <td className="text-right py-2">
-                            <span className="font-mono text-[13px] text-emerald-400">
+                            <span className="font-mono text-[13px] text-emerald-600">
                               {vault.netApy.toFixed(2)}%
                             </span>
                           </td>
                           <td className="text-right py-2">
-                            <span className="font-mono text-[13px] text-slate-400">
+                            <span className="font-mono text-[13px] text-gray-500">
                               {formatTvl(vault.estimatedFeeRevenue)}
                             </span>
                           </td>
@@ -541,7 +541,7 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
                   </table>
                 </div>
                 {feeData.vaultFees.length > 10 && (
-                  <p className="text-[11px] text-slate-600 text-center pt-2">
+                  <p className="text-[11px] text-gray-400 text-center pt-2">
                     +{feeData.vaultFees.length - 10} more vaults
                   </p>
                 )}
@@ -552,24 +552,24 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
 
         {/* Kamino On-Chain Section (if available) */}
         {kaminoOnChain && kaminoOnChain.vaultCount > 0 && (
-          <div className="mt-6 pt-4 border-t border-slate-700/30">
+          <div className="mt-6 pt-4 border-t border-gray-200">
             <div className="flex items-center gap-2 mb-3">
               <span className="text-[12px] text-purple-400 uppercase tracking-wider">
                 Kamino (Solana) On-Chain Data
               </span>
-              <span className="text-[11px] text-slate-500 font-mono">
+              <span className="text-[11px] text-gray-500 font-mono">
                 {kaminoOnChain.vaultCount} vaults
               </span>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-purple-500/5 rounded-lg p-3 border border-purple-500/20">
-                <span className="text-[11px] text-slate-500">Avg Performance Fee</span>
+                <span className="text-[11px] text-gray-500">Avg Performance Fee</span>
                 <p className="text-[18px] font-mono font-semibold text-purple-400">
                   {kaminoOnChain.avgPerformanceFeePct.toFixed(1)}%
                 </p>
               </div>
               <div className="bg-purple-500/5 rounded-lg p-3 border border-purple-500/20">
-                <span className="text-[11px] text-slate-500">Avg Management Fee</span>
+                <span className="text-[11px] text-gray-500">Avg Management Fee</span>
                 <p className="text-[18px] font-mono font-semibold text-purple-400">
                   {kaminoOnChain.avgManagementFeePct.toFixed(2)}%
                 </p>
@@ -579,14 +579,14 @@ export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#63
         )}
 
         {/* Data Source & Disclaimer */}
-        <div className="mt-6 pt-4 border-t border-slate-700/30 space-y-3">
+        <div className="mt-6 pt-4 border-t border-gray-200 space-y-3">
           {dataSource && (
             <div className="flex items-center gap-2 text-[11px]">
-              <Info className="h-3.5 w-3.5 text-slate-500" />
-              <span className="text-slate-500">Data source: <span className="text-slate-400">{dataSource}</span></span>
+              <Info className="h-3.5 w-3.5 text-gray-500" />
+              <span className="text-gray-500">Data source: <span className="text-gray-500">{dataSource}</span></span>
             </div>
           )}
-          <div className="flex items-start gap-2 text-[11px] text-slate-500">
+          <div className="flex items-start gap-2 text-[11px] text-gray-500">
             <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 text-amber-500/70" />
             <p>
               <strong>Disclaimer:</strong> Fee data shown is on-chain from Morpho (V1 + V2), Euler V2, and Kamino (Solana via SDK).
@@ -611,18 +611,18 @@ export function CuratorFeesSummary({ avgPerformanceFee, estimatedRevenue }: Fees
   return (
     <div className="flex items-center gap-4">
       <div className="text-right">
-        <p className="text-[11px] text-slate-500 uppercase">Perf Fee</p>
+        <p className="text-[11px] text-gray-500 uppercase">Perf Fee</p>
         <p className={cn(
           'font-mono text-[13px]',
-          avgPerformanceFee > 15 ? 'text-amber-400' :
-          avgPerformanceFee > 10 ? 'text-slate-300' : 'text-emerald-400'
+          avgPerformanceFee > 15 ? 'text-amber-600' :
+          avgPerformanceFee > 10 ? 'text-gray-700' : 'text-emerald-600'
         )}>
           {avgPerformanceFee.toFixed(1)}%
         </p>
       </div>
       <div className="text-right">
-        <p className="text-[11px] text-slate-500 uppercase">Est. Rev/yr</p>
-        <p className="font-mono text-[13px] text-slate-300">
+        <p className="text-[11px] text-gray-500 uppercase">Est. Rev/yr</p>
+        <p className="font-mono text-[13px] text-gray-700">
           {formatTvl(estimatedRevenue)}
         </p>
       </div>

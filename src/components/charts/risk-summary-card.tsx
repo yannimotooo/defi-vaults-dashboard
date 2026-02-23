@@ -139,15 +139,15 @@ export function RiskSummaryCard({ curators }: RiskSummaryCardProps) {
   const getHealthStatus = () => {
     const rating = summary.protocolRating;
     if (['AAA', 'AA', 'A'].includes(rating)) {
-      return { label: 'Healthy', color: 'text-emerald-400', bg: 'bg-emerald-500/10' };
+      return { label: 'Healthy', color: 'text-emerald-600', bg: 'bg-emerald-500/10' };
     }
     if (rating === 'BBB') {
-      return { label: 'Stable', color: 'text-green-400', bg: 'bg-green-500/10' };
+      return { label: 'Stable', color: 'text-green-600', bg: 'bg-green-500/10' };
     }
     if (['BB', 'B'].includes(rating)) {
-      return { label: 'Elevated Risk', color: 'text-amber-400', bg: 'bg-amber-500/10' };
+      return { label: 'Elevated Risk', color: 'text-amber-600', bg: 'bg-amber-500/10' };
     }
-    return { label: 'High Risk', color: 'text-red-400', bg: 'bg-red-500/10' };
+    return { label: 'High Risk', color: 'text-red-600', bg: 'bg-red-500/10' };
   };
 
   const health = getHealthStatus();
@@ -165,7 +165,7 @@ export function RiskSummaryCard({ curators }: RiskSummaryCardProps) {
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[11px] uppercase tracking-widest text-slate-500 font-medium mb-1">Risk Assessment</p>
+            <p className="text-[11px] uppercase tracking-widest text-gray-500 font-medium mb-1">Risk Assessment</p>
             <CardTitle className="text-[15px]">Protocol Risk Summary</CardTitle>
           </div>
           <div className="flex items-center gap-2.5">
@@ -185,10 +185,10 @@ export function RiskSummaryCard({ curators }: RiskSummaryCardProps) {
       <CardContent>
         {/* Rating Distribution */}
         <div className="mb-5">
-          <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2.5 font-medium">
+          <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-2.5 font-medium">
             Rating Distribution
           </p>
-          <div className="flex gap-0.5 h-7 rounded-lg overflow-hidden bg-slate-800/30">
+          <div className="flex gap-0.5 h-7 rounded-lg overflow-hidden bg-gray-100">
             {investmentGradeRatings.map(rating => {
               const count = summary.ratingDistribution[rating];
               const pct = summary.curatorsWithRatings > 0
@@ -209,7 +209,7 @@ export function RiskSummaryCard({ curators }: RiskSummaryCardProps) {
                   className={cn('relative group', colors[rating])}
                   style={{ width: `${pct}%` }}
                 >
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-1.5 py-0.5 bg-[#1a1f2e]/95 border border-slate-700/40 rounded text-[9px] text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-1.5 py-0.5 bg-white border border-gray-200 rounded text-[9px] text-gray-900 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-sm">
                     {rating}: {count}
                   </div>
                 </div>
@@ -236,7 +236,7 @@ export function RiskSummaryCard({ curators }: RiskSummaryCardProps) {
                   className={cn('relative group', colors[rating])}
                   style={{ width: `${pct}%` }}
                 >
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-1.5 py-0.5 bg-[#1a1f2e]/95 border border-slate-700/40 rounded text-[9px] text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-1.5 py-0.5 bg-white border border-gray-200 rounded text-[9px] text-gray-900 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-sm">
                     {rating}: {count}
                   </div>
                 </div>
@@ -244,20 +244,20 @@ export function RiskSummaryCard({ curators }: RiskSummaryCardProps) {
             })}
             {summary.notRatedCount > 0 && (
               <div
-                className="bg-slate-600 relative group"
+                className="bg-gray-400 relative group"
                 style={{ width: `${(summary.notRatedCount / curators.length) * 100}%` }}
               >
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-1.5 py-0.5 bg-[#1a1f2e]/95 border border-slate-700/40 rounded text-[9px] text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-1.5 py-0.5 bg-white border border-gray-200 rounded text-[9px] text-gray-900 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-sm">
                   NR: {summary.notRatedCount}
                 </div>
               </div>
             )}
           </div>
           <div className="flex justify-between mt-1 text-[10px]">
-            <span className="text-emerald-400">
+            <span className="text-emerald-600">
               {summary.investmentGradeCount} Investment Grade
             </span>
-            <span className="text-amber-400">
+            <span className="text-amber-600">
               {summary.speculativeCount} Speculative
             </span>
           </div>
@@ -266,72 +266,72 @@ export function RiskSummaryCard({ curators }: RiskSummaryCardProps) {
         {/* Key Metrics Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {/* 7d Liquidations */}
-          <div className="bg-[#141922]/60 rounded-lg p-3 border border-slate-700/20 space-y-1">
-            <div className="flex items-center gap-1.5 text-[10px] text-slate-500 uppercase tracking-wider font-medium">
+          <div className="bg-gray-50 rounded-lg p-3 border border-gray-200 space-y-1">
+            <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase tracking-wider font-medium">
               <TrendingDown className="h-3 w-3" />
               <span>7d Liqs</span>
             </div>
             <p className={cn(
               'font-mono text-[20px] font-medium',
-              summary.totalLiquidations7d > 10_000_000 ? 'text-red-400' :
-              summary.totalLiquidations7d > 1_000_000 ? 'text-amber-400' : 'text-slate-300'
+              summary.totalLiquidations7d > 10_000_000 ? 'text-red-600' :
+              summary.totalLiquidations7d > 1_000_000 ? 'text-amber-600' : 'text-gray-700'
             )}>
               {formatTvl(summary.totalLiquidations7d)}
             </p>
             {summary.totalLiquidations24h > 0 && (
-              <p className="text-[10px] text-slate-600">
+              <p className="text-[10px] text-gray-400">
                 {formatTvl(summary.totalLiquidations24h)} in 24h
               </p>
             )}
           </div>
 
           {/* Bad Debt */}
-          <div className="bg-[#141922]/60 rounded-lg p-3 border border-slate-700/20 space-y-1">
-            <div className="flex items-center gap-1.5 text-[10px] text-slate-500 uppercase tracking-wider font-medium">
+          <div className="bg-gray-50 rounded-lg p-3 border border-gray-200 space-y-1">
+            <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase tracking-wider font-medium">
               <AlertTriangle className="h-3 w-3" />
               <span>Bad Debt</span>
             </div>
             <p className={cn(
               'font-mono text-[20px] font-medium',
-              summary.curatorsWithBadDebt > 2 ? 'text-red-400' :
-              summary.curatorsWithBadDebt > 0 ? 'text-amber-400' : 'text-emerald-400'
+              summary.curatorsWithBadDebt > 2 ? 'text-red-600' :
+              summary.curatorsWithBadDebt > 0 ? 'text-amber-600' : 'text-emerald-600'
             )}>
               {summary.curatorsWithBadDebt}
             </p>
-            <p className="text-[10px] text-slate-600">
+            <p className="text-[10px] text-gray-400">
               curator{summary.curatorsWithBadDebt !== 1 ? 's' : ''} affected
             </p>
           </div>
 
           {/* Investment Grade */}
-          <div className="bg-[#141922]/60 rounded-lg p-3 border border-slate-700/20 space-y-1">
-            <div className="flex items-center gap-1.5 text-[10px] text-slate-500 uppercase tracking-wider font-medium">
+          <div className="bg-gray-50 rounded-lg p-3 border border-gray-200 space-y-1">
+            <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase tracking-wider font-medium">
               <CheckCircle className="h-3 w-3" />
               <span>Inv. Grade</span>
             </div>
-            <p className="font-mono text-[20px] font-medium text-emerald-400">
+            <p className="font-mono text-[20px] font-medium text-emerald-600">
               {summary.investmentGradeCount}
             </p>
-            <p className="text-[10px] text-slate-600">
+            <p className="text-[10px] text-gray-400">
               of {summary.curatorsWithRatings} rated
             </p>
           </div>
 
           {/* Avg Utilization */}
-          <div className="bg-[#141922]/60 rounded-lg p-3 border border-slate-700/20 space-y-1">
-            <div className="flex items-center gap-1.5 text-[10px] text-slate-500 uppercase tracking-wider font-medium">
+          <div className="bg-gray-50 rounded-lg p-3 border border-gray-200 space-y-1">
+            <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase tracking-wider font-medium">
               <Droplets className="h-3 w-3" />
               <span>Utilization</span>
             </div>
             <p className={cn(
               'font-mono text-[20px] font-medium',
-              summary.avgUtilization > 0.95 ? 'text-red-400' :
-              summary.avgUtilization > 0.85 ? 'text-amber-400' :
-              summary.avgUtilization > 0.70 ? 'text-yellow-400' : 'text-slate-300'
+              summary.avgUtilization > 0.95 ? 'text-red-600' :
+              summary.avgUtilization > 0.85 ? 'text-amber-600' :
+              summary.avgUtilization > 0.70 ? 'text-yellow-600' : 'text-gray-700'
             )}>
               {(summary.avgUtilization * 100).toFixed(0)}%
             </p>
-            <p className="text-[10px] text-slate-600">
+            <p className="text-[10px] text-gray-400">
               across {summary.curatorsWithRatings} curators
             </p>
           </div>
@@ -339,16 +339,16 @@ export function RiskSummaryCard({ curators }: RiskSummaryCardProps) {
 
         {/* Top/Bottom Rated */}
         {(summary.bestRatedCurators.length > 0 || summary.worstRatedCurators.length > 0) && (
-          <div className="mt-5 pt-4 border-t border-slate-700/30 grid grid-cols-2 gap-4">
+          <div className="mt-5 pt-4 border-t border-gray-200 grid grid-cols-2 gap-4">
             {summary.bestRatedCurators.length > 0 && (
               <div className="bg-emerald-500/[0.04] rounded-lg p-3 border border-emerald-500/10">
-                <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2.5 flex items-center gap-1.5 font-medium">
-                  <Shield className="h-3 w-3 text-emerald-400" /> Top Rated
+                <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-2.5 flex items-center gap-1.5 font-medium">
+                  <Shield className="h-3 w-3 text-emerald-600" /> Top Rated
                 </p>
                 <div className="space-y-1.5">
                   {summary.bestRatedCurators.map(c => (
                     <div key={c.name} className="flex items-center justify-between">
-                      <span className="text-[11px] text-slate-300 truncate max-w-[120px]">{c.name}</span>
+                      <span className="text-[11px] text-gray-700 truncate max-w-[120px]">{c.name}</span>
                       <RatingBadge rating={c.rating} size="sm" />
                     </div>
                   ))}
@@ -357,13 +357,13 @@ export function RiskSummaryCard({ curators }: RiskSummaryCardProps) {
             )}
             {summary.worstRatedCurators.length > 0 && (
               <div className="bg-amber-500/[0.04] rounded-lg p-3 border border-amber-500/10">
-                <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2.5 flex items-center gap-1.5 font-medium">
-                  <AlertTriangle className="h-3 w-3 text-amber-400" /> Watch List
+                <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-2.5 flex items-center gap-1.5 font-medium">
+                  <AlertTriangle className="h-3 w-3 text-amber-600" /> Watch List
                 </p>
                 <div className="space-y-1.5">
                   {summary.worstRatedCurators.map(c => (
                     <div key={c.name} className="flex items-center justify-between">
-                      <span className="text-[11px] text-slate-300 truncate max-w-[120px]">{c.name}</span>
+                      <span className="text-[11px] text-gray-700 truncate max-w-[120px]">{c.name}</span>
                       <RatingBadge rating={c.rating} size="sm" />
                     </div>
                   ))}
@@ -376,7 +376,7 @@ export function RiskSummaryCard({ curators }: RiskSummaryCardProps) {
         {/* Legend toggle */}
         <button
           onClick={() => setShowLegend(!showLegend)}
-          className="mt-3 text-[11px] text-slate-500 hover:text-slate-400 transition-colors flex items-center gap-1"
+          className="mt-3 text-[11px] text-gray-500 hover:text-gray-700 transition-colors flex items-center gap-1"
         >
           <Info className="h-3 w-3" />
           {showLegend ? 'Hide' : 'Show'} rating scale

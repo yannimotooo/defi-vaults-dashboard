@@ -19,9 +19,13 @@ export function CapitalFlowsChart({ curators }: CapitalFlowsChartProps) {
   const router = useRouter();
 
   const chartData = useMemo(() => {
-    return curators
+    const data = curators
       .map((c, i) => {
-        const flow = period === '7d' ? c.netFlow7d : c.netFlow30d;
+        let flow = period === '7d' ? c.netFlow7d : c.netFlow30d;
+        // If 30d flow is 0 but 7d flow exists, estimate from 7d
+        if (period === '30d' && flow === 0 && c.netFlow7d !== 0) {
+          flow = c.netFlow7d * 4;
+        }
         return {
           name: formatName(c.name),
           fullName: c.name,
@@ -30,11 +34,13 @@ export function CapitalFlowsChart({ curators }: CapitalFlowsChartProps) {
           tvl: c.totalTvl,
           flowPercent: c.totalTvl > 0 ? (flow / c.totalTvl) * 100 : 0,
           color: getCuratorColor(c.name, i),
+          estimated: period === '30d' && c.netFlow30d === 0 && c.netFlow7d !== 0,
         };
       })
-      .filter(d => Math.abs(d.flow) > 1000) // filter out noise
+      .filter(d => Math.abs(d.flow) > 1000)
       .sort((a, b) => b.flow - a.flow)
       .slice(0, 12);
+    return data;
   }, [curators, period]);
 
   const handleBarClick = (data: unknown) => {
@@ -57,26 +63,26 @@ export function CapitalFlowsChart({ curators }: CapitalFlowsChartProps) {
       <CardHeader>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <p className="text-[11px] uppercase tracking-widest text-slate-500 font-medium mb-1">Capital Movement</p>
+            <p className="text-[11px] uppercase tracking-widest text-gray-500 font-medium mb-1">Capital Movement</p>
             <CardTitle>Where&apos;s the Money Going?</CardTitle>
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex gap-0.5 bg-[#141922] rounded-full p-0.5 border border-[#2d3548]/50">
+            <div className="flex gap-0.5 bg-gray-100 rounded-full p-0.5 border border-gray-200">
               {(['7d', '30d'] as Period[]).map(p => (
                 <button
                   key={p}
                   onClick={() => setPeriod(p)}
                   className={`px-2.5 sm:px-3 py-1 text-[10px] sm:text-[11px] font-medium rounded-full transition-all ${
                     period === p
-                      ? 'bg-[#2d3548] text-white'
-                      : 'text-slate-500 hover:text-slate-300'
+                      ? 'bg-white shadow-sm text-gray-900'
+                      : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
                   {p}
                 </button>
               ))}
             </div>
-            <span className="text-[11px] text-slate-600 hidden sm:inline">Click bar for details</span>
+            <span className="text-[11px] text-gray-400 hidden sm:inline">Click bar for details</span>
           </div>
         </div>
       </CardHeader>
@@ -93,7 +99,7 @@ export function CapitalFlowsChart({ curators }: CapitalFlowsChartProps) {
                 type="number"
                 domain={domain}
                 tickFormatter={(v) => formatTvl(v, true)}
-                stroke="#334155"
+                stroke="#D1D5DB"
                 fontSize={11}
                 fontFamily="var(--font-jetbrains-mono), monospace"
                 axisLine={false}
@@ -102,37 +108,37 @@ export function CapitalFlowsChart({ curators }: CapitalFlowsChartProps) {
               <YAxis
                 type="category"
                 dataKey="name"
-                stroke="#64748b"
+                stroke="#6B7280"
                 fontSize={11}
                 width={100}
                 tickLine={false}
                 axisLine={false}
               />
-              <ReferenceLine x={0} stroke="#2d3548" strokeDasharray="3 6" />
+              <ReferenceLine x={0} stroke="#E5E7EB" strokeDasharray="3 6" />
               <Tooltip
                 content={({ active, payload }) => {
                   if (active && payload && payload.length) {
                     const data = payload[0].payload;
                     const isPositive = data.flow >= 0;
                     return (
-                      <div className="rounded-lg border border-[#2d3548]/60 bg-[#1a1f2e]/95 backdrop-blur-sm p-3 shadow-xl min-w-[200px]">
-                        <p className="font-medium text-white text-[14px] mb-2">{data.fullName}</p>
+                      <div className="rounded-lg border border-gray-200 bg-white backdrop-blur-sm p-3 shadow-lg min-w-[200px]">
+                        <p className="font-medium text-gray-900 text-[14px] mb-2">{data.fullName}</p>
                         <div className="space-y-1.5 text-[13px]">
                           <div className="flex justify-between">
-                            <span className="text-slate-500">Net Flow ({period})</span>
-                            <span className={`font-mono ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
+                            <span className="text-gray-500">Net Flow ({period})</span>
+                            <span className={`font-mono ${isPositive ? 'text-emerald-600' : 'text-red-600'}`}>
                               {formatFlow(data.flow)}
                             </span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-slate-500">% of TVL</span>
-                            <span className={`font-mono ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
+                            <span className="text-gray-500">% of TVL</span>
+                            <span className={`font-mono ${isPositive ? 'text-emerald-600' : 'text-red-600'}`}>
                               {data.flowPercent >= 0 ? '+' : ''}{data.flowPercent.toFixed(1)}%
                             </span>
                           </div>
-                          <div className="flex justify-between pt-1.5 border-t border-slate-700/40">
-                            <span className="text-slate-500">Current TVL</span>
-                            <span className="font-mono text-slate-300">{formatTvl(data.tvl)}</span>
+                          <div className="flex justify-between pt-1.5 border-t border-gray-200">
+                            <span className="text-gray-500">Current TVL</span>
+                            <span className="font-mono text-gray-700">{formatTvl(data.tvl)}</span>
                           </div>
                         </div>
                       </div>
@@ -140,7 +146,7 @@ export function CapitalFlowsChart({ curators }: CapitalFlowsChartProps) {
                   }
                   return null;
                 }}
-                cursor={{ fill: 'rgba(255, 255, 255, 0.02)' }}
+                cursor={{ fill: 'rgba(0, 0, 0, 0.03)' }}
               />
               <Bar
                 dataKey="flow"

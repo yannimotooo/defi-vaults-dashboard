@@ -91,7 +91,7 @@ export function HistoricalTvlChart({
           <CardTitle>{title}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[200px] flex items-center justify-center text-slate-500 text-[14px]">
+          <div className="h-[200px] flex items-center justify-center text-gray-500 text-[14px]">
             No historical data available
           </div>
         </CardContent>
@@ -107,12 +107,12 @@ export function HistoricalTvlChart({
             <CardTitle>{title}</CardTitle>
             {stats && (
               <div className="flex items-center gap-3 mt-1.5">
-                <span className="text-[18px] sm:text-[24px] font-semibold text-white font-mono">
+                <span className="text-[18px] sm:text-[24px] font-semibold text-gray-900 font-mono">
                   {formatTvl(stats.latest)}
                 </span>
                 <span
                   className={`text-[13px] font-mono ${
-                    stats.change >= 0 ? 'text-emerald-400' : 'text-red-400'
+                    stats.change >= 0 ? 'text-emerald-600' : 'text-red-600'
                   }`}
                 >
                   {stats.change >= 0 ? '+' : ''}
@@ -122,15 +122,15 @@ export function HistoricalTvlChart({
             )}
           </div>
           {showPeriodSelector && (
-            <div className="flex gap-0.5 bg-[#141922] rounded-full p-0.5 border border-[#2d3548]/50 self-start sm:self-auto">
+            <div className="flex gap-0.5 bg-gray-100 rounded-full p-0.5 border border-gray-200 self-start sm:self-auto">
               {(['7d', '30d', '90d', '1y', 'all'] as Period[]).map((p) => (
                 <button
                   key={p}
                   onClick={() => setPeriod(p)}
                   className={`px-2.5 sm:px-3 py-1 text-[10px] sm:text-[11px] font-medium rounded-full transition-all ${
                     period === p
-                      ? 'bg-[#2d3548] text-white'
-                      : 'text-slate-500 hover:text-slate-300'
+                      ? 'bg-white shadow-sm text-gray-900'
+                      : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
                   {p === 'all' ? 'ALL' : p.toUpperCase()}
@@ -152,14 +152,14 @@ export function HistoricalTvlChart({
               </defs>
               <CartesianGrid
                 strokeDasharray="3 3"
-                stroke="#2d3548"
-                strokeOpacity={0.4}
+                stroke="#E5E7EB"
+                strokeOpacity={0.6}
                 vertical={false}
               />
               <XAxis
                 dataKey="date"
                 tickFormatter={formatDate}
-                stroke="#475569"
+                stroke="#9CA3AF"
                 fontSize={11}
                 tickLine={false}
                 axisLine={false}
@@ -167,7 +167,7 @@ export function HistoricalTvlChart({
               />
               <YAxis
                 tickFormatter={(value) => formatTvl(value)}
-                stroke="#475569"
+                stroke="#9CA3AF"
                 fontSize={11}
                 tickLine={false}
                 axisLine={false}
@@ -178,15 +178,15 @@ export function HistoricalTvlChart({
                   if (active && payload && payload.length) {
                     const data = payload[0].payload;
                     return (
-                      <div className="rounded-lg border border-[#2d3548]/60 bg-[#1a1f2e]/95 backdrop-blur-sm px-3 py-2 shadow-xl">
-                        <p className="text-[12px] text-slate-500 mb-1">
+                      <div className="rounded-lg border border-gray-200 bg-white backdrop-blur-sm px-3 py-2 shadow-lg">
+                        <p className="text-[12px] text-gray-500 mb-1">
                           {new Date(data.date).toLocaleDateString('en-US', {
                             month: 'short',
                             day: 'numeric',
                             year: 'numeric',
                           })}
                         </p>
-                        <p className="text-[14px] font-mono text-white">
+                        <p className="text-[14px] font-mono text-gray-900">
                           {formatTvl(data.tvl)}
                         </p>
                       </div>

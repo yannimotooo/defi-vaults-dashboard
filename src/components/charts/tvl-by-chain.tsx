@@ -23,7 +23,7 @@ export function TvlByChainChart({ data }: TvlByChainChartProps) {
   return (
     <Card>
       <CardHeader>
-        <p className="text-[11px] uppercase tracking-widest text-slate-500 font-medium mb-1">Distribution</p>
+        <p className="text-[11px] uppercase tracking-widest text-gray-500 font-medium mb-1">Distribution</p>
         <CardTitle>TVL by Chain</CardTitle>
       </CardHeader>
       <CardContent>
@@ -31,8 +31,8 @@ export function TvlByChainChart({ data }: TvlByChainChartProps) {
           <div className="h-[180px] w-[180px] sm:h-[200px] sm:w-[200px] flex-shrink-0 relative">
             {/* Center label */}
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10">
-              <span className="text-[10px] uppercase tracking-wider text-slate-500">Total</span>
-              <span className="text-[16px] font-semibold text-white" style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>
+              <span className="text-[10px] uppercase tracking-wider text-gray-500">Total</span>
+              <span className="text-[16px] font-semibold text-gray-900" style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>
                 {formatTvl(total)}
               </span>
             </div>
@@ -57,9 +57,9 @@ export function TvlByChainChart({ data }: TvlByChainChartProps) {
                     if (active && payload && payload.length) {
                       const data = payload[0].payload;
                       return (
-                        <div className="rounded-lg border border-[#2d3548]/60 bg-[#1a1f2e]/95 backdrop-blur-sm px-3 py-2 shadow-xl">
-                          <p className="text-[13px] text-white">{data.name}</p>
-                          <p className="text-[13px] font-mono text-slate-400">{formatTvl(data.value)}</p>
+                        <div className="rounded-lg border border-gray-200 bg-white backdrop-blur-sm px-3 py-2 shadow-lg">
+                          <p className="text-[13px] text-gray-900">{data.name}</p>
+                          <p className="text-[13px] font-mono text-gray-500">{formatTvl(data.value)}</p>
                         </div>
                       );
                     }
@@ -74,11 +74,11 @@ export function TvlByChainChart({ data }: TvlByChainChartProps) {
               <div key={item.name} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <ChainIcon name={item.name} size={14} />
-                  <span className="text-[13px] text-slate-300">{item.name}</span>
+                  <span className="text-[13px] text-gray-700">{item.name}</span>
                 </div>
                 <div className="text-right">
-                  <span className="text-[13px] font-mono text-white">{formatTvl(item.value)}</span>
-                  <span className="text-[11px] text-slate-600 ml-2">
+                  <span className="text-[13px] font-mono text-gray-900">{formatTvl(item.value)}</span>
+                  <span className="text-[11px] text-gray-400 ml-2">
                     {((item.value / total) * 100).toFixed(1)}%
                   </span>
                 </div>

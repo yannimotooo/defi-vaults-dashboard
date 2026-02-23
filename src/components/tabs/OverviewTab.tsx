@@ -42,8 +42,8 @@ export function OverviewTab({ overviewData, curators, historicalData, vaults, on
   return (
     <>
       {/* Stats Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-[#2d3548]/40 rounded-[14px] overflow-hidden mb-8 border border-[#2d3548]/60">
-        <div className="bg-[#1a1f2e] accent-border-blue">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-gray-200/50 rounded-xl overflow-hidden mb-8 border border-gray-200">
+        <div className="bg-white">
           <StatCard
             title="Total Vault TVL"
             value={overviewData.totalTvl}
@@ -53,21 +53,21 @@ export function OverviewTab({ overviewData, curators, historicalData, vaults, on
             sparklineData={tvlSparkline}
           />
         </div>
-        <div className="bg-[#1a1f2e] accent-border-emerald">
+        <div className="bg-white">
           <StatCard
             title="EVM Chains"
             value={overviewData.evmTvl}
             accent="emerald"
           />
         </div>
-        <div className="bg-[#1a1f2e] accent-border-cyan">
+        <div className="bg-white">
           <StatCard
             title="Solana"
             value={overviewData.solanaTvl}
             accent="cyan"
           />
         </div>
-        <div className="bg-[#1a1f2e] accent-border-amber">
+        <div className="bg-white">
           <StatCard
             title="Active Curators"
             value={curators.length || overviewData.totalCurators}
@@ -109,10 +109,10 @@ export function OverviewTab({ overviewData, curators, historicalData, vaults, on
       {curators.length > 0 && (
         <div className="mb-8">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-[15px] font-semibold text-slate-100">Top Curators</h2>
+            <h2 className="text-[15px] font-semibold text-gray-900">Top Curators</h2>
             <button
               onClick={() => onNavigate('curators')}
-              className="text-[13px] text-slate-400 hover:text-white transition-colors"
+              className="text-[13px] text-gray-500 hover:text-gray-900 transition-colors"
             >
               View all →
             </button>

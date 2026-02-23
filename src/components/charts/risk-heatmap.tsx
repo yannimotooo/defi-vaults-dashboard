@@ -14,16 +14,16 @@ const PILLARS = [
 ];
 
 const RATING_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  AAA: { bg: 'bg-emerald-500/20', text: 'text-emerald-300', border: 'border-emerald-500/30' },
-  AA: { bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/20' },
-  A: { bg: 'bg-green-500/15', text: 'text-green-400', border: 'border-green-500/20' },
-  BBB: { bg: 'bg-lime-500/12', text: 'text-lime-400', border: 'border-lime-500/20' },
-  BB: { bg: 'bg-amber-500/12', text: 'text-amber-400', border: 'border-amber-500/20' },
-  B: { bg: 'bg-orange-500/12', text: 'text-orange-400', border: 'border-orange-500/20' },
-  CCC: { bg: 'bg-red-500/12', text: 'text-red-400', border: 'border-red-500/20' },
-  CC: { bg: 'bg-red-500/18', text: 'text-red-300', border: 'border-red-500/30' },
-  C: { bg: 'bg-red-500/25', text: 'text-red-200', border: 'border-red-500/40' },
-  NR: { bg: 'bg-slate-700/20', text: 'text-slate-500', border: 'border-slate-700/20' },
+  AAA: { bg: 'bg-emerald-500/20', text: 'text-emerald-700', border: 'border-emerald-500/30' },
+  AA: { bg: 'bg-emerald-500/15', text: 'text-emerald-600', border: 'border-emerald-500/20' },
+  A: { bg: 'bg-green-500/15', text: 'text-green-600', border: 'border-green-500/20' },
+  BBB: { bg: 'bg-lime-500/12', text: 'text-lime-600', border: 'border-lime-500/20' },
+  BB: { bg: 'bg-amber-500/12', text: 'text-amber-600', border: 'border-amber-500/20' },
+  B: { bg: 'bg-orange-500/12', text: 'text-orange-600', border: 'border-orange-500/20' },
+  CCC: { bg: 'bg-red-500/12', text: 'text-red-600', border: 'border-red-500/20' },
+  CC: { bg: 'bg-red-500/18', text: 'text-red-700', border: 'border-red-500/30' },
+  C: { bg: 'bg-red-500/25', text: 'text-red-800', border: 'border-red-500/40' },
+  NR: { bg: 'bg-gray-200/20', text: 'text-gray-500', border: 'border-gray-200' },
 };
 
 function RatingCell({ rating }: { rating?: CreditRating }) {
@@ -68,10 +68,10 @@ export function RiskHeatmap({ curators }: RiskHeatmapProps) {
   return (
     <Card>
       <CardHeader>
-        <p className="text-[11px] uppercase tracking-widest text-slate-500 font-medium mb-1">Risk Assessment</p>
+        <p className="text-[11px] uppercase tracking-widest text-gray-500 font-medium mb-1">Risk Assessment</p>
         <div className="flex items-center justify-between">
           <CardTitle>Credit Rating Heatmap</CardTitle>
-          <span className="text-[11px] text-slate-500 px-2 py-0.5 rounded bg-[#1a1f2e]/40 border border-slate-700/30">
+          <span className="text-[11px] text-gray-500 px-2 py-0.5 rounded bg-gray-50 border border-gray-200">
             {ratedCurators.length} rated
           </span>
         </div>
@@ -80,20 +80,20 @@ export function RiskHeatmap({ curators }: RiskHeatmapProps) {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="bg-[#141922]/60">
-                <th className="text-left px-4 py-2.5 text-[11px] uppercase tracking-wider text-slate-500 font-medium">
+              <tr className="bg-gray-50">
+                <th className="text-left px-4 py-2.5 text-[11px] uppercase tracking-wider text-gray-500 font-medium">
                   Curator
                 </th>
-                <th className="text-center px-2 py-2.5 text-[11px] uppercase tracking-wider text-slate-500 font-medium">
+                <th className="text-center px-2 py-2.5 text-[11px] uppercase tracking-wider text-gray-500 font-medium">
                   Composite
                 </th>
                 {PILLARS.map(p => (
-                  <th key={p.key} className="text-center px-2 py-2.5 text-[11px] uppercase tracking-wider text-slate-500 font-medium">
+                  <th key={p.key} className="text-center px-2 py-2.5 text-[11px] uppercase tracking-wider text-gray-500 font-medium">
                     <span className="hidden sm:inline">{p.label}</span>
                     <span className="sm:hidden">{p.shortLabel}</span>
                   </th>
                 ))}
-                <th className="text-right px-4 py-2.5 text-[11px] uppercase tracking-wider text-slate-500 font-medium hidden md:table-cell">
+                <th className="text-right px-4 py-2.5 text-[11px] uppercase tracking-wider text-gray-500 font-medium hidden md:table-cell">
                   TVL
                 </th>
               </tr>
@@ -106,16 +106,16 @@ export function RiskHeatmap({ curators }: RiskHeatmapProps) {
                 return (
                   <tr
                     key={curator.slug}
-                    className="border-t border-slate-700/20 hover:bg-slate-700/10 transition-colors"
+                    className="border-t border-gray-100 hover:bg-gray-50 transition-colors"
                     style={{ borderLeft: `3px solid ${color}` }}
                   >
                     <td className="px-4 py-2.5">
                       <div className="flex items-center gap-2">
-                        <span className="text-[13px] text-slate-200 font-medium truncate max-w-[140px] sm:max-w-[200px]">
+                        <span className="text-[13px] text-gray-800 font-medium truncate max-w-[140px] sm:max-w-[200px]">
                           {curator.name}
                         </span>
                         {curator.investmentGrade && (
-                          <span className="text-[9px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded font-medium hidden sm:inline">
+                          <span className="text-[9px] text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded font-medium hidden sm:inline">
                             IG
                           </span>
                         )}
@@ -133,7 +133,7 @@ export function RiskHeatmap({ curators }: RiskHeatmapProps) {
                     <RatingCell rating={curator.liquidityHealthRating} />
                     <RatingCell rating={curator.curatorQualityRating} />
                     <td className="px-4 py-2.5 text-right hidden md:table-cell">
-                      <span className="text-[12px] text-slate-400" style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>
+                      <span className="text-[12px] text-gray-500" style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>
                         {formatTvl(curator.totalTvl)}
                       </span>
                     </td>
@@ -145,8 +145,8 @@ export function RiskHeatmap({ curators }: RiskHeatmapProps) {
         </div>
 
         {/* Legend */}
-        <div className="px-4 py-3 border-t border-slate-700/20 flex flex-wrap gap-x-3 gap-y-1.5">
-          <span className="text-[10px] text-slate-600 mr-1">Scale:</span>
+        <div className="px-4 py-3 border-t border-gray-200 flex flex-wrap gap-x-3 gap-y-1.5">
+          <span className="text-[10px] text-gray-400 mr-1">Scale:</span>
           {(['AAA', 'AA', 'A', 'BBB', 'BB', 'B', 'CCC'] as CreditRating[]).map(grade => {
             const colors = RATING_COLORS[grade];
             return (

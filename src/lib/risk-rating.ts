@@ -874,16 +874,16 @@ function generateRationale(
 // =============================================================================
 
 export const RATING_COLORS: Record<CreditRating, { bg: string; text: string; border: string }> = {
-  'AAA': { bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/30' },
-  'AA': { bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20' },
-  'A': { bg: 'bg-green-500/10', text: 'text-green-400', border: 'border-green-500/20' },
-  'BBB': { bg: 'bg-yellow-500/10', text: 'text-yellow-400', border: 'border-yellow-500/20' },
-  'BB': { bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20' },
-  'B': { bg: 'bg-orange-500/10', text: 'text-orange-400', border: 'border-orange-500/20' },
-  'CCC': { bg: 'bg-red-500/10', text: 'text-red-400', border: 'border-red-500/20' },
-  'CC': { bg: 'bg-red-500/15', text: 'text-red-400', border: 'border-red-500/30' },
-  'C': { bg: 'bg-red-500/20', text: 'text-red-500', border: 'border-red-500/40' },
-  'NR': { bg: 'bg-slate-500/10', text: 'text-slate-400', border: 'border-slate-500/20' },
+  'AAA': { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+  'AA': { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-200' },
+  'A': { bg: 'bg-green-50', text: 'text-green-600', border: 'border-green-200' },
+  'BBB': { bg: 'bg-yellow-50', text: 'text-yellow-600', border: 'border-yellow-200' },
+  'BB': { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-200' },
+  'B': { bg: 'bg-orange-50', text: 'text-orange-600', border: 'border-orange-200' },
+  'CCC': { bg: 'bg-red-50', text: 'text-red-600', border: 'border-red-200' },
+  'CC': { bg: 'bg-red-50', text: 'text-red-600', border: 'border-red-200' },
+  'C': { bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-300' },
+  'NR': { bg: 'bg-gray-100', text: 'text-gray-500', border: 'border-gray-200' },
 };
 
 export const RATING_LABELS: Record<CreditRating, string> = {
