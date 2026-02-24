@@ -112,7 +112,7 @@ export function ProtocolsTab({ overviewData, curators = [] }: ProtocolsTabProps)
 
                   return (
                     <div key={p.name} className="flex items-center gap-3">
-                      <span className="text-[12px] text-gray-600 w-[80px] truncate">{p.name}</span>
+                      <span className="text-[12px] text-gray-600 min-w-[100px] max-w-[120px] truncate">{p.name}</span>
                       <div className="flex-1 flex items-center">
                         {isPositive ? (
                           <div className="flex-1 flex">
@@ -177,9 +177,9 @@ export function ProtocolsTab({ overviewData, curators = [] }: ProtocolsTabProps)
                 <div className="space-y-2">
                   {growthLeaders.gainers7d.map(p => (
                     <div key={p.name} className="flex items-center justify-between">
-                      <span className="text-[12px] text-gray-600 truncate max-w-[80px]">{p.name}</span>
+                      <span className="text-[12px] text-gray-600 truncate min-w-[100px] max-w-[120px]">{p.name}</span>
                       <span className="font-mono text-[11px] text-emerald-600">
-                        +{p.change7d.toFixed(1)}%
+                        {p.change7d >= 0 ? '+' : ''}{p.change7d.toFixed(1)}%
                       </span>
                     </div>
                   ))}
@@ -191,7 +191,7 @@ export function ProtocolsTab({ overviewData, curators = [] }: ProtocolsTabProps)
                 <div className="space-y-2">
                   {growthLeaders.losers7d.map(p => (
                     <div key={p.name} className="flex items-center justify-between">
-                      <span className="text-[12px] text-gray-600 truncate max-w-[80px]">{p.name}</span>
+                      <span className="text-[12px] text-gray-600 truncate min-w-[100px] max-w-[120px]">{p.name}</span>
                       <span className="font-mono text-[11px] text-red-600">
                         {p.change7d.toFixed(1)}%
                       </span>
@@ -206,9 +206,9 @@ export function ProtocolsTab({ overviewData, curators = [] }: ProtocolsTabProps)
                   <div className="space-y-2">
                     {growthLeaders.gainers30d.map(p => (
                       <div key={p.name} className="flex items-center justify-between">
-                        <span className="text-[12px] text-gray-600 truncate max-w-[80px]">{p.name}</span>
+                        <span className="text-[12px] text-gray-600 truncate min-w-[100px] max-w-[120px]">{p.name}</span>
                         <span className="font-mono text-[11px] text-emerald-600">
-                          +{(p.change30d || 0).toFixed(1)}%
+                          {(p.change30d || 0) >= 0 ? '+' : ''}{(p.change30d || 0).toFixed(1)}%
                         </span>
                       </div>
                     ))}
@@ -222,7 +222,7 @@ export function ProtocolsTab({ overviewData, curators = [] }: ProtocolsTabProps)
                   <div className="space-y-2">
                     {growthLeaders.losers30d.map(p => (
                       <div key={p.name} className="flex items-center justify-between">
-                        <span className="text-[12px] text-gray-600 truncate max-w-[80px]">{p.name}</span>
+                        <span className="text-[12px] text-gray-600 truncate min-w-[100px] max-w-[120px]">{p.name}</span>
                         <span className="font-mono text-[11px] text-red-600">
                           {(p.change30d || 0).toFixed(1)}%
                         </span>

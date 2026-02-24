@@ -98,7 +98,7 @@ export function FlowByProtocolChart({ overview }: FlowByProtocolChartProps) {
                 dataKey="name"
                 stroke="#6B7280"
                 fontSize={11}
-                width={90}
+                width={110}
                 tickLine={false}
                 axisLine={false}
               />

@@ -224,23 +224,29 @@ function getCuratorName(vault: EulerVault): string {
   return 'Euler DAO'; // Default to Euler DAO for ungoverned vaults
 }
 
-// Parse performance fee from subgraph (may be basis points or percentage)
+// Parse performance fee from subgraph
+// Euler V2 subgraph returns fees in WAD format (1e18 = 100%)
 function parsePerformanceFee(fee: string): number {
   const feeNum = parseFloat(fee);
   if (isNaN(feeNum)) return 0;
 
-  // If fee > 100, it's likely in basis points (e.g., 1000 = 10%)
+  // WAD format: 1e18 = 100% — Euler V2 subgraph uses this
+  if (feeNum > 1e14) {
+    return Math.min((feeNum / 1e18) * 100, 100);
+  }
+
+  // Basis points: e.g., 1000 = 10%
   if (feeNum > 100) {
-    return feeNum / 100;
+    return Math.min(feeNum / 100, 100);
   }
 
-  // If fee > 1 but <= 100, it's a percentage
-  if (feeNum > 1) {
-    return feeNum;
-  }
+  // Already a percentage (0-100)
+  if (feeNum > 1 && feeNum <= 100) return Math.min(feeNum, 100);
 
-  // If fee <= 1, it's a decimal (e.g., 0.1 = 10%)
-  return feeNum * 100;
+  // Decimal (0-1)
+  if (feeNum >= 0 && feeNum <= 1) return Math.min(feeNum * 100, 100);
+
+  return 0;
 }
 
 // Parse total assets (BigInt string to human-readable token amount)

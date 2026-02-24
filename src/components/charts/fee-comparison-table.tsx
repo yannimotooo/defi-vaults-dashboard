@@ -27,7 +27,7 @@ interface FeeRow {
 }
 
 export function FeeComparisonTable({ curators }: FeeComparisonTableProps) {
-  const [sortKey, setSortKey] = useState<SortKey>('feeBurden');
+  const [sortKey, setSortKey] = useState<SortKey>('revenue');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const router = useRouter();
 
@@ -35,7 +35,7 @@ export function FeeComparisonTable({ curators }: FeeComparisonTableProps) {
     return curators
       .filter(c => c.avgPerformanceFee !== undefined || c.grossApy !== undefined)
       .map((c): FeeRow => {
-        const perfFee = c.avgPerformanceFee || 0;
+        const perfFee = Math.min(Math.max(c.avgPerformanceFee || 0, 0), 100);
         const mgmtFee = c.avgManagementFee || 0;
         const grossApy = c.grossApy || c.avgApy || 0;
         const netApy = c.netApy !== undefined ? c.netApy : c.avgApy;
@@ -85,7 +85,7 @@ export function FeeComparisonTable({ curators }: FeeComparisonTableProps) {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-gray-200 bg-gray-50">
+              <tr className="border-b border-gray-300 bg-gray-100">
                 {[
                   { key: 'name' as SortKey, label: 'Curator', align: 'text-left' },
                   { key: 'perfFee' as SortKey, label: 'Perf Fee', align: 'text-right' },
@@ -99,7 +99,7 @@ export function FeeComparisonTable({ curators }: FeeComparisonTableProps) {
                     key={col.key}
                     onClick={() => toggleSort(col.key)}
                     className={cn(
-                      'px-3 sm:px-4 py-3 text-[10px] sm:text-[11px] font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 transition-colors',
+                      'px-4 py-3 text-[10px] sm:text-[11px] font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:text-gray-800 transition-colors',
                       col.align,
                       col.key === 'mgmtFee' && 'hidden md:table-cell',
                       col.key === 'revenue' && 'hidden lg:table-cell',
@@ -116,29 +116,32 @@ export function FeeComparisonTable({ curators }: FeeComparisonTableProps) {
                   key={row.slug}
                   onClick={() => router.push(`/curator/${row.slug}`)}
                   className={cn(
-                    'border-b border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer',
-                    i % 2 === 1 && 'bg-gray-50/70'
+                    'border-b border-gray-100 hover:bg-blue-50/40 transition-colors cursor-pointer',
+                    i % 2 === 0 ? 'bg-white' : 'bg-gray-50'
                   )}
                 >
-                  <td className="px-3 sm:px-4 py-3 text-[13px] text-gray-900 font-medium truncate max-w-[160px]">
+                  <td className="px-4 py-3 text-[13px] text-gray-900 font-medium truncate max-w-[180px]">
                     {row.name}
                   </td>
-                  <td className="px-3 sm:px-4 py-3 text-right font-mono text-[12px] text-gray-700">
+                  <td className="px-4 py-3 text-right font-mono text-[12px] text-gray-700">
                     {row.perfFee > 0 ? `${row.perfFee.toFixed(1)}%` : '—'}
                   </td>
-                  <td className="hidden md:table-cell px-3 sm:px-4 py-3 text-right font-mono text-[12px] text-gray-500">
+                  <td className="hidden md:table-cell px-4 py-3 text-right font-mono text-[12px] text-gray-500">
                     {row.mgmtFee > 0 ? `${row.mgmtFee.toFixed(2)}%` : '—'}
                   </td>
-                  <td className="px-3 sm:px-4 py-3 text-right font-mono text-[12px] text-gray-700">
+                  <td className="px-4 py-3 text-right font-mono text-[12px] text-gray-700">
                     {row.grossApy > 0 ? `${row.grossApy.toFixed(2)}%` : '—'}
                   </td>
-                  <td className="px-3 sm:px-4 py-3 text-right font-mono text-[12px] text-emerald-600">
+                  <td className="px-4 py-3 text-right font-mono text-[12px] text-emerald-600">
                     {row.netApy > 0 ? `${row.netApy.toFixed(2)}%` : '—'}
                   </td>
-                  <td className={cn('px-3 sm:px-4 py-3 text-right font-mono text-[12px]', feeBurdenColor(row.feeBurden))}>
+                  <td className={cn('px-4 py-3 text-right font-mono text-[12px]', feeBurdenColor(row.feeBurden))}>
                     {row.feeBurden > 0 ? `${row.feeBurden.toFixed(1)}%` : '—'}
                   </td>
-                  <td className="hidden lg:table-cell px-3 sm:px-4 py-3 text-right font-mono text-[12px] text-gray-500">
+                  <td className={cn(
+                    'hidden lg:table-cell px-4 py-3 text-right font-mono text-[12px]',
+                    row.revenue > 1_000_000 ? 'text-emerald-600 font-medium' : 'text-gray-500'
+                  )}>
                     {row.revenue > 0 ? formatTvl(row.revenue) : '—'}
                   </td>
                 </tr>

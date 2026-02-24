@@ -371,13 +371,11 @@ function FeaturedVaultCard({
         <span>Base: <span className="text-emerald-600">{(vault.apyBase || vault.apy).toFixed(1)}%</span></span>
         <span>Rewards: <span className="text-amber-600">{(vault.apyReward || 0).toFixed(1)}%</span></span>
       </div>
-      {vault.maxUtilization !== undefined && (
-        <div className="mt-2 pt-2 border-t border-gray-200 flex items-center justify-between text-[10px]">
-          <span className="text-gray-400">Util: {(vault.maxUtilization * 100).toFixed(0)}%</span>
-          <span className="text-gray-400">LLTV: {((vault.avgLltv || 0) * 100).toFixed(0)}%</span>
-          {vault.hasBadDebt && <span className="text-red-600">Bad Debt</span>}
-        </div>
-      )}
+      <div className="mt-2 pt-2 border-t border-gray-200 flex items-center justify-between text-[10px]">
+        <span className="text-gray-400">Util: {vault.maxUtilization !== undefined ? `${(vault.maxUtilization * 100).toFixed(0)}%` : '—'}</span>
+        <span className="text-gray-400">LLTV: {vault.avgLltv !== undefined ? `${(vault.avgLltv * 100).toFixed(0)}%` : '—'}</span>
+        {vault.hasBadDebt && <span className="text-red-600">Bad Debt</span>}
+      </div>
     </div>
   );
 }

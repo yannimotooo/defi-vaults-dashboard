@@ -74,7 +74,7 @@ export function FlowByChainChart({ curators, vaults }: FlowByChainChartProps) {
                 dataKey="name"
                 stroke="#6B7280"
                 fontSize={11}
-                width={80}
+                width={100}
                 tickLine={false}
                 axisLine={false}
               />

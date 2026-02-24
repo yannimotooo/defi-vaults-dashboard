@@ -4,6 +4,7 @@ import { getMorphoCuratorData, crossReferenceCuratorData } from '@/lib/dune';
 import { getAllCuratorsFeeData, getMorphoCuratorsTvl } from '@/lib/morpho';
 import { getEulerCuratorFeeData, getEulerCuratorsTvl } from '@/lib/euler';
 import { getRiskMetrics } from '@/lib/risk';
+import { assessCapitalSafety, assessLiquidityHealth, assessCuratorQuality, scoreToRating, isInvestmentGrade } from '@/lib/risk-rating';
 import { getKaminoCuratorsTvl, type KaminoCuratorTvlData } from '@/lib/kamino-onchain';
 import { DataSourceTracker } from '@/lib/data-source-tracker';
 import { CURATOR_FEE_OVERRIDES } from '@/lib/curator-fee-overrides';
@@ -261,11 +262,14 @@ export async function GET() {
       const key = normalizeFeeKey(ed.curatorName);
       const existing = feeDataMap.get(key);
 
+      // Clamp Euler fee to 0-100 range (WAD format can produce absurd values if not parsed correctly)
+      const clampedEulerFee = Math.min(Math.max(ed.avgPerformanceFee || 0, 0), 100);
+
       if (existing) {
         // Merge: take the higher performance fee (curators typically set same fee across protocols)
         // and sum fee revenue from both protocols
         feeDataMap.set(key, {
-          avgPerformanceFee: Math.max(existing.avgPerformanceFee, ed.avgPerformanceFee),
+          avgPerformanceFee: Math.max(existing.avgPerformanceFee, clampedEulerFee),
           avgManagementFee: existing.avgManagementFee, // Euler doesn't have management fees
           estimatedAnnualFeeRevenue: existing.estimatedAnnualFeeRevenue, // Morpho revenue is more reliable
           avgGrossApy: existing.avgGrossApy || 0,
@@ -273,7 +277,7 @@ export async function GET() {
         });
       } else {
         feeDataMap.set(key, {
-          avgPerformanceFee: ed.avgPerformanceFee,
+          avgPerformanceFee: clampedEulerFee,
           avgManagementFee: 0,
           estimatedAnnualFeeRevenue: 0,
           avgGrossApy: 0,
@@ -541,6 +545,58 @@ export async function GET() {
         if (totalVaultTvl > 0 && stableTvl / totalVaultTvl > 0.7) tags.push('Stablecoin Focus');
       }
       if (tags.length > 0) curator.strategies = tags;
+    }
+
+    // Compute curator-level credit ratings (three-pillar system)
+    for (const curator of curators) {
+      // Pillar 1: Capital Safety
+      const capitalSafety = assessCapitalSafety({
+        hasBadDebt: curator.hasBadDebt || false,
+        badDebtUsd: 0, // Not available at curator level
+        tvlUsd: curator.totalTvl || 0,
+        hasOracleWarning: (curator.redWarningCount || 0) > 0,
+        avgLltv: curator.avgUtilization ? Math.min(curator.avgUtilization + 0.15, 0.96) : 0.86, // Estimate LLTV from utilization
+        markets: [], // Market-level data not available at curator aggregate level
+      });
+
+      // Pillar 2: Liquidity Health
+      const liquidityHealth = assessLiquidityHealth({
+        tvlUsd: curator.totalTvl || 0,
+        availableLiquidityUsd: curator.avgUtilization
+          ? curator.totalTvl * (1 - curator.avgUtilization)
+          : curator.totalTvl * 0.2, // Default 20% available if unknown
+        maxUtilization: curator.avgUtilization || 0.8,
+        avgUtilization: curator.avgUtilization || 0.75,
+        avgLltv: curator.avgUtilization ? Math.min(curator.avgUtilization + 0.15, 0.96) : 0.86,
+        markets: [], // Market-level data not available at curator aggregate level
+      });
+
+      // Pillar 3: Curator Quality
+      const curatorQuality = assessCuratorQuality({
+        curatorName: curator.name,
+        hasHistoricalBadDebt: curator.hasBadDebt || false,
+        incidentCount: (curator.redWarningCount || 0) + (curator.criticalWarnings?.length || 0),
+        ageMonths: 12, // Assume established curators (conservative default)
+        totalTvlManaged: curator.totalTvl || 0,
+        exoticAssetPct: 0.2, // Conservative default — detailed data not available
+        avgLltv: curator.avgUtilization ? Math.min(curator.avgUtilization + 0.15, 0.96) : 0.86,
+        vaultCount: curator.vaultCount || 1,
+        avgMarketsPerVault: 3, // Default estimate
+        chainCount: curator.chains?.length || 1,
+        performanceFee: (curator.avgPerformanceFee || 0) / 100, // Convert percentage to decimal
+      });
+
+      curator.capitalSafetyRating = capitalSafety.rating;
+      curator.liquidityHealthRating = liquidityHealth.rating;
+      curator.curatorQualityRating = curatorQuality.rating;
+
+      // Composite: weighted average of pillar scores (Capital 50%, Liquidity 30%, Curator 20%)
+      const compositeScore =
+        capitalSafety.score * 0.50 +
+        liquidityHealth.score * 0.30 +
+        curatorQuality.score * 0.20;
+      curator.creditRating = scoreToRating(compositeScore);
+      curator.investmentGrade = isInvestmentGrade(curator.creditRating);
     }
 
     // Add comprehensive validation info

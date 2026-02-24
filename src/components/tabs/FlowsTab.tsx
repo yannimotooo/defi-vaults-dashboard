@@ -23,7 +23,7 @@ export function FlowsTab({ curators, vaults, overview }: FlowsTabProps) {
       </div>
 
       {/* Section: Where Money Flows */}
-      <div className="mb-4 mt-2">
+      <div className="mb-4 mt-2 border-t border-gray-200 pt-6">
         <h3 className="text-[13px] font-semibold text-gray-800 tracking-tight">Where Money Flows</h3>
         <p className="text-[11px] text-gray-400 mt-0.5">Net capital movement across chains and protocols over the selected period.</p>
       </div>
@@ -34,7 +34,7 @@ export function FlowsTab({ curators, vaults, overview }: FlowsTabProps) {
       </div>
 
       {/* Section: Yield-Chasing Patterns */}
-      <div className="mb-4 mt-2">
+      <div className="mb-4 mt-2 border-t border-gray-200 pt-6">
         <h3 className="text-[13px] font-semibold text-gray-800 tracking-tight">Yield-Chasing Patterns</h3>
         <p className="text-[11px] text-gray-400 mt-0.5">Does higher yield attract more capital? Bubble size represents TVL.</p>
       </div>
@@ -44,7 +44,7 @@ export function FlowsTab({ curators, vaults, overview }: FlowsTabProps) {
       </div>
 
       {/* Section: Flow Breakdown */}
-      <div className="mb-4 mt-2">
+      <div className="mb-4 mt-2 border-t border-gray-200 pt-6">
         <h3 className="text-[13px] font-semibold text-gray-800 tracking-tight">Flow Breakdown</h3>
         <p className="text-[11px] text-gray-400 mt-0.5">Detailed flow analysis by asset type and per-curator capital movement.</p>
       </div>
