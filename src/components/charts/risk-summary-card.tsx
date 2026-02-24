@@ -12,6 +12,7 @@ import {
   CheckCircle,
   Info,
 } from 'lucide-react';
+import { EmptyStateCard } from '@/components/ui/empty-state-card';
 import type { Curator, CreditRating } from '@/types';
 import { useState } from 'react';
 
@@ -153,7 +154,7 @@ export function RiskSummaryCard({ curators }: RiskSummaryCardProps) {
   const health = getHealthStatus();
 
   if (summary.curatorsWithRatings === 0) {
-    return null; // Don't show if no rating data available
+    return <EmptyStateCard title="Protocol Risk Summary" message="No credit rating data available for assessment." />;
   }
 
   // Calculate rating distribution for visualization

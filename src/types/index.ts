@@ -62,6 +62,8 @@ export interface Curator {
   yellowWarningCount?: number;
   criticalWarnings?: string[];
   avgUtilization?: number;
+  // Strategy tags (computed server-side)
+  strategies?: string[];
   // New three-pillar credit rating
   creditRating?: CreditRating;  // Composite credit rating (AAA-C)
   capitalSafetyRating?: CreditRating;
@@ -228,4 +230,23 @@ export interface LiquidationData {
 }
 
 // Tab type for navigation
-export type Tab = 'overview' | 'curators' | 'protocols' | 'vaults' | 'liquidations';
+export type Tab = 'overview' | 'curators' | 'protocols' | 'vaults' | 'liquidations' | 'flows';
+
+// Flow analysis types (derived from existing data, no new API calls)
+export interface FlowDataPoint {
+  name: string;
+  flow7d: number;
+  flow30d: number;
+  tvl: number;
+  flowPercent7d: number;
+  flowPercent30d: number;
+}
+
+export interface YieldFlowCorrelation {
+  name: string;
+  slug: string;
+  apy: number;
+  flow7d: number;
+  tvl: number;
+  stablecoin: boolean;
+}

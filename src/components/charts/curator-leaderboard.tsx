@@ -9,6 +9,7 @@ import { formatTvl, formatFlow, cn } from '@/lib/utils';
 import { CURATOR_COLORS, FALLBACK_CURATOR_COLORS, getProtocolColor } from '@/lib/colors';
 import { ChainIcon, ProtocolIcon } from '@/components/ui/protocol-icon';
 import type { Curator } from '@/types';
+import { StrategyTags } from '@/components/ui/strategy-tag';
 import { ChevronDown, ChevronRight, ExternalLink, AlertTriangle, TrendingDown } from 'lucide-react';
 
 interface CuratorLeaderboardProps {
@@ -96,6 +97,9 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                               </span>
                             ))}
                           </p>
+                          {curator.strategies && curator.strategies.length > 0 && (
+                            <StrategyTags tags={curator.strategies} max={2} className="mt-1" />
+                          )}
                         </div>
                       </Link>
                     </td>

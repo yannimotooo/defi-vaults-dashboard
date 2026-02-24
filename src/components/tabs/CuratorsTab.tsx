@@ -7,6 +7,7 @@ import { CuratorLeaderboard } from '@/components/charts/curator-leaderboard';
 import { CuratorTvlChart } from '@/components/charts/curator-tvl-chart';
 import { CuratorComparisonChart } from '@/components/charts/curator-comparison-chart';
 import { RiskHeatmap } from '@/components/charts/risk-heatmap';
+import { FeeComparisonTable } from '@/components/charts/fee-comparison-table';
 import { getCuratorColor } from '@/lib/colors';
 import type { Curator, HistoricalCuratorData } from '@/types';
 
@@ -102,6 +103,11 @@ export function CuratorsTab({ curators, historicalData }: CuratorsTabProps) {
       {/* Risk Heatmap */}
       <div className="mb-8">
         <RiskHeatmap curators={curators} />
+      </div>
+
+      {/* Fee Comparison Table */}
+      <div className="mb-8">
+        <FeeComparisonTable curators={curators} />
       </div>
 
       {/* Curator Leaderboard */}

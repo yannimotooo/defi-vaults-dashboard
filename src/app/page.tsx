@@ -10,8 +10,9 @@ const CuratorsTab = lazy(() => import('@/components/tabs/CuratorsTab').then(m =>
 const ProtocolsTab = lazy(() => import('@/components/tabs/ProtocolsTab').then(m => ({ default: m.ProtocolsTab })));
 const VaultsTab = lazy(() => import('@/components/tabs/VaultsTab').then(m => ({ default: m.VaultsTab })));
 const LiquidationsTab = lazy(() => import('@/components/tabs/LiquidationsTab').then(m => ({ default: m.LiquidationsTab })));
+const FlowsTab = lazy(() => import('@/components/tabs/FlowsTab').then(m => ({ default: m.FlowsTab })));
 import type { MarketOverview, Curator, DataValidation, HistoricalCuratorData, VaultData, LiquidationData, Tab } from '@/types';
-import { RefreshCw, LayoutDashboard, Users, Layers, Vault, Zap } from 'lucide-react';
+import { RefreshCw, LayoutDashboard, Users, Layers, Vault, Zap, TrendingUp } from 'lucide-react';
 
 const fetcher = (url: string) => fetch(url).then(res => {
   if (!res.ok) throw new Error(`Failed to fetch ${url}`);
@@ -30,7 +31,7 @@ export default function Dashboard() {
   // Secondary data — fetched lazily based on tab or always (historical needed for overview sparklines)
   const { data: historicalResponse } = useSWR<{ curators: HistoricalCuratorData[] }>('/api/curators/historical', fetcher, swrOpts);
   const { data: vaultsResponse } = useSWR<{ vaults: VaultData[] }>(
-    activeTab === 'vaults' || activeTab === 'overview' ? '/api/vaults?limit=100' : null,
+    activeTab === 'vaults' || activeTab === 'overview' || activeTab === 'flows' ? '/api/vaults?limit=100' : null,
     fetcher, swrOpts
   );
   const { data: riskResponse } = useSWR<{ multiProtocolLiquidations: LiquidationData }>(
@@ -152,6 +153,7 @@ export default function Dashboard() {
               <TabButton active={activeTab === 'curators'} onClick={() => setActiveTab('curators')} icon={<Users className="h-3.5 w-3.5" />} label="Curators" />
               <TabButton active={activeTab === 'protocols'} onClick={() => setActiveTab('protocols')} icon={<Layers className="h-3.5 w-3.5" />} label="Protocols" />
               <TabButton active={activeTab === 'vaults'} onClick={() => setActiveTab('vaults')} icon={<Vault className="h-3.5 w-3.5" />} label="Vaults" />
+              <TabButton active={activeTab === 'flows'} onClick={() => setActiveTab('flows')} icon={<TrendingUp className="h-3.5 w-3.5" />} label="Flows" />
               <TabButton active={activeTab === 'liquidations'} onClick={() => setActiveTab('liquidations')} icon={<Zap className="h-3.5 w-3.5" />} label="Liquidations" />
             </div>
           </div>
@@ -165,6 +167,7 @@ export default function Dashboard() {
           <MobileTabButton active={activeTab === 'curators'} onClick={() => setActiveTab('curators')} icon={<Users className="h-5 w-5" />} label="Curators" />
           <MobileTabButton active={activeTab === 'protocols'} onClick={() => setActiveTab('protocols')} icon={<Layers className="h-5 w-5" />} label="Protocols" />
           <MobileTabButton active={activeTab === 'vaults'} onClick={() => setActiveTab('vaults')} icon={<Vault className="h-5 w-5" />} label="Vaults" />
+          <MobileTabButton active={activeTab === 'flows'} onClick={() => setActiveTab('flows')} icon={<TrendingUp className="h-5 w-5" />} label="Flows" />
           <MobileTabButton active={activeTab === 'liquidations'} onClick={() => setActiveTab('liquidations')} icon={<Zap className="h-5 w-5" />} label="Liqs" />
         </div>
       </nav>
@@ -182,11 +185,15 @@ export default function Dashboard() {
             )}
 
             {activeTab === 'protocols' && (
-              <ProtocolsTab overviewData={overviewData} />
+              <ProtocolsTab overviewData={overviewData} curators={curators} />
             )}
 
             {activeTab === 'vaults' && (
               <VaultsTab vaults={topVaults} />
+            )}
+
+            {activeTab === 'flows' && (
+              <FlowsTab curators={curators} vaults={topVaults} overview={overviewData} />
             )}
 
             {activeTab === 'liquidations' && (

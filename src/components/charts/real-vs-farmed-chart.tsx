@@ -4,7 +4,8 @@ import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { formatTvl } from '@/lib/utils';
+import { formatTvl, formatCuratorShortName } from '@/lib/utils';
+import { EmptyStateCard } from '@/components/ui/empty-state-card';
 import type { Curator, VaultData } from '@/types';
 
 interface RealVsFarmedChartProps {
@@ -70,7 +71,7 @@ export function RealVsFarmedChart({ vaults, curators }: RealVsFarmedChartProps) 
       const total = weightedBase + weightedReward;
 
       results.push({
-        name: formatName(curatorName),
+        name: formatCuratorShortName(curatorName),
         fullName: curatorName,
         slug: slugLookup.get(curatorName) || curatorName.toLowerCase().replace(/\s+/g, '-'),
         organicApy: weightedBase,
@@ -110,8 +111,18 @@ export function RealVsFarmedChart({ vaults, curators }: RealVsFarmedChartProps) 
     }
   };
 
+  const totalCurators = useMemo(() => {
+    const curatorVaults = new Map<string, boolean>();
+    for (const vault of vaults) {
+      if (vault.curator && !vault.isRawMarket && vault.curator !== 'Unknown') {
+        curatorVaults.set(vault.curator, true);
+      }
+    }
+    return curatorVaults.size;
+  }, [vaults]);
+
   if (chartData.length === 0) {
-    return null;
+    return <EmptyStateCard title="Yield Quality" message="No vault yield data available for analysis." />;
   }
 
   return (
@@ -121,7 +132,14 @@ export function RealVsFarmedChart({ vaults, curators }: RealVsFarmedChartProps) 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
               <p className="text-[11px] uppercase tracking-widest text-gray-500 font-medium mb-1">Yield Quality</p>
+              <div className="flex items-center gap-2">
               <CardTitle>Real vs Farmed Yield</CardTitle>
+              {totalCurators > chartData.length && (
+                <span className="text-[10px] text-gray-400">
+                  Showing {chartData.length} of {totalCurators}
+                </span>
+              )}
+            </div>
             </div>
             <div className="flex gap-0.5 bg-gray-100 rounded-full p-0.5 border border-gray-200">
               {([
@@ -305,14 +323,3 @@ export function RealVsFarmedChart({ vaults, curators }: RealVsFarmedChartProps) 
   );
 }
 
-function formatName(name: string): string {
-  const shortNames: Record<string, string> = {
-    'Steakhouse Financial': 'Steakhouse',
-    'UltraYield by Edge': 'UltraYield',
-    'Varlamore Capital': 'Varlamore',
-    'Block Analitica': 'Block Anal.',
-  };
-  if (shortNames[name]) return shortNames[name];
-  if (name.length > 14) return name.slice(0, 12) + '...';
-  return name;
-}

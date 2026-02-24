@@ -78,8 +78,16 @@ export function LoadingChart({ progress, stage }: LoadingChartProps) {
     { pct: 0.75, label: '$15B' },
   ];
 
-  // X-axis month labels
-  const months = ['Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb'];
+  // X-axis month labels — dynamic last 6 months
+  const months = useMemo(() => {
+    const now = new Date();
+    const labels: string[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      labels.push(d.toLocaleString('en-US', { month: 'short' }));
+    }
+    return labels;
+  }, []);
 
   return (
     <div
@@ -141,7 +149,7 @@ export function LoadingChart({ progress, stage }: LoadingChartProps) {
             const x = pad.left + (i / (months.length - 1)) * chartW;
             return (
               <text
-                key={m}
+                key={`${m}-${i}`}
                 x={x}
                 y={height - pad.bottom + 18}
                 textAnchor="middle"

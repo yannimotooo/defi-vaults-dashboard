@@ -65,6 +65,19 @@ export function getChangeColor(value: number): string {
   return 'text-gray-500';
 }
 
+// Shorten curator names for chart labels
+export function formatCuratorShortName(name: string): string {
+  const shortNames: Record<string, string> = {
+    'Steakhouse Financial': 'Steakhouse',
+    'UltraYield by Edge': 'UltraYield',
+    'Varlamore Capital': 'Varlamore',
+    'Block Analitica': 'Block Anal.',
+  };
+  if (shortNames[name]) return shortNames[name];
+  if (name.length > 14) return name.slice(0, 12) + '...';
+  return name;
+}
+
 // Chain name normalization
 export function normalizeChainName(chain: string): string {
   const chainMap: Record<string, string> = {

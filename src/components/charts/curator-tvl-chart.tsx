@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { formatTvl } from '@/lib/utils';
+import { formatTvl, formatCuratorShortName } from '@/lib/utils';
 import { CURATOR_COLORS, FALLBACK_CURATOR_COLORS } from '@/lib/colors';
 import type { Curator } from '@/types';
 
@@ -15,7 +15,7 @@ export function CuratorTvlChart({ curators }: CuratorTvlChartProps) {
   const router = useRouter();
 
   const chartData = curators.slice(0, 10).map((curator, index) => ({
-    name: formatCuratorNameForChart(curator.name),
+    name: formatCuratorShortName(curator.name),
     fullName: curator.name,
     slug: curator.slug,
     tvl: curator.totalTvl,
@@ -135,14 +135,3 @@ export function CuratorTvlChart({ curators }: CuratorTvlChartProps) {
   );
 }
 
-function formatCuratorNameForChart(name: string): string {
-  const shortNames: Record<string, string> = {
-    'Steakhouse Financial': 'Steakhouse',
-    'UltraYield by Edge': 'UltraYield',
-    'Varlamore Capital': 'Varlamore',
-  };
-
-  if (shortNames[name]) return shortNames[name];
-  if (name.length > 14) return name.slice(0, 12) + '...';
-  return name;
-}

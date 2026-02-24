@@ -4,8 +4,9 @@ import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { formatTvl, formatFlow } from '@/lib/utils';
+import { formatTvl, formatFlow, formatCuratorShortName } from '@/lib/utils';
 import { getCuratorColor } from '@/lib/colors';
+import { EmptyStateCard } from '@/components/ui/empty-state-card';
 import type { Curator } from '@/types';
 
 interface CapitalFlowsChartProps {
@@ -23,7 +24,7 @@ export function CapitalFlowsChart({ curators }: CapitalFlowsChartProps) {
       .map((c, i) => {
         const flow = period === '7d' ? c.netFlow7d : c.netFlow30d;
         return {
-          name: formatName(c.name),
+          name: formatCuratorShortName(c.name),
           fullName: c.name,
           slug: c.slug,
           flow,
@@ -51,8 +52,13 @@ export function CapitalFlowsChart({ curators }: CapitalFlowsChartProps) {
     }
   };
 
+  const totalWithFlow = useMemo(() =>
+    curators.filter(c => Math.abs(period === '7d' ? c.netFlow7d : c.netFlow30d) > 1000).length,
+    [curators, period]
+  );
+
   if (chartData.length === 0) {
-    return null;
+    return <EmptyStateCard title="Capital Movement" message="No significant capital flows detected in this period." />;
   }
 
   // Find the max absolute value for symmetric axis
@@ -93,6 +99,11 @@ export function CapitalFlowsChart({ curators }: CapitalFlowsChartProps) {
                 </button>
               ))}
             </div>
+            {totalWithFlow > chartData.length && (
+              <span className="text-[10px] text-gray-400 hidden sm:inline">
+                Showing {chartData.length} of {totalWithFlow}
+              </span>
+            )}
             <span className="text-[11px] text-gray-400 hidden sm:inline">Click bar for details</span>
           </div>
         </div>
@@ -192,14 +203,3 @@ export function CapitalFlowsChart({ curators }: CapitalFlowsChartProps) {
   );
 }
 
-function formatName(name: string): string {
-  const shortNames: Record<string, string> = {
-    'Steakhouse Financial': 'Steakhouse',
-    'UltraYield by Edge': 'UltraYield',
-    'Varlamore Capital': 'Varlamore',
-    'Block Analitica': 'Block Anal.',
-  };
-  if (shortNames[name]) return shortNames[name];
-  if (name.length > 14) return name.slice(0, 12) + '...';
-  return name;
-}

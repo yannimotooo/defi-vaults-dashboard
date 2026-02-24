@@ -523,6 +523,26 @@ export async function GET() {
       })
       .sort((a, b) => b.totalTvl - a.totalTvl);
 
+    // Compute strategy tags for each curator
+    for (const curator of curators) {
+      const tags: string[] = [];
+      if (curator.avgApy > 8) tags.push('High Yield');
+      if ((curator.riskScore !== undefined && curator.riskScore < 30) && !curator.hasBadDebt) tags.push('Conservative');
+      if (curator.chains.length > 3) tags.push('Multi-Chain');
+      if (curator.protocols.length > 2) tags.push('Multi-Protocol');
+      if (curator.totalTvl > 500_000_000) tags.push('Large Cap');
+      // Check stablecoin focus from vault data
+      const curatorVaults = allYieldPools.filter(
+        v => v.project?.toLowerCase().includes(curator.slug) || v.project?.toLowerCase().includes(curator.name.toLowerCase())
+      );
+      if (curatorVaults.length > 0) {
+        const stableTvl = curatorVaults.filter(v => v.stablecoin).reduce((s, v) => s + (v.tvlUsd || 0), 0);
+        const totalVaultTvl = curatorVaults.reduce((s, v) => s + (v.tvlUsd || 0), 0);
+        if (totalVaultTvl > 0 && stableTvl / totalVaultTvl > 0.7) tags.push('Stablecoin Focus');
+      }
+      if (tags.length > 0) curator.strategies = tags;
+    }
+
     // Add comprehensive validation info
     const sources = [];
     const morphoTvlCount = curators.filter(c => c.tvlSource === 'morpho').length;

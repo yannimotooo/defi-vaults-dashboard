@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { getCuratorColor } from '@/lib/colors';
 import { formatTvl } from '@/lib/utils';
+import { EmptyStateCard } from '@/components/ui/empty-state-card';
 import type { Curator } from '@/types';
 import type { CreditRating } from '@/lib/risk-rating';
 
@@ -63,7 +64,9 @@ export function RiskHeatmap({ curators }: RiskHeatmapProps) {
       });
   }, [curators]);
 
-  if (ratedCurators.length === 0) return null;
+  if (ratedCurators.length === 0) {
+    return <EmptyStateCard title="Credit Rating Heatmap" message="No credit rating data available yet." />;
+  }
 
   return (
     <Card>

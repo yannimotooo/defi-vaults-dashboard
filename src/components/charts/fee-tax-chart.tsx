@@ -4,6 +4,8 @@ import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { formatCuratorShortName } from '@/lib/utils';
+import { EmptyStateCard } from '@/components/ui/empty-state-card';
 import type { Curator } from '@/types';
 
 interface FeeTaxChartProps {
@@ -43,7 +45,7 @@ export function FeeTaxChart({ curators }: FeeTaxChartProps) {
         const actualNetApy = Math.max(0, netApy);
 
         return {
-          name: formatName(c.name),
+          name: formatCuratorShortName(c.name),
           fullName: c.name,
           slug: c.slug,
           netApy: actualNetApy,
@@ -95,8 +97,17 @@ export function FeeTaxChart({ curators }: FeeTaxChartProps) {
     }
   };
 
+  const totalWithFees = useMemo(() =>
+    curators.filter(c =>
+      (c.grossApy !== undefined && c.grossApy > 0) ||
+      (c.avgPerformanceFee !== undefined && c.avgPerformanceFee > 0) ||
+      (c.avgManagementFee !== undefined && c.avgManagementFee > 0)
+    ).length,
+    [curators]
+  );
+
   if (chartData.length === 0) {
-    return null;
+    return <EmptyStateCard title="Fee Economics" message="No fee data available for curators yet." />;
   }
 
   return (
@@ -110,6 +121,11 @@ export function FeeTaxChart({ curators }: FeeTaxChartProps) {
               {avgFeeRatio > 0 && (
                 <span className="text-[11px] font-mono text-gray-500 bg-gray-50 px-2 py-0.5 rounded-full border border-gray-200">
                   Avg: {avgFeeRatio.toFixed(1)}% of yield
+                </span>
+              )}
+              {totalWithFees > chartData.length && (
+                <span className="text-[10px] text-gray-400">
+                  Showing {chartData.length} of {totalWithFees}
                 </span>
               )}
             </div>
@@ -266,14 +282,3 @@ export function FeeTaxChart({ curators }: FeeTaxChartProps) {
   );
 }
 
-function formatName(name: string): string {
-  const shortNames: Record<string, string> = {
-    'Steakhouse Financial': 'Steakhouse',
-    'UltraYield by Edge': 'UltraYield',
-    'Varlamore Capital': 'Varlamore',
-    'Block Analitica': 'Block Anal.',
-  };
-  if (shortNames[name]) return shortNames[name];
-  if (name.length > 14) return name.slice(0, 12) + '...';
-  return name;
-}
