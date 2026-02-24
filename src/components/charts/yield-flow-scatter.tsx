@@ -62,14 +62,48 @@ export function YieldFlowScatter({ curators, vaults }: YieldFlowScatterProps) {
       </CardHeader>
       <CardContent className="p-2 sm:p-5 pt-0">
         <div className="h-[400px] relative">
-          {/* Quadrant labels */}
-          <div className="absolute top-2 left-14 text-[10px] text-gray-400 z-10">Safety Inflow</div>
-          <div className="absolute top-2 right-4 text-[10px] text-amber-500 z-10 font-medium">Yield Chasing</div>
-          <div className="absolute bottom-10 left-14 text-[10px] text-gray-400 z-10">Stagnant</div>
-          <div className="absolute bottom-10 right-4 text-[10px] text-red-400 z-10">Risky Outflow</div>
+          {/* Quadrant labels with pill backgrounds */}
+          <div className="absolute top-2 left-14 z-10">
+            <span className="text-[10px] text-emerald-600 font-medium bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/50">Safety Inflow</span>
+          </div>
+          <div className="absolute top-2 right-4 z-10">
+            <span className="text-[10px] text-amber-600 font-medium bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/50">Yield Chasing</span>
+          </div>
+          <div className="absolute bottom-10 left-14 z-10">
+            <span className="text-[10px] text-gray-500 font-medium bg-gray-50 px-2 py-0.5 rounded-full border border-gray-200/50">Stagnant</span>
+          </div>
+          <div className="absolute bottom-10 right-4 z-10">
+            <span className="text-[10px] text-red-500 font-medium bg-red-50 px-2 py-0.5 rounded-full border border-red-200/50">Risky Outflow</span>
+          </div>
 
           <ResponsiveContainer width="100%" height="100%">
             <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 0 }}>
+              <defs>
+                {/* Quadrant background zones */}
+                <linearGradient id="quadTopLeft" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#10B981" stopOpacity={0.04} />
+                  <stop offset="100%" stopColor="#10B981" stopOpacity={0.01} />
+                </linearGradient>
+                <linearGradient id="quadTopRight" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#F59E0B" stopOpacity={0.04} />
+                  <stop offset="100%" stopColor="#F59E0B" stopOpacity={0.01} />
+                </linearGradient>
+                <linearGradient id="quadBottomLeft" x1="0" y1="1" x2="1" y2="0">
+                  <stop offset="0%" stopColor="#9CA3AF" stopOpacity={0.04} />
+                  <stop offset="100%" stopColor="#9CA3AF" stopOpacity={0.01} />
+                </linearGradient>
+                <linearGradient id="quadBottomRight" x1="0" y1="1" x2="1" y2="0">
+                  <stop offset="0%" stopColor="#EF4444" stopOpacity={0.04} />
+                  <stop offset="100%" stopColor="#EF4444" stopOpacity={0.01} />
+                </linearGradient>
+                {/* Glow filters for dots */}
+                <filter id="glowIndigo" x="-50%" y="-50%" width="200%" height="200%">
+                  <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#6366F1" floodOpacity="0.4" />
+                </filter>
+                <filter id="glowAmber" x="-50%" y="-50%" width="200%" height="200%">
+                  <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#F59E0B" floodOpacity="0.4" />
+                </filter>
+              </defs>
               <CartesianGrid strokeDasharray="3 6" stroke="#F3F4F6" />
               <XAxis
                 type="number"
@@ -108,7 +142,7 @@ export function YieldFlowScatter({ curators, vaults }: YieldFlowScatterProps) {
                   if (active && payload && payload.length) {
                     const data = payload[0].payload;
                     return (
-                      <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-lg min-w-[200px]">
+                      <div className="rounded-lg border border-gray-200 bg-white/95 backdrop-blur-sm p-3 shadow-lg min-w-[200px]">
                         <p className="font-medium text-gray-900 text-[14px] mb-2">{data.name}</p>
                         <div className="space-y-1.5 text-[13px]">
                           <div className="flex justify-between">
@@ -140,13 +174,15 @@ export function YieldFlowScatter({ curators, vaults }: YieldFlowScatterProps) {
                 name="Stablecoin"
                 data={stableData}
                 fill="#6366F1"
-                fillOpacity={0.7}
+                fillOpacity={0.85}
+                style={{ filter: 'url(#glowIndigo)' }}
               />
               <Scatter
                 name="Non-Stable"
                 data={nonStableData}
                 fill="#F59E0B"
-                fillOpacity={0.7}
+                fillOpacity={0.85}
+                style={{ filter: 'url(#glowAmber)' }}
               />
             </ScatterChart>
           </ResponsiveContainer>

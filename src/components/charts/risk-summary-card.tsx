@@ -18,6 +18,7 @@ import { useState } from 'react';
 
 interface RiskSummaryCardProps {
   curators: Curator[];
+  hideWhenEmpty?: boolean;
 }
 
 interface RatingSummary {
@@ -132,7 +133,7 @@ function calculateRatingSummary(curators: Curator[]): RatingSummary {
   };
 }
 
-export function RiskSummaryCard({ curators }: RiskSummaryCardProps) {
+export function RiskSummaryCard({ curators, hideWhenEmpty }: RiskSummaryCardProps) {
   const [showLegend, setShowLegend] = useState(false);
   const summary = calculateRatingSummary(curators);
 
@@ -154,7 +155,7 @@ export function RiskSummaryCard({ curators }: RiskSummaryCardProps) {
   const health = getHealthStatus();
 
   if (summary.curatorsWithRatings === 0) {
-    return <EmptyStateCard title="Protocol Risk Summary" message="No credit rating data available for assessment." />;
+    return hideWhenEmpty ? null : <EmptyStateCard title="Protocol Risk Summary" message="No credit rating data available for assessment." />;
   }
 
   // Calculate rating distribution for visualization

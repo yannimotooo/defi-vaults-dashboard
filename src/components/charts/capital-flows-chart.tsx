@@ -11,29 +11,32 @@ import type { Curator } from '@/types';
 
 interface CapitalFlowsChartProps {
   curators: Curator[];
+  hideWhenEmpty?: boolean;
 }
 
 type Period = '7d' | '30d';
 
-export function CapitalFlowsChart({ curators }: CapitalFlowsChartProps) {
+export function CapitalFlowsChart({ curators, hideWhenEmpty }: CapitalFlowsChartProps) {
   const [period, setPeriod] = useState<Period>('7d');
   const router = useRouter();
 
   const chartData = useMemo(() => {
-    const data = curators
-      .map((c, i) => {
-        const flow = period === '7d' ? c.netFlow7d : c.netFlow30d;
-        return {
-          name: formatCuratorShortName(c.name),
-          fullName: c.name,
-          slug: c.slug,
-          flow,
-          tvl: c.totalTvl,
-          flowPercent: c.totalTvl > 0 ? (flow / c.totalTvl) * 100 : 0,
-          color: getCuratorColor(c.name, i),
-        };
-      })
-      .filter(d => Math.abs(d.flow) > 1000)
+    const mapped = curators.map((c, i) => {
+      const flow = period === '7d' ? c.netFlow7d : c.netFlow30d;
+      return {
+        name: formatCuratorShortName(c.name),
+        fullName: c.name,
+        slug: c.slug,
+        flow,
+        tvl: c.totalTvl,
+        flowPercent: c.totalTvl > 0 ? (flow / c.totalTvl) * 100 : 0,
+        color: getCuratorColor(c.name, i),
+      };
+    });
+    // Dynamic threshold: use 1000 if any curator qualifies, otherwise 0
+    const threshold = mapped.some(d => Math.abs(d.flow) > 1000) ? 1000 : 0;
+    const data = mapped
+      .filter(d => Math.abs(d.flow) > threshold)
       .sort((a, b) => b.flow - a.flow)
       .slice(0, 12);
     return data;
@@ -53,12 +56,12 @@ export function CapitalFlowsChart({ curators }: CapitalFlowsChartProps) {
   };
 
   const totalWithFlow = useMemo(() =>
-    curators.filter(c => Math.abs(period === '7d' ? c.netFlow7d : c.netFlow30d) > 1000).length,
+    curators.filter(c => Math.abs(period === '7d' ? c.netFlow7d : c.netFlow30d) > 0).length,
     [curators, period]
   );
 
   if (chartData.length === 0) {
-    return <EmptyStateCard title="Capital Movement" message="No significant capital flows detected in this period." />;
+    return hideWhenEmpty ? null : <EmptyStateCard title="Capital Movement" message="No significant capital flows detected in this period." />;
   }
 
   // Find the max absolute value for symmetric axis

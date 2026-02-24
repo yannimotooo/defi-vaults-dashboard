@@ -40,20 +40,24 @@ export function FlowBreakdownChart({ curators, vaults }: FlowBreakdownChartProps
             >
               <defs>
                 <linearGradient id="breakStableIn" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#6366F1" stopOpacity={0.9} />
-                  <stop offset="100%" stopColor="#6366F1" stopOpacity={0.55} />
+                  <stop offset="0%" stopColor="#6366F1" stopOpacity={1} />
+                  <stop offset="50%" stopColor="#6366F1" stopOpacity={0.75} />
+                  <stop offset="100%" stopColor="#6366F1" stopOpacity={0.5} />
                 </linearGradient>
                 <linearGradient id="breakNonStableIn" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#10B981" stopOpacity={0.9} />
-                  <stop offset="100%" stopColor="#10B981" stopOpacity={0.55} />
+                  <stop offset="0%" stopColor="#10B981" stopOpacity={1} />
+                  <stop offset="50%" stopColor="#10B981" stopOpacity={0.75} />
+                  <stop offset="100%" stopColor="#10B981" stopOpacity={0.5} />
                 </linearGradient>
                 <linearGradient id="breakStableOut" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#F59E0B" stopOpacity={0.9} />
-                  <stop offset="100%" stopColor="#F59E0B" stopOpacity={0.55} />
+                  <stop offset="0%" stopColor="#F59E0B" stopOpacity={1} />
+                  <stop offset="50%" stopColor="#F59E0B" stopOpacity={0.75} />
+                  <stop offset="100%" stopColor="#F59E0B" stopOpacity={0.5} />
                 </linearGradient>
                 <linearGradient id="breakNonStableOut" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#EF4444" stopOpacity={0.9} />
-                  <stop offset="100%" stopColor="#EF4444" stopOpacity={0.55} />
+                  <stop offset="0%" stopColor="#EF4444" stopOpacity={1} />
+                  <stop offset="50%" stopColor="#EF4444" stopOpacity={0.75} />
+                  <stop offset="100%" stopColor="#EF4444" stopOpacity={0.5} />
                 </linearGradient>
               </defs>
               <XAxis
@@ -76,7 +80,7 @@ export function FlowBreakdownChart({ curators, vaults }: FlowBreakdownChartProps
                   if (active && payload && payload.length) {
                     const data = payload[0].payload;
                     return (
-                      <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-lg min-w-[200px]">
+                      <div className="rounded-lg border border-gray-200 bg-white/95 backdrop-blur-sm p-3 shadow-lg min-w-[200px]">
                         <p className="font-medium text-gray-900 text-[14px] mb-2">{data.name}</p>
                         <div className="space-y-1.5 text-[13px]">
                           <div className="flex justify-between">
@@ -105,30 +109,30 @@ export function FlowBreakdownChart({ curators, vaults }: FlowBreakdownChartProps
               />
               <Legend
                 content={() => (
-                  <div className="flex items-center justify-center gap-3 sm:gap-4 mt-2 text-[11px] flex-wrap">
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-sm bg-indigo-500" />
-                      <span className="text-gray-500">Stable In</span>
+                  <div className="flex items-center justify-center gap-2 sm:gap-3 mt-2 text-[11px] flex-wrap">
+                    <span className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-200/50">
+                      <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                      Stable In
                     </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500" />
-                      <span className="text-gray-500">Non-Stable In</span>
+                    <span className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200/50">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                      Non-Stable In
                     </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-sm bg-amber-500" />
-                      <span className="text-gray-500">Stable Out</span>
+                    <span className="flex items-center gap-1.5 bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200/50">
+                      <span className="w-2 h-2 rounded-full bg-amber-500" />
+                      Stable Out
                     </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-sm bg-red-500" />
-                      <span className="text-gray-500">Non-Stable Out</span>
+                    <span className="flex items-center gap-1.5 bg-red-50 text-red-700 px-2 py-0.5 rounded-full border border-red-200/50">
+                      <span className="w-2 h-2 rounded-full bg-red-500" />
+                      Non-Stable Out
                     </span>
                   </div>
                 )}
               />
-              <Bar dataKey="stablecoinInflow" stackId="inflow" fill="url(#breakStableIn)" radius={[0, 0, 0, 0]} maxBarSize={28} />
-              <Bar dataKey="nonStableInflow" stackId="inflow" fill="url(#breakNonStableIn)" radius={[4, 4, 0, 0]} maxBarSize={28} />
-              <Bar dataKey="stablecoinOutflow" stackId="outflow" fill="url(#breakStableOut)" radius={[0, 0, 0, 0]} maxBarSize={28} />
-              <Bar dataKey="nonStableOutflow" stackId="outflow" fill="url(#breakNonStableOut)" radius={[4, 4, 0, 0]} maxBarSize={28} />
+              <Bar dataKey="stablecoinInflow" stackId="inflow" fill="url(#breakStableIn)" radius={[0, 0, 0, 0]} maxBarSize={28} cursor="pointer" />
+              <Bar dataKey="nonStableInflow" stackId="inflow" fill="url(#breakNonStableIn)" radius={[4, 4, 0, 0]} maxBarSize={28} cursor="pointer" />
+              <Bar dataKey="stablecoinOutflow" stackId="outflow" fill="url(#breakStableOut)" radius={[0, 0, 0, 0]} maxBarSize={28} cursor="pointer" />
+              <Bar dataKey="nonStableOutflow" stackId="outflow" fill="url(#breakNonStableOut)" radius={[4, 4, 0, 0]} maxBarSize={28} cursor="pointer" />
             </BarChart>
           </ResponsiveContainer>
         </div>

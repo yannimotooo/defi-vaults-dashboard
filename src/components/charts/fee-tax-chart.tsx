@@ -10,11 +10,12 @@ import type { Curator } from '@/types';
 
 interface FeeTaxChartProps {
   curators: Curator[];
+  hideWhenEmpty?: boolean;
 }
 
 type SortBy = 'feeImpact' | 'grossApy';
 
-export function FeeTaxChart({ curators }: FeeTaxChartProps) {
+export function FeeTaxChart({ curators, hideWhenEmpty }: FeeTaxChartProps) {
   const [sortBy, setSortBy] = useState<SortBy>('feeImpact');
   const router = useRouter();
 
@@ -107,7 +108,7 @@ export function FeeTaxChart({ curators }: FeeTaxChartProps) {
   );
 
   if (chartData.length === 0) {
-    return <EmptyStateCard title="Fee Economics" message="No fee data available for curators yet." />;
+    return hideWhenEmpty ? null : <EmptyStateCard title="Fee Economics" message="No fee data available for curators yet." />;
   }
 
   return (

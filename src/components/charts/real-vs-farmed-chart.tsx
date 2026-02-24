@@ -11,11 +11,12 @@ import type { Curator, VaultData } from '@/types';
 interface RealVsFarmedChartProps {
   vaults: VaultData[];
   curators: Curator[];
+  hideWhenEmpty?: boolean;
 }
 
 type SortBy = 'tvl' | 'organicPct' | 'totalApy';
 
-export function RealVsFarmedChart({ vaults, curators }: RealVsFarmedChartProps) {
+export function RealVsFarmedChart({ vaults, curators, hideWhenEmpty }: RealVsFarmedChartProps) {
   const [sortBy, setSortBy] = useState<SortBy>('tvl');
   const router = useRouter();
 
@@ -122,7 +123,7 @@ export function RealVsFarmedChart({ vaults, curators }: RealVsFarmedChartProps) 
   }, [vaults]);
 
   if (chartData.length === 0) {
-    return <EmptyStateCard title="Yield Quality" message="No vault yield data available for analysis." />;
+    return hideWhenEmpty ? null : <EmptyStateCard title="Yield Quality" message="No vault yield data available for analysis." />;
   }
 
   return (

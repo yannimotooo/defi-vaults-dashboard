@@ -22,23 +22,37 @@ export function FlowsTab({ curators, vaults, overview }: FlowsTabProps) {
         <FlowSummaryStats curators={curators} />
       </div>
 
-      {/* Flows by Chain + Flows by Protocol */}
+      {/* Section: Where Money Flows */}
+      <div className="mb-4 mt-2">
+        <h3 className="text-[13px] font-semibold text-gray-800 tracking-tight">Where Money Flows</h3>
+        <p className="text-[11px] text-gray-400 mt-0.5">Net capital movement across chains and protocols over the selected period.</p>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <FlowByChainChart curators={curators} vaults={vaults} />
         <FlowByProtocolChart overview={overview} />
       </div>
 
-      {/* Yield-Chasing Scatter — signature chart */}
+      {/* Section: Yield-Chasing Patterns */}
+      <div className="mb-4 mt-2">
+        <h3 className="text-[13px] font-semibold text-gray-800 tracking-tight">Yield-Chasing Patterns</h3>
+        <p className="text-[11px] text-gray-400 mt-0.5">Does higher yield attract more capital? Bubble size represents TVL.</p>
+      </div>
+
       <div className="mb-8">
         <YieldFlowScatter curators={curators} vaults={vaults} />
       </div>
 
-      {/* Flow Direction Breakdown */}
+      {/* Section: Flow Breakdown */}
+      <div className="mb-4 mt-2">
+        <h3 className="text-[13px] font-semibold text-gray-800 tracking-tight">Flow Breakdown</h3>
+        <p className="text-[11px] text-gray-400 mt-0.5">Detailed flow analysis by asset type and per-curator capital movement.</p>
+      </div>
+
       <div className="mb-8">
         <FlowBreakdownChart curators={curators} vaults={vaults} />
       </div>
 
-      {/* Capital Flows by Curator (reuse existing) */}
       <CapitalFlowsChart curators={curators} />
     </>
   );

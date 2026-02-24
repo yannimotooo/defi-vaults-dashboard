@@ -46,13 +46,18 @@ export function FlowByChainChart({ curators, vaults }: FlowByChainChartProps) {
             >
               <defs>
                 <linearGradient id="chainFlowPos" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="#10B981" stopOpacity={0.55} />
+                  <stop offset="0%" stopColor="#10B981" stopOpacity={0.35} />
+                  <stop offset="40%" stopColor="#10B981" stopOpacity={0.7} />
                   <stop offset="100%" stopColor="#10B981" stopOpacity={1} />
                 </linearGradient>
                 <linearGradient id="chainFlowNeg" x1="1" y1="0" x2="0" y2="0">
-                  <stop offset="0%" stopColor="#EF4444" stopOpacity={0.55} />
+                  <stop offset="0%" stopColor="#EF4444" stopOpacity={0.35} />
+                  <stop offset="40%" stopColor="#EF4444" stopOpacity={0.7} />
                   <stop offset="100%" stopColor="#EF4444" stopOpacity={1} />
                 </linearGradient>
+                <filter id="chainBarShadow">
+                  <feDropShadow dx="0" dy="1" stdDeviation="1.5" floodColor="#000" floodOpacity="0.06" />
+                </filter>
               </defs>
               <XAxis
                 type="number"
@@ -73,13 +78,13 @@ export function FlowByChainChart({ curators, vaults }: FlowByChainChartProps) {
                 tickLine={false}
                 axisLine={false}
               />
-              <ReferenceLine x={0} stroke="#E5E7EB" strokeDasharray="3 6" />
+              <ReferenceLine x={0} stroke="#D1D5DB" strokeWidth={1.5} />
               <Tooltip
                 content={({ active, payload }) => {
                   if (active && payload && payload.length) {
                     const data = payload[0].payload;
                     return (
-                      <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-lg min-w-[200px]">
+                      <div className="rounded-lg border border-gray-200 bg-white/95 backdrop-blur-sm p-3 shadow-lg min-w-[200px]">
                         <p className="font-medium text-gray-900 text-[14px] mb-2">{data.name}</p>
                         <div className="space-y-1.5 text-[13px]">
                           <div className="flex justify-between">
@@ -106,11 +111,12 @@ export function FlowByChainChart({ curators, vaults }: FlowByChainChartProps) {
                 }}
                 cursor={{ fill: 'rgba(0, 0, 0, 0.03)' }}
               />
-              <Bar dataKey="flow7d" radius={[6, 6, 6, 6]} maxBarSize={24}>
+              <Bar dataKey="flow7d" radius={[6, 6, 6, 6]} maxBarSize={24} cursor="pointer" style={{ filter: 'url(#chainBarShadow)' }}>
                 {chartData.map((entry, index) => (
                   <Cell
                     key={`cell-${index}`}
                     fill={entry.flow7d >= 0 ? 'url(#chainFlowPos)' : 'url(#chainFlowNeg)'}
+                    className="hover:opacity-80 transition-opacity"
                   />
                 ))}
               </Bar>

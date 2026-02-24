@@ -86,22 +86,22 @@ export function OverviewTab({ overviewData, curators, historicalData, vaults, on
       {/* Capital Flows */}
       {curators.length > 0 && (
         <div className="mb-8">
-          <CapitalFlowsChart curators={curators} />
+          <CapitalFlowsChart curators={curators} hideWhenEmpty />
         </div>
       )}
 
       {/* Fee Tax + Real vs Farmed Yield */}
       {curators.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <FeeTaxChart curators={curators} />
-          <RealVsFarmedChart vaults={vaults} curators={curators} />
+          <FeeTaxChart curators={curators} hideWhenEmpty />
+          <RealVsFarmedChart vaults={vaults} curators={curators} hideWhenEmpty />
         </div>
       )}
 
       {/* Risk Summary */}
       {curators.length > 0 && (
         <div className="mb-8">
-          <RiskSummaryCard curators={curators} />
+          <RiskSummaryCard curators={curators} hideWhenEmpty />
         </div>
       )}
 
