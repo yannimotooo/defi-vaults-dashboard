@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronDown, X, Flame } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Curator } from '@/types';
-import { WatchlistFilterToggle } from './watchlist';
 
 /**
  * Phase 4.a — Global filter bar.
@@ -218,7 +217,6 @@ export function GlobalFilterBar({ curators }: GlobalFilterBarProps) {
         <Flame className="h-3.5 w-3.5" />
         Emerging
       </button>
-      <WatchlistFilterToggle />
       {activeCount > 0 && (
         <button
           onClick={clearAll}

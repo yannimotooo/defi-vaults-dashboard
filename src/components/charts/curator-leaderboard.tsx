@@ -11,8 +11,7 @@ import { ChainIcon, ProtocolIcon } from '@/components/ui/protocol-icon';
 import type { Curator } from '@/types';
 import { StrategyTags } from '@/components/ui/strategy-tag';
 import { PlatformBadges } from '@/components/ui/platform-badge';
-import { StarButton } from '@/components/ui/watchlist';
-import { ChevronDown, ChevronRight, ExternalLink, AlertTriangle, TrendingDown, Download } from 'lucide-react';
+import { ChevronDown, ChevronRight, ExternalLink, AlertTriangle, TrendingDown } from 'lucide-react';
 
 interface CuratorLeaderboardProps {
   curators: Curator[];
@@ -25,75 +24,6 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
     setExpandedCurator(expandedCurator === slug ? null : slug);
   };
 
-  /**
-   * Export the currently-displayed curator list as CSV.
-   *
-   * Respects whatever filters are active — `curators` is already the
-   * post-filter list, so toggling Solana + clicking export gives a Solana-
-   * only file. Excel-safe: numeric fields are emitted unquoted, string
-   * fields are quoted with internal `"` escaped as `""`.
-   *
-   * Done with vanilla browser APIs (Blob + URL.createObjectURL) — no
-   * dependency on a CSV library, no server round-trip.
-   */
-  const downloadCsv = () => {
-    const headers = [
-      'Rank',
-      'Curator',
-      'Slug',
-      'TVL (USD)',
-      'TVL Source',
-      'Vault Count',
-      'Avg APY (%)',
-      'Performance Fee (%)',
-      'Management Fee (%)',
-      'Net Flow 7d (USD)',
-      'Net Flow 30d (USD)',
-      'Risk Level',
-      'Credit Rating',
-      'Investment Grade',
-      'Chains',
-      'Protocols',
-      'Platforms',
-    ];
-    const escape = (v: unknown): string => {
-      if (v == null) return '';
-      const s = String(v);
-      // Quote strings only when they contain CSV-significant chars
-      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-    };
-    const rows = curators.map((c, i) => [
-      i + 1,
-      escape(c.name),
-      escape(c.slug),
-      Math.round(c.totalTvl),
-      escape(c.tvlSource ?? ''),
-      c.vaultCount,
-      c.avgApy.toFixed(2),
-      c.avgPerformanceFee?.toFixed(2) ?? '',
-      c.avgManagementFee?.toFixed(2) ?? '',
-      Math.round(c.netFlow7d),
-      Math.round(c.netFlow30d),
-      escape(c.riskLevel ?? ''),
-      escape(c.creditRating ?? ''),
-      c.investmentGrade ? 'TRUE' : 'FALSE',
-      escape((c.chains || []).join('; ')),
-      escape((c.protocols || []).join('; ')),
-      escape((c.platforms || []).map(p => p.name).join('; ')),
-    ]);
-    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const date = new Date().toISOString().slice(0, 10);
-    a.href = url;
-    a.download = `defi-vault-curators-${date}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
   return (
     <Card>
       <CardHeader>
@@ -102,19 +32,7 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
             <p className="text-[11px] uppercase tracking-widest text-gray-500 font-medium mb-1">Rankings</p>
             <CardTitle>Curator Leaderboard</CardTitle>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-[12px] text-gray-400 font-mono">{curators.length} curators</span>
-            <button
-              onClick={downloadCsv}
-              disabled={curators.length === 0}
-              title="Download current view as CSV"
-              aria-label="Download curator leaderboard as CSV"
-              className="flex items-center gap-1 px-2 py-1 text-[11px] text-gray-500 border border-gray-200 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Download className="h-3 w-3" />
-              CSV
-            </button>
-          </div>
+          <span className="text-[12px] text-gray-400 font-mono">{curators.length} curators</span>
         </div>
       </CardHeader>
       <CardContent className="p-0">
@@ -154,10 +72,6 @@ export function CuratorLeaderboard({ curators }: CuratorLeaderboardProps) {
                           <ChevronRight className="h-3 sm:h-3.5 w-3 sm:w-3.5 text-gray-400 flex-shrink-0" />
                         )}
                         <span className="font-mono text-gray-500 text-[12px] sm:text-[13px]">{index + 1}</span>
-                        {/* Star button shares the rank cell — keeps the row compact while
-                            making the watchlist toggle reachable on every row. The
-                            button stops propagation so clicking it doesn't expand the row. */}
-                        <StarButton slug={curator.slug} size={14} className="-ml-0.5" />
                       </div>
                     </td>
                     <td className="px-3 sm:px-5 py-3 sm:py-4">
