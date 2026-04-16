@@ -11,6 +11,11 @@ import {
   useGlobalFilters,
   applyFiltersToCurators,
 } from '@/components/ui/global-filter-bar';
+import {
+  useWatchlist,
+  useWatchedOnlyMode,
+  applyWatchlistFilter,
+} from '@/components/ui/watchlist';
 
 const CuratorsTab = lazy(() => import('@/components/tabs/CuratorsTab').then(m => ({ default: m.CuratorsTab })));
 const ProtocolsTab = lazy(() => import('@/components/tabs/ProtocolsTab').then(m => ({ default: m.ProtocolsTab })));
@@ -116,14 +121,17 @@ function Dashboard() {
   const topVaults = vaultsResponse?.vaults ?? [];
   const liquidationData = riskResponse?.multiProtocolLiquidations ?? null;
 
-  // Apply global filters (chains/protocols/minTvl from URL params).
-  // Filtered set is what flows into the tab components — empty filter set
-  // means pass-through, so this is a no-op until the user activates a filter.
+  // Apply global filters (chains/protocols/minTvl from URL params), then the
+  // watchlist filter (?watched=1) on top. Two-stage so the filter bar's
+  // chip counts reflect the unfiltered watchlist count, while tabs see the
+  // intersection.
   const filters = useGlobalFilters();
-  const curators = useMemo(
-    () => applyFiltersToCurators(allCurators, filters),
-    [allCurators, filters],
-  );
+  const watchedOnly = useWatchedOnlyMode();
+  const { watched } = useWatchlist();
+  const curators = useMemo(() => {
+    const filtered = applyFiltersToCurators(allCurators, filters);
+    return applyWatchlistFilter(filtered, watched, watchedOnly);
+  }, [allCurators, filters, watched, watchedOnly]);
   const loading = overviewLoading;
   const error = overviewError?.message ?? null;
 

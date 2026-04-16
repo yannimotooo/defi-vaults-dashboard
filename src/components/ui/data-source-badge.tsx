@@ -36,6 +36,26 @@ interface DataConfidenceBadgeProps {
   morphoTvl?: number;
   hasApyData?: boolean;
   showTooltip?: boolean;
+  /**
+   * Per-source TVL contributions (Phase 2 `tvlSources[]`). When provided,
+   * the tooltip renders a clean breakdown like:
+   *   morpho     $1.7B   (auth)
+   *   kamino     $0.0B   (auth)
+   *   defillama  $1.7B   (fallback)
+   * which makes the data hierarchy concrete instead of abstract.
+   */
+  tvlSources?: Array<{
+    source: 'morpho' | 'kamino' | 'euler' | 'defillama';
+    tvl: number;
+    authoritative: boolean;
+  }>;
+}
+
+function formatTvlCompact(usd: number): string {
+  if (usd >= 1e9) return `$${(usd / 1e9).toFixed(2)}B`;
+  if (usd >= 1e6) return `$${(usd / 1e6).toFixed(1)}M`;
+  if (usd >= 1e3) return `$${(usd / 1e3).toFixed(0)}K`;
+  return `$${usd.toFixed(0)}`;
 }
 
 export function DataConfidenceBadge({
@@ -45,7 +65,8 @@ export function DataConfidenceBadge({
   defillamaTvl,
   morphoTvl,
   hasApyData = true,
-  showTooltip = true
+  showTooltip = true,
+  tvlSources,
 }: DataConfidenceBadgeProps) {
   if (!confidence) return null;
 
@@ -120,12 +141,46 @@ export function DataConfidenceBadge({
       <span className={`text-[10px] ${textColor}`}>{label}</span>
 
       {showTooltip && (
-        <div className="absolute bottom-full right-0 mb-2 px-2 py-1.5 bg-white border border-gray-200 rounded-lg text-[11px] text-gray-500 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-lg">
+        <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-[11px] text-gray-500 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-lg min-w-[200px]">
           <p>{description}</p>
           {difference && (
             <p className="text-gray-400 mt-0.5">
               Difference: {difference}%
             </p>
+          )}
+          {tvlSources && tvlSources.length > 0 && (
+            <div className="mt-2 pt-2 border-t border-gray-100">
+              <p className="text-[9px] uppercase tracking-widest text-gray-400 mb-1.5">
+                TVL by source
+              </p>
+              <ul className="space-y-1">
+                {tvlSources.map(s => (
+                  <li
+                    key={s.source}
+                    className="flex items-center justify-between gap-3 text-[11px]"
+                  >
+                    <span className="text-gray-700 capitalize">{s.source}</span>
+                    <span className="flex items-center gap-2">
+                      <span
+                        className="font-medium text-gray-900"
+                        style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}
+                      >
+                        {formatTvlCompact(s.tvl)}
+                      </span>
+                      <span
+                        className={
+                          s.authoritative
+                            ? 'text-[9px] text-emerald-600 uppercase tracking-wider'
+                            : 'text-[9px] text-gray-400 uppercase tracking-wider'
+                        }
+                      >
+                        {s.authoritative ? 'auth' : 'fallback'}
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
         </div>
       )}
