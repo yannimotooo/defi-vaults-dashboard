@@ -1,10 +1,16 @@
 'use client';
 
-import { lazy, Suspense, useState, useEffect, useMemo } from 'react';
+import { lazy, Suspense, useState, useEffect, useMemo, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import { DataFreshnessBadge } from '@/components/ui/data-freshness-badge';
 import { LoadingChart } from '@/components/ui/loading-chart';
 import { OverviewTab } from '@/components/tabs/OverviewTab';
+import {
+  GlobalFilterBar,
+  useGlobalFilters,
+  applyFiltersToCurators,
+} from '@/components/ui/global-filter-bar';
 
 const CuratorsTab = lazy(() => import('@/components/tabs/CuratorsTab').then(m => ({ default: m.CuratorsTab })));
 const ProtocolsTab = lazy(() => import('@/components/tabs/ProtocolsTab').then(m => ({ default: m.ProtocolsTab })));
@@ -19,8 +25,25 @@ const fetcher = (url: string) => fetch(url).then(res => {
   return res.json();
 });
 
+const VALID_TABS: ReadonlySet<Tab> = new Set<Tab>([
+  'overview', 'curators', 'protocols', 'vaults', 'flows', 'liquidations',
+]);
+
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState<Tab>('overview');
+  // Tab state synced to URL ?tab=... so deep links and the back button work.
+  // Use router.replace (not push) so tab switches don't pollute history.
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tabFromUrl = searchParams.get('tab') as Tab | null;
+  const activeTab: Tab = tabFromUrl && VALID_TABS.has(tabFromUrl) ? tabFromUrl : 'overview';
+
+  const setActiveTab = useCallback((next: Tab) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (next === 'overview') params.delete('tab');
+    else params.set('tab', next);
+    const qs = params.toString();
+    router.replace(qs ? `?${qs}` : '?', { scroll: false });
+  }, [router, searchParams]);
 
   const swrOpts = { refreshInterval: 5 * 60 * 1000, revalidateOnFocus: false };
 
@@ -39,11 +62,20 @@ export default function Dashboard() {
     fetcher, swrOpts
   );
 
-  const curators = curatorResponse?.curators ?? [];
+  const allCurators = curatorResponse?.curators ?? [];
   const curatorValidation = curatorResponse?.validation ?? null;
   const historicalData = historicalResponse?.curators ?? [];
   const topVaults = vaultsResponse?.vaults ?? [];
   const liquidationData = riskResponse?.multiProtocolLiquidations ?? null;
+
+  // Apply global filters (chains/protocols/minTvl from URL params).
+  // Filtered set is what flows into the tab components — empty filter set
+  // means pass-through, so this is a no-op until the user activates a filter.
+  const filters = useGlobalFilters();
+  const curators = useMemo(
+    () => applyFiltersToCurators(allCurators, filters),
+    [allCurators, filters],
+  );
   const loading = overviewLoading;
   const error = overviewError?.message ?? null;
 
@@ -174,6 +206,10 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-20 sm:pb-8">
+        {/* Global filter bar — Phase 4.a. Persists to URL params; flows
+            into the curators array via useGlobalFilters above. */}
+        <GlobalFilterBar curators={allCurators} />
+
         <div className="tab-content-enter" key={activeTab}>
           {activeTab === 'overview' && (
             <OverviewTab overviewData={overviewData} curators={curators} historicalData={historicalData} vaults={topVaults} onNavigate={setActiveTab} />
