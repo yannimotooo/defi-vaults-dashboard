@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ChevronDown, X } from 'lucide-react';
+import { ChevronDown, X, Flame } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Curator } from '@/types';
 
@@ -27,6 +27,12 @@ export interface GlobalFilters {
   chains: Set<string>;
   protocols: Set<string>;
   minTvl: number;
+  /**
+   * Minimum 30-day net flow as a percentage of TVL. Positive values surface
+   * "emerging" / fast-growing curators (e.g. 50 = "30d growth ≥ 50%").
+   * 0 means no growth filter (default).
+   */
+  minGrowth30d: number;
 }
 
 /**
@@ -39,10 +45,12 @@ export function useGlobalFilters(): GlobalFilters {
     const chainsParam = params.get('chains');
     const protocolsParam = params.get('protocols');
     const minTvlParam = params.get('minTvl');
+    const minGrowthParam = params.get('minGrowth30d');
     return {
       chains: new Set(chainsParam ? chainsParam.split(',').filter(Boolean) : []),
       protocols: new Set(protocolsParam ? protocolsParam.split(',').filter(Boolean) : []),
       minTvl: minTvlParam ? Number(minTvlParam) || 0 : 0,
+      minGrowth30d: minGrowthParam ? Number(minGrowthParam) || 0 : 0,
     };
   }, [params]);
 }
@@ -55,12 +63,21 @@ export function applyFiltersToCurators(curators: Curator[], filters: GlobalFilte
   if (
     filters.chains.size === 0 &&
     filters.protocols.size === 0 &&
-    filters.minTvl <= 0
+    filters.minTvl <= 0 &&
+    filters.minGrowth30d <= 0
   ) {
     return curators;
   }
   return curators.filter(c => {
     if (filters.minTvl > 0 && c.totalTvl < filters.minTvl) return false;
+    // 30d growth filter: derive growth % from netFlow30d / totalTvl. Curators
+    // with 0 TVL or no flow data are excluded when this filter is active
+    // (we can't compute a growth rate for them).
+    if (filters.minGrowth30d > 0) {
+      if (!c.totalTvl || c.totalTvl <= 0) return false;
+      const growthPct = ((c.netFlow30d ?? 0) / c.totalTvl) * 100;
+      if (growthPct < filters.minGrowth30d) return false;
+    }
     if (filters.chains.size > 0) {
       const hasMatchingChain = (c.chains || []).some(ch => filters.chains.has(ch));
       if (!hasMatchingChain) return false;
@@ -131,12 +148,36 @@ export function GlobalFilterBar({ curators }: GlobalFilterBarProps) {
     next.delete('chains');
     next.delete('protocols');
     next.delete('minTvl');
+    next.delete('minGrowth30d');
     const qs = next.toString();
     router.replace(qs ? `?${qs}` : '?', { scroll: false });
   }, [params, router]);
 
+  /**
+   * "Emerging" quick-preset: curators that grew >50% over 30d AND have at
+   * least $10M TVL (filters out micro entries that hit huge growth %s on a
+   * tiny base). One-click toggle — clicking again clears just these two
+   * fields, leaving any chain/protocol filters intact.
+   */
+  const emergingActive = filters.minGrowth30d >= 50 && filters.minTvl >= 10_000_000;
+  const toggleEmerging = useCallback(() => {
+    const next = new URLSearchParams(params.toString());
+    if (emergingActive) {
+      next.delete('minGrowth30d');
+      next.delete('minTvl');
+    } else {
+      next.set('minGrowth30d', '50');
+      next.set('minTvl', String(10_000_000));
+    }
+    const qs = next.toString();
+    router.replace(qs ? `?${qs}` : '?', { scroll: false });
+  }, [emergingActive, params, router]);
+
   const activeCount =
-    filters.chains.size + filters.protocols.size + (filters.minTvl > 0 ? 1 : 0);
+    filters.chains.size +
+    filters.protocols.size +
+    (filters.minTvl > 0 ? 1 : 0) +
+    (filters.minGrowth30d > 0 ? 1 : 0);
 
   if (curators.length === 0) return null;
 
@@ -158,6 +199,24 @@ export function GlobalFilterBar({ curators }: GlobalFilterBarProps) {
         value={filters.minTvl}
         onChange={v => updateParam('minTvl', v > 0 ? String(v) : null)}
       />
+      <MinGrowthInput
+        value={filters.minGrowth30d}
+        onChange={v => updateParam('minGrowth30d', v > 0 ? String(v) : null)}
+      />
+      <button
+        onClick={toggleEmerging}
+        aria-pressed={emergingActive}
+        className={cn(
+          'flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium border transition-colors',
+          emergingActive
+            ? 'bg-orange-50 text-orange-700 border-orange-200'
+            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300',
+        )}
+        title="One-click: 30d growth ≥50% AND TVL ≥$10M"
+      >
+        <Flame className="h-3.5 w-3.5" />
+        Emerging
+      </button>
       {activeCount > 0 && (
         <button
           onClick={clearAll}
@@ -168,6 +227,32 @@ export function GlobalFilterBar({ curators }: GlobalFilterBarProps) {
           Clear ({activeCount})
         </button>
       )}
+    </div>
+  );
+}
+
+/**
+ * Min 30d growth filter — input expecting growth percentage (e.g. "50" for
+ * "30d growth ≥ 50%"). Useful for spotting fast-growing curators.
+ */
+function MinGrowthInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  return (
+    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-200 bg-white">
+      <span className="text-gray-500 text-[11px]">Min 30d growth</span>
+      <input
+        type="number"
+        min={0}
+        value={value > 0 ? value : ''}
+        onChange={e => {
+          const n = Number(e.target.value);
+          onChange(n > 0 ? n : 0);
+        }}
+        placeholder="0"
+        aria-label="Minimum 30-day growth percentage"
+        className="w-12 bg-transparent outline-none text-[12px] text-gray-900 text-right"
+        style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}
+      />
+      <span className="text-gray-400 text-[11px]">%</span>
     </div>
   );
 }
