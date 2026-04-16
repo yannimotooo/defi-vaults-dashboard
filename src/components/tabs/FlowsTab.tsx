@@ -6,6 +6,7 @@ import { FlowByProtocolChart } from '@/components/charts/flow-by-protocol-chart'
 import { YieldFlowScatter } from '@/components/charts/yield-flow-scatter';
 import { FlowBreakdownChart } from '@/components/charts/flow-breakdown-chart';
 import { CapitalFlowsChart } from '@/components/charts/capital-flows-chart';
+import { CuratorDisplacementFlows } from '@/components/charts/curator-displacement-flows';
 import type { Curator, VaultData, MarketOverview } from '@/types';
 
 interface FlowsTabProps {
@@ -20,6 +21,19 @@ export function FlowsTab({ curators, vaults, overview }: FlowsTabProps) {
       {/* Flow Summary Stats */}
       <div className="mb-8">
         <FlowSummaryStats curators={curators} />
+      </div>
+
+      {/* Section: Curator Displacement Flows (Phase 3 — historical data) */}
+      <div className="mb-4 mt-2 border-t border-gray-200 pt-6">
+        <h3 className="text-[13px] font-semibold text-gray-800 tracking-tight">Curator Displacement</h3>
+        <p className="text-[11px] text-gray-400 mt-0.5">
+          Net TVL flows per curator over a 7d/30d/90d window with heuristic
+          loser→gainer pairing. Historical TVL sourced from DeFiLlama.
+        </p>
+      </div>
+
+      <div className="mb-8">
+        <CuratorDisplacementFlows />
       </div>
 
       {/* Section: Where Money Flows */}
