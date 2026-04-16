@@ -1,8 +1,14 @@
 // Centralized curator name mappings — single source of truth
 // Used by: curators route, fees route, historical route, morpho.ts
+//
+// Last verified: 2026-04-16 — entries audited against DeFiLlama Risk Curators
+// + Onchain Capital Allocator categories. When adding/removing entries, also
+// confirm the slug exists in DeFiLlama's /protocols feed (some curators use
+// different slugs there than their public branding).
 
 // Maps curator slugs to all known name variations (first entry is canonical)
 export const CURATOR_NAME_VARIANTS: Record<string, string[]> = {
+  // === Risk Curators category ===
   'steakhouse-financial': ['Steakhouse Financial', 'Steakhouse'],
   'gauntlet': ['Gauntlet'],
   'sentora': ['Sentora'],
@@ -28,6 +34,30 @@ export const CURATOR_NAME_VARIANTS: Record<string, string[]> = {
   'singularv': ['SingularV'],
   'avantgarde': ['Avantgarde'],
   'apostro': ['Apostro'],
+  'rockawayx': ['RockawayX', 'Rockaway'],
+
+  // === Onchain Capital Allocator category (added 2026-04-16) ===
+  // These were missing from prior coverage. Combined ~$9B+ of TVL.
+  'veda': ['Veda', 'Veda Labs', 'BoringVault', 'Boring Vault'],
+  'mellow-core': ['Mellow', 'Mellow Core', 'Mellow Finance'],
+  'mellow-restaking': ['Mellow Restaking'],
+  'grove-finance': ['Grove', 'Grove Finance'],
+  'spark-liquidity-layer': ['Spark Liquidity Layer', 'Spark Liquidity', 'SLL'],
+  'concrete': ['Concrete'],
+  'ether.fi-liquid': ['ether.fi Liquid', 'EtherFi Liquid', 'EtherFi'],
+  'upshift': ['Upshift'],
+  'lagoon': ['Lagoon'],
+  'aera-v3': ['Aera', 'Aera v3'],
+  'aera-v2': ['Aera v2'],
+  'felix-vaults': ['Felix Vaults', 'Felix'],
+  'gain': ['Gain'],
+  'solv-strategies': ['Solv Strategies', 'Solv'],
+  'lombard-vaults': ['Lombard Vaults', 'Lombard'],
+  'plasma-saving-vaults': ['Plasma Saving Vaults', 'Plasma Savings'],
+  'makina': ['Makina'],
+  'moonwell-vaults': ['Moonwell Vaults', 'Moonwell'],
+  'ultrayield-vaults': ['UltraYield Vaults'],
+  'yieldnest': ['YieldNest'],
 };
 
 // Slug → canonical display name (first variant)

@@ -1,8 +1,11 @@
 // DeFiLlama API client (free tier)
 // Used for TVL data and cross-referencing
 
+import { fetchWithTimeout } from './http';
+
 const DEFILLAMA_API_BASE = 'https://api.llama.fi';
 const YIELDS_API_BASE = 'https://yields.llama.fi';
+const DEFILLAMA_TIMEOUT_MS = 12_000; // protocols/yields endpoints can be 5-10s under load
 
 export interface DefiLlamaProtocol {
   id: string;
@@ -57,7 +60,8 @@ export const VAULT_PROTOCOL_SLUGS = [
   'enzyme-finance',
 ];
 
-// Risk curator slugs - these are the actual curator entities
+// Risk curator slugs - fallback list for when DeFiLlama category matching
+// misses an entity (kept conservative; the category filter does the heavy lifting).
 export const RISK_CURATOR_SLUGS = [
   'steakhouse-financial',
   'gauntlet',
@@ -79,10 +83,34 @@ export const RISK_CURATOR_SLUGS = [
   'alphaping',
 ];
 
+/**
+ * DeFiLlama protocol categories that represent curator-managed vaults.
+ *
+ * - `Risk Curators` — the canonical category (Steakhouse, Gauntlet, MEV, RE7, etc.)
+ * - `Onchain Capital Allocator` — newer category covering platforms like
+ *   Veda ($1.18B), Mellow Core ($310M), Grove ($3.3B), Spark Liquidity Layer ($2B),
+ *   Concrete ($1.05B), Aera, Lagoon, Upshift, ether.fi-liquid, felix-vaults.
+ *   Combined with Risk Curators this captures ~$16B of curator-managed vault TVL.
+ *
+ * Add a new category here when DeFiLlama introduces another curator-style
+ * grouping. Don't add `Yield Aggregator` (too broad; 200+ entries, mostly
+ * legacy yield farms unrelated to the curator model).
+ */
+export const CURATOR_CATEGORIES = ['Risk Curators', 'Onchain Capital Allocator'] as const;
+
+/**
+ * Minimum TVL (USD) for a protocol to surface in the curator list.
+ * The OCA category has a long tail of micro entries (<$1M) that are mostly
+ * inactive or experimental. $10M filters these out while keeping every
+ * meaningfully active curator.
+ */
+export const MIN_CURATOR_TVL_USD = 10_000_000;
+
 // Get TVL for all protocols
 export async function getAllProtocols(): Promise<DefiLlamaProtocol[]> {
-  const response = await fetch(`${DEFILLAMA_API_BASE}/protocols`, {
+  const response = await fetchWithTimeout(`${DEFILLAMA_API_BASE}/protocols`, {
     next: { revalidate: 300 },
+    timeoutMs: DEFILLAMA_TIMEOUT_MS,
   });
 
   if (!response.ok) {
@@ -129,8 +157,9 @@ export interface HistoricalTvlPoint {
 // can distinguish "API down" from "no data for this slug" via server logs.
 export async function getProtocolHistoricalTvl(slug: string): Promise<HistoricalTvlPoint[]> {
   try {
-    const response = await fetch(`${DEFILLAMA_API_BASE}/protocol/${slug}`, {
+    const response = await fetchWithTimeout(`${DEFILLAMA_API_BASE}/protocol/${slug}`, {
       next: { revalidate: 300 },
+      timeoutMs: DEFILLAMA_TIMEOUT_MS,
     });
 
     if (!response.ok) {
@@ -244,17 +273,31 @@ export function filterVaultProtocols(protocols: DefiLlamaProtocol[]): DefiLlamaP
   );
 }
 
-// Filter for risk curators specifically
+/**
+ * Filter all DeFiLlama protocols down to curator-managed vault entities.
+ *
+ * Inclusion rules (any one matches):
+ *   1. category in CURATOR_CATEGORIES (Risk Curators OR Onchain Capital Allocator)
+ *   2. slug in RISK_CURATOR_SLUGS fallback list
+ *
+ * Then applies MIN_CURATOR_TVL_USD floor to drop micro entries (mostly inactive).
+ *
+ * Pre-Phase-2 this only matched `Risk Curators`, missing ~$9B of TVL across the
+ * Onchain Capital Allocator category (Veda, Mellow, Grove, Spark Liquidity
+ * Layer, Concrete, Aera, Lagoon, Upshift, ether.fi-liquid, etc.).
+ */
 export function filterRiskCurators(protocols: DefiLlamaProtocol[]): DefiLlamaProtocol[] {
-  return protocols.filter(p =>
-    // Primary: Use DeFiLlama's category
-    p.category === 'Risk Curators' ||
-    // Fallback: Match known curator slugs
-    RISK_CURATOR_SLUGS.some(rc =>
+  const categorySet = new Set<string>(CURATOR_CATEGORIES);
+  return protocols.filter(p => {
+    const matchesCategory = categorySet.has(p.category);
+    const matchesSlug = RISK_CURATOR_SLUGS.some(rc =>
       p.slug.toLowerCase() === rc ||
       p.slug.toLowerCase().includes(rc.replace('-', ''))
-    )
-  );
+    );
+    if (!matchesCategory && !matchesSlug) return false;
+    // TVL floor — keeps the long tail of micro/inactive OCA entries out
+    return (p.tvl ?? 0) >= MIN_CURATOR_TVL_USD;
+  });
 }
 
 // Get Solana-specific vault protocols
@@ -333,8 +376,9 @@ export interface VaultPool {
 // indistinguishable from "no pools" in downstream code.
 export async function getYieldPools(): Promise<VaultPool[]> {
   try {
-    const response = await fetch(`${YIELDS_API_BASE}/pools`, {
+    const response = await fetchWithTimeout(`${YIELDS_API_BASE}/pools`, {
       next: { revalidate: 300 },
+      timeoutMs: DEFILLAMA_TIMEOUT_MS,
     });
 
     if (!response.ok) {

@@ -35,6 +35,21 @@ export interface Curator {
   netFlow30d: number;
   // TVL source tracking (authoritative on-chain sources when available)
   tvlSource?: 'morpho' | 'kamino' | 'euler' | 'defillama';
+  /**
+   * Per-source TVL contributions for this curator (Phase 2). The dominant
+   * source is also reflected in `tvlSource`, but this array shows the full
+   * picture so UI can render "Morpho $1.2B + Kamino $300M + Euler $80M"
+   * breakdowns and surface cross-source discrepancies.
+   *
+   * `authoritative: true` means this came from the protocol's own data
+   * source (on-chain or first-party API). `authoritative: false` is the
+   * DeFiLlama aggregate fallback.
+   */
+  tvlSources?: Array<{
+    source: 'morpho' | 'kamino' | 'euler' | 'defillama';
+    tvl: number;
+    authoritative: boolean;
+  }>;
   morphoTvl?: number;      // On-chain Morpho TVL (authoritative)
   defillamaTvl?: number;   // DeFiLlama aggregated TVL (fallback)
   // Kamino (Solana) data - now with actual on-chain TVL

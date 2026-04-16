@@ -3,6 +3,9 @@
 // Supports both Vault V1 (legacy) and Vault V2 (current)
 
 import { decimalToPercent, percentToDecimal } from './fees';
+import { fetchWithTimeout } from './http';
+
+const MORPHO_TIMEOUT_MS = 12_000;
 
 const MORPHO_GRAPHQL_ENDPOINT = 'https://api.morpho.org/graphql';
 const MORPHO_BLUE_API = 'https://blue-api.morpho.org/graphql';
@@ -190,11 +193,12 @@ async function fetchVaultsWithQuery(
 
   while (hasMore) {
     try {
-      const response = await fetch(MORPHO_GRAPHQL_ENDPOINT, {
+      const response = await fetchWithTimeout(MORPHO_GRAPHQL_ENDPOINT, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        timeoutMs: MORPHO_TIMEOUT_MS,
         body: JSON.stringify({
           query,
           variables: { first: pageSize, skip },
@@ -533,11 +537,12 @@ export async function getMorphoCuratorsTvl(): Promise<MorphoCuratorTvl[]> {
   `;
 
   try {
-    const response = await fetch(MORPHO_BLUE_API, {
+    const response = await fetchWithTimeout(MORPHO_BLUE_API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query }),
       next: { revalidate: 300 },
+      timeoutMs: MORPHO_TIMEOUT_MS,
     });
 
     if (!response.ok) {
@@ -649,11 +654,12 @@ export async function getMorphoVaultsWithCurators(): Promise<MorphoVaultWithCura
   `;
 
   try {
-    const response = await fetch(MORPHO_BLUE_API, {
+    const response = await fetchWithTimeout(MORPHO_BLUE_API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query }),
       next: { revalidate: 300 },
+      timeoutMs: MORPHO_TIMEOUT_MS,
     });
 
     if (!response.ok) {

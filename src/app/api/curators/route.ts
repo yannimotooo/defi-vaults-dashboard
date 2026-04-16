@@ -95,8 +95,11 @@ function isKaminoDataStale(): boolean {
 
 export const revalidate = 300; // 5 minutes
 
-// Fallback curator metadata - only used when vault data is unavailable
+// Fallback curator metadata - only used when vault data is unavailable.
+// Last verified 2026-04-16. Includes both Risk Curators and Onchain Capital
+// Allocator entries. See src/lib/curator-names.ts for the full slug catalogue.
 const CURATOR_METADATA: Record<string, { protocols: string[] }> = {
+  // Risk Curators
   'steakhouse-financial': { protocols: ['Morpho', 'Kamino', 'Spark'] },
   'gauntlet': { protocols: ['Morpho', 'Kamino', 'Symbiotic', 'Drift'] },
   'sentora': { protocols: ['EtherFi', 'Morpho', 'Aave'] },
@@ -105,7 +108,7 @@ const CURATOR_METADATA: Record<string, { protocols: string[] }> = {
   're7-labs': { protocols: ['Morpho', 'Euler'] },
   'block-analitica': { protocols: ['Morpho', 'Spark'] },
   'euler-dao': { protocols: ['Euler'] },
-  'yearn-curating': { protocols: ['Yearn'] },
+  'yearn-curating': { protocols: ['Yearn', 'Morpho'] },
   'vault-bridge': { protocols: ['Morpho'] },
   'ultrayield-by-edge': { protocols: ['Morpho'] },
   'hyperithm': { protocols: ['Morpho'] },
@@ -117,6 +120,29 @@ const CURATOR_METADATA: Record<string, { protocols: string[] }> = {
   'kpk': { protocols: ['Morpho'] },
   'alphaping': { protocols: ['Morpho'] },
   '9summits': { protocols: ['Morpho'] },
+  'rockawayx': { protocols: ['Morpho', 'Solana'] },
+
+  // Onchain Capital Allocator (new in Phase 2 — 2026-04-16)
+  'veda': { protocols: ['BoringVault', 'Morpho', 'Aave'] },
+  'mellow-core': { protocols: ['EigenLayer', 'Symbiotic', 'Morpho'] },
+  'mellow-restaking': { protocols: ['EigenLayer'] },
+  'grove-finance': { protocols: ['Sky', 'Morpho'] },
+  'spark-liquidity-layer': { protocols: ['Spark', 'Morpho', 'Aave'] },
+  'concrete': { protocols: ['Concrete', 'Morpho'] },
+  'ether.fi-liquid': { protocols: ['EtherFi', 'EigenLayer'] },
+  'upshift': { protocols: ['Upshift'] },
+  'lagoon': { protocols: ['Lagoon'] },
+  'aera-v3': { protocols: ['Aera'] },
+  'aera-v2': { protocols: ['Aera'] },
+  'felix-vaults': { protocols: ['Felix', 'Hyperliquid'] },
+  'gain': { protocols: ['Gain'] },
+  'solv-strategies': { protocols: ['Solv', 'BTCFi'] },
+  'lombard-vaults': { protocols: ['Lombard', 'BTCFi'] },
+  'plasma-saving-vaults': { protocols: ['Plasma'] },
+  'makina': { protocols: ['Makina'] },
+  'moonwell-vaults': { protocols: ['Moonwell'] },
+  'ultrayield-vaults': { protocols: ['UltraYield'] },
+  'yieldnest': { protocols: ['YieldNest', 'EigenLayer'] },
 };
 
 // Calculate real metrics from vault data (using pre-fetched pools to avoid N+1 queries)
@@ -373,18 +399,32 @@ export async function GET() {
         // Look up fee data using multiple strategies (name matching is tricky)
         const feeData = lookupFeeData(p.name, p.slug, feeDataMap);
 
-        // Apply fee overrides for curators with known but not on-chain fees
+        // Apply fee overrides for curators with known but not on-chain fees.
+        // Match against any known name variant for this slug (DeFiLlama's
+        // p.name often differs from the override key — e.g. "Mellow Core" vs
+        // "Mellow" — so single-string match would silently miss).
+        const overrideCandidateNames = new Set<string>([
+          p.name.toLowerCase(),
+          formatCuratorName(p.name).toLowerCase(),
+          ...(CURATOR_NAME_VARIANTS[p.slug] || []).map(v => v.toLowerCase()),
+        ]);
         const feeOverride = Object.entries(CURATOR_FEE_OVERRIDES).find(
-          ([key]) => key.toLowerCase() === p.name.toLowerCase()
-            || key.toLowerCase() === formatCuratorName(p.name).toLowerCase()
+          ([key]) => overrideCandidateNames.has(key.toLowerCase()),
         )?.[1];
-        // CURATOR_FEE_OVERRIDES stores fees as decimals (0.01 = 1%) per the file's
-        // header comment. Convert to Percent at this consumption boundary.
+        // CURATOR_FEE_OVERRIDES stores fees as decimals (0.01 = 1%) per the
+        // file's header comment. Convert to Percent at this consumption
+        // boundary. An override only applies when the on-chain value is 0/null —
+        // real on-chain fees always win.
         const overriddenMgmtFee = (feeData?.avgManagementFee && feeData.avgManagementFee > 0)
           ? feeData.avgManagementFee
           : feeOverride?.managementFee != null
             ? decimalToPercent(feeOverride.managementFee)
             : feeData?.avgManagementFee;
+        const overriddenPerfFee = (feeData?.avgPerformanceFee && feeData.avgPerformanceFee > 0)
+          ? feeData.avgPerformanceFee
+          : feeOverride?.performanceFee != null
+            ? decimalToPercent(feeOverride.performanceFee)
+            : feeData?.avgPerformanceFee;
 
         // Look up Morpho on-chain TVL (try multiple name formats)
         const morphoData = morphoTvlMap.get(normalizeName(p.name))
@@ -414,55 +454,66 @@ export async function GET() {
               ? CURATOR_NAME_VARIANTS[p.slug].map(v => eulerTvlMap.get(normalizeName(v))).find(Boolean)
               : undefined);
 
-        // TVL Source Hierarchy (use authoritative on-chain data when available):
-        // 1. Morpho API TVL (authoritative for Morpho vaults)
-        // 2. Kamino on-chain TVL (authoritative for Solana/Kamino vaults)
-        // 3. Euler subgraph TVL (authoritative for Euler vaults)
-        // 4. DeFiLlama (fallback aggregator)
-        const defillamaTvl = p.tvl;
-        const morphoTvl = morphoData?.totalTvl || 0;
-        const kaminoTvl = kaminoData?.totalTvlUsd || 0;  // Now using actual on-chain TVL!
-        const eulerTvl = eulerData?.totalTvlUsd || 0;
+        // ---------------------------------------------------------------
+        // TVL Hierarchy (refactored Phase 2 — 2026-04-16)
+        // ---------------------------------------------------------------
+        // Each on-chain source is authoritative for its own protocol's TVL:
+        //   - morphoTvl: queried directly from Morpho GraphQL
+        //   - kaminoTvl: read directly from Solana on-chain accounts
+        //   - eulerTvl:  queried from per-chain Euler subgraphs
+        // Therefore SUMMING them is correct — they cover disjoint protocols.
+        // DeFiLlama is a fallback aggregator; we use it only when on-chain
+        // sources sum to ~zero (i.e. we don't have on-chain coverage of this
+        // curator's vaults yet).
+        //
+        // The `tvlSources` array exposes per-source contributions in the API
+        // response so discrepancies are debuggable from the client.
+        const defillamaTvl = p.tvl ?? 0;
+        const morphoTvl = morphoData?.totalTvl ?? 0;
+        const kaminoTvl = kaminoData?.totalTvlUsd ?? 0;
+        const eulerTvl = eulerData?.totalTvlUsd ?? 0;
+        const onChainSum = morphoTvl + kaminoTvl + eulerTvl;
 
-        // Determine TVL source and value based on hierarchy
-        let totalTvl = defillamaTvl;
-        let tvlSource: 'morpho' | 'kamino' | 'euler' | 'defillama' = 'defillama';
+        // Threshold for "we have meaningful on-chain coverage": at least $10k
+        // AND on-chain sum is ≥ 10% of DeFiLlama's number (or DeFiLlama is 0).
+        const hasOnChainCoverage = onChainSum > 10_000
+          && (defillamaTvl === 0 || onChainSum >= defillamaTvl * 0.1);
 
-        // Priority 1: Morpho on-chain TVL (if significant)
-        if (morphoTvl > 10000) {
-          // Use Morpho TVL if it's the primary source (within 50% of DeFiLlama)
-          const morphoIsPrimary = defillamaTvl > 0 && morphoTvl / defillamaTvl > 0.5;
-          if (morphoIsPrimary) {
-            totalTvl = morphoTvl;
-            tvlSource = 'morpho';
-          }
+        // Pick the dominant source for the singular `tvlSource` field
+        // (kept for backwards compat with existing UI consumers).
+        let tvlSource: 'morpho' | 'kamino' | 'euler' | 'defillama';
+        let totalTvl: number;
+        if (hasOnChainCoverage) {
+          totalTvl = onChainSum;
+          // Whichever on-chain source contributes the most labels the row.
+          if (morphoTvl >= kaminoTvl && morphoTvl >= eulerTvl) tvlSource = 'morpho';
+          else if (kaminoTvl >= eulerTvl) tvlSource = 'kamino';
+          else tvlSource = 'euler';
+        } else {
+          totalTvl = defillamaTvl;
+          tvlSource = 'defillama';
         }
 
-        // Priority 2: Kamino on-chain TVL (for Solana curators)
-        if (kaminoTvl > 10000 && tvlSource === 'defillama') {
-          // Kamino TVL is authoritative for Solana vaults
-          // Add to total if significant and not already counted
-          if (kaminoTvl > defillamaTvl * 0.1) { // Kamino is >10% of total
-            totalTvl = Math.max(defillamaTvl, kaminoTvl);
-            tvlSource = 'kamino';
-          }
-        }
+        // Per-source contribution array (only includes sources that contributed).
+        // Surfaces in the API response for debugging cross-source discrepancies.
+        const tvlSources: Array<{ source: 'morpho' | 'kamino' | 'euler' | 'defillama'; tvl: number; authoritative: boolean }> = [];
+        if (morphoTvl > 0) tvlSources.push({ source: 'morpho', tvl: morphoTvl, authoritative: true });
+        if (kaminoTvl > 0) tvlSources.push({ source: 'kamino', tvl: kaminoTvl, authoritative: true });
+        if (eulerTvl > 0) tvlSources.push({ source: 'euler', tvl: eulerTvl, authoritative: true });
+        if (defillamaTvl > 0) tvlSources.push({ source: 'defillama', tvl: defillamaTvl, authoritative: false });
 
-        // Priority 3: Euler subgraph TVL (for Euler curators)
-        if (eulerTvl > 10000 && tvlSource === 'defillama') {
-          const eulerIsPrimary = defillamaTvl > 0 && eulerTvl / defillamaTvl > 0.5;
-          if (eulerIsPrimary) {
-            totalTvl = eulerTvl;
-            tvlSource = 'euler';
+        // Log any large discrepancy (>20%) between on-chain sum and DeFiLlama.
+        // Helps catch staleness, missing curator-vault attribution, or
+        // protocol-side data bugs without spamming logs for normal variance.
+        if (defillamaTvl > 1_000_000 && onChainSum > 0) {
+          const ratio = onChainSum / defillamaTvl;
+          if (ratio < 0.8 || ratio > 1.25) {
+            console.warn(
+              `[Curators] TVL discrepancy for ${p.slug}: ` +
+              `on-chain=$${(onChainSum / 1e6).toFixed(1)}M vs DeFiLlama=$${(defillamaTvl / 1e6).toFixed(1)}M ` +
+              `(ratio=${ratio.toFixed(2)}, using=${tvlSource})`,
+            );
           }
-        }
-
-        // If we have multiple authoritative sources, combine them
-        // This handles curators who operate across multiple protocols
-        const authoritativeTvl = morphoTvl + kaminoTvl + eulerTvl;
-        if (authoritativeTvl > totalTvl * 1.1) {
-          // Authoritative sources sum to more than current total - use the higher value
-          totalTvl = Math.max(totalTvl, authoritativeTvl);
         }
 
         // Use real vault data when available, fallback to estimates
@@ -539,6 +590,7 @@ export async function GET() {
               : 0,
           // TVL source tracking (use authoritative sources when available)
           tvlSource,
+          tvlSources,
           morphoTvl: morphoTvl > 0 ? morphoTvl : undefined,
           defillamaTvl,
           // Kamino (Solana) data - now with actual on-chain TVL
@@ -550,8 +602,8 @@ export async function GET() {
           // Data confidence
           dataConfidence,
           duneTvl: crossRef?.duneTvl,
-          // Fee economics from Morpho + Euler
-          avgPerformanceFee: feeData?.avgPerformanceFee,
+          // Fee economics from Morpho + Euler (with manual overrides as fallback)
+          avgPerformanceFee: overriddenPerfFee,
           avgManagementFee: overriddenMgmtFee,
           estimatedAnnualRevenue: feeData?.estimatedAnnualFeeRevenue,
           grossApy: feeData?.avgGrossApy,
