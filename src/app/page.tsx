@@ -29,7 +29,27 @@ const VALID_TABS: ReadonlySet<Tab> = new Set<Tab>([
   'overview', 'curators', 'protocols', 'vaults', 'flows', 'liquidations',
 ]);
 
-export default function Dashboard() {
+/**
+ * Public default export — wraps the actual Dashboard component in a Suspense
+ * boundary because `useSearchParams()` (used inside Dashboard for the URL-tab
+ * sync and global filters) opts the route into client-side bailout, which
+ * Next.js requires us to mark explicitly with Suspense.
+ *
+ * Without this wrapper the production build fails to prerender "/" with:
+ *   useSearchParams() should be wrapped in a suspense boundary at page "/"
+ *
+ * Fallback shows the same LoadingChart as the in-component loading state
+ * so users never see an empty flash on initial paint.
+ */
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<LoadingChart progress={5} stage="Loading dashboard..." />}>
+      <Dashboard />
+    </Suspense>
+  );
+}
+
+function Dashboard() {
   // Tab state synced to URL ?tab=... so deep links and the back button work.
   // Use router.replace (not push) so tab switches don't pollute history.
   const router = useRouter();
@@ -44,6 +64,34 @@ export default function Dashboard() {
     const qs = params.toString();
     router.replace(qs ? `?${qs}` : '?', { scroll: false });
   }, [router, searchParams]);
+
+  // WAI-ARIA tablist keyboard navigation: Left/Right cycles through tabs,
+  // Home jumps to first, End to last. Activated tab also moves focus.
+  // The tab array order MUST match the visual order rendered in the tablist.
+  const TAB_ORDER: readonly Tab[] = useMemo(
+    () => ['overview', 'curators', 'protocols', 'vaults', 'flows', 'liquidations'] as const,
+    [],
+  );
+  const handleTablistKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      const currentIdx = TAB_ORDER.indexOf(activeTab);
+      let nextIdx = currentIdx;
+      if (e.key === 'ArrowRight') nextIdx = (currentIdx + 1) % TAB_ORDER.length;
+      else if (e.key === 'ArrowLeft') nextIdx = (currentIdx - 1 + TAB_ORDER.length) % TAB_ORDER.length;
+      else if (e.key === 'Home') nextIdx = 0;
+      else if (e.key === 'End') nextIdx = TAB_ORDER.length - 1;
+      else return; // not a navigation key — let the event bubble
+      e.preventDefault();
+      const nextTab = TAB_ORDER[nextIdx];
+      setActiveTab(nextTab);
+      // Move focus to the newly-active tab button so subsequent keys work
+      // from there. requestAnimationFrame waits for the re-render.
+      requestAnimationFrame(() => {
+        document.getElementById(`tab-${nextTab}`)?.focus();
+      });
+    },
+    [TAB_ORDER, activeTab, setActiveTab],
+  );
 
   const swrOpts = { refreshInterval: 5 * 60 * 1000, revalidateOnFocus: false };
 
@@ -173,34 +221,44 @@ export default function Dashboard() {
                   disabled={loading}
                   className="p-2 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50"
                   title="Refresh data"
+                  aria-label="Refresh data"
                 >
                   <RefreshCw className={`h-4 w-4 text-gray-500 ${loading ? 'animate-spin' : ''}`} />
                 </button>
               </div>
             </div>
 
-            {/* Pill Tabs - Desktop */}
-            <div className="hidden sm:flex gap-1 mt-3 -mb-px">
-              <TabButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon={<LayoutDashboard className="h-3.5 w-3.5" />} label="Overview" />
-              <TabButton active={activeTab === 'curators'} onClick={() => setActiveTab('curators')} icon={<Users className="h-3.5 w-3.5" />} label="Curators" />
-              <TabButton active={activeTab === 'protocols'} onClick={() => setActiveTab('protocols')} icon={<Layers className="h-3.5 w-3.5" />} label="Protocols" />
-              <TabButton active={activeTab === 'vaults'} onClick={() => setActiveTab('vaults')} icon={<Vault className="h-3.5 w-3.5" />} label="Vaults" />
-              <TabButton active={activeTab === 'flows'} onClick={() => setActiveTab('flows')} icon={<TrendingUp className="h-3.5 w-3.5" />} label="Flows" />
-              <TabButton active={activeTab === 'liquidations'} onClick={() => setActiveTab('liquidations')} icon={<Zap className="h-3.5 w-3.5" />} label="Liquidations" />
+            {/* Pill Tabs - Desktop. WAI-ARIA tablist with arrow-key navigation. */}
+            <div
+              role="tablist"
+              aria-label="Dashboard sections"
+              onKeyDown={handleTablistKeyDown}
+              className="hidden sm:flex gap-1 mt-3 -mb-px"
+            >
+              <TabButton tab="overview" active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon={<LayoutDashboard className="h-3.5 w-3.5" />} label="Overview" />
+              <TabButton tab="curators" active={activeTab === 'curators'} onClick={() => setActiveTab('curators')} icon={<Users className="h-3.5 w-3.5" />} label="Curators" />
+              <TabButton tab="protocols" active={activeTab === 'protocols'} onClick={() => setActiveTab('protocols')} icon={<Layers className="h-3.5 w-3.5" />} label="Protocols" />
+              <TabButton tab="vaults" active={activeTab === 'vaults'} onClick={() => setActiveTab('vaults')} icon={<Vault className="h-3.5 w-3.5" />} label="Vaults" />
+              <TabButton tab="flows" active={activeTab === 'flows'} onClick={() => setActiveTab('flows')} icon={<TrendingUp className="h-3.5 w-3.5" />} label="Flows" />
+              <TabButton tab="liquidations" active={activeTab === 'liquidations'} onClick={() => setActiveTab('liquidations')} icon={<Zap className="h-3.5 w-3.5" />} label="Liquidations" />
             </div>
           </div>
         </div>
       </header>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 backdrop-blur-md border-t border-gray-200 safe-area-pb" style={{ background: 'rgba(255, 255, 255, 0.96)' }}>
-        <div className="flex justify-around items-center h-14">
-          <MobileTabButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon={<LayoutDashboard className="h-5 w-5" />} label="Overview" />
-          <MobileTabButton active={activeTab === 'curators'} onClick={() => setActiveTab('curators')} icon={<Users className="h-5 w-5" />} label="Curators" />
-          <MobileTabButton active={activeTab === 'protocols'} onClick={() => setActiveTab('protocols')} icon={<Layers className="h-5 w-5" />} label="Protocols" />
-          <MobileTabButton active={activeTab === 'vaults'} onClick={() => setActiveTab('vaults')} icon={<Vault className="h-5 w-5" />} label="Vaults" />
-          <MobileTabButton active={activeTab === 'flows'} onClick={() => setActiveTab('flows')} icon={<TrendingUp className="h-5 w-5" />} label="Flows" />
-          <MobileTabButton active={activeTab === 'liquidations'} onClick={() => setActiveTab('liquidations')} icon={<Zap className="h-5 w-5" />} label="Liqs" />
+      <nav
+        className="sm:hidden fixed bottom-0 left-0 right-0 z-50 backdrop-blur-md border-t border-gray-200 safe-area-pb"
+        style={{ background: 'rgba(255, 255, 255, 0.96)' }}
+        aria-label="Dashboard sections (mobile)"
+      >
+        <div className="flex justify-around items-center h-14" role="tablist" onKeyDown={handleTablistKeyDown}>
+          <MobileTabButton tab="overview" active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon={<LayoutDashboard className="h-5 w-5" />} label="Overview" />
+          <MobileTabButton tab="curators" active={activeTab === 'curators'} onClick={() => setActiveTab('curators')} icon={<Users className="h-5 w-5" />} label="Curators" />
+          <MobileTabButton tab="protocols" active={activeTab === 'protocols'} onClick={() => setActiveTab('protocols')} icon={<Layers className="h-5 w-5" />} label="Protocols" />
+          <MobileTabButton tab="vaults" active={activeTab === 'vaults'} onClick={() => setActiveTab('vaults')} icon={<Vault className="h-5 w-5" />} label="Vaults" />
+          <MobileTabButton tab="flows" active={activeTab === 'flows'} onClick={() => setActiveTab('flows')} icon={<TrendingUp className="h-5 w-5" />} label="Flows" />
+          <MobileTabButton tab="liquidations" active={activeTab === 'liquidations'} onClick={() => setActiveTab('liquidations')} icon={<Zap className="h-5 w-5" />} label="Liquidations" />
         </div>
       </nav>
 
@@ -210,7 +268,17 @@ export default function Dashboard() {
             into the curators array via useGlobalFilters above. */}
         <GlobalFilterBar curators={allCurators} />
 
-        <div className="tab-content-enter" key={activeTab}>
+        <div
+          className="tab-content-enter"
+          key={activeTab}
+          role="tabpanel"
+          id={`tabpanel-${activeTab}`}
+          // Both desktop and mobile tab buttons share the same controls/labelledby
+          // ids (the buttons themselves are uniquely id'd as tab-X / mobile-tab-X).
+          // Reference whichever is rendered at the current breakpoint.
+          aria-labelledby={`tab-${activeTab}`}
+          tabIndex={0}
+        >
           {activeTab === 'overview' && (
             <OverviewTab overviewData={overviewData} curators={curators} historicalData={historicalData} vaults={topVaults} onNavigate={setActiveTab} />
           )}
@@ -273,11 +341,30 @@ function TabSkeleton() {
   );
 }
 
-function TabButton({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string }) {
+function TabButton({
+  tab,
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  tab: Tab;
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) {
   return (
     <button
+      id={`tab-${tab}`}
+      role="tab"
+      aria-selected={active}
+      aria-controls={`tabpanel-${tab}`}
+      // Roving tabindex pattern: only the active tab is in the focus order.
+      // Arrow keys move between tabs; Tab key skips to the panel.
+      tabIndex={active ? 0 : -1}
       onClick={onClick}
-      className={`flex items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-medium rounded-lg transition-all duration-150 ${
+      className={`flex items-center gap-1.5 px-3.5 py-1.5 text-[13px] font-medium rounded-lg transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 ${
         active
           ? 'bg-gray-100 text-gray-900'
           : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
@@ -289,16 +376,39 @@ function TabButton({ active, onClick, icon, label }: { active: boolean; onClick:
   );
 }
 
-function MobileTabButton({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string }) {
+function MobileTabButton({
+  tab,
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  tab: Tab;
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) {
   return (
     <button
+      id={`mobile-tab-${tab}`}
+      role="tab"
+      aria-selected={active}
+      aria-controls={`tabpanel-${tab}`}
+      // Use the canonical full label for screen readers; the visible text may
+      // be truncated (e.g. "Liquidations" → "Liqs").
+      aria-label={label}
+      tabIndex={active ? 0 : -1}
       onClick={onClick}
-      className={`flex flex-col items-center justify-center gap-1 flex-1 py-2 transition-colors ${
+      className={`flex flex-col items-center justify-center gap-1 flex-1 py-2 transition-colors focus:outline-none focus-visible:bg-indigo-50 ${
         active ? 'text-indigo-600' : 'text-gray-400'
       }`}
     >
       {icon}
-      <span className="text-[10px] font-medium">{label}</span>
+      {/* Visible text — truncated for layout. aria-label above is authoritative. */}
+      <span className="text-[10px] font-medium" aria-hidden="true">
+        {label === 'Liquidations' ? 'Liqs' : label}
+      </span>
     </button>
   );
 }
