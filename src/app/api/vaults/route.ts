@@ -4,6 +4,7 @@ import { getAllVaultsTvl } from '@/lib/dune';
 import { getVaultRiskWithCreditRatings, type VaultWithCreditRating } from '@/lib/risk';
 import { getVaultToCuratorMap } from '@/lib/morpho';
 import { DataSourceTracker } from '@/lib/data-source-tracker';
+import { decimalToPercent } from '@/lib/fees';
 
 // Symbol prefix to curator mapping for DeFiLlama data
 // This catches vaults where the symbol encodes the curator name
@@ -113,13 +114,15 @@ async function getMorphoVaultApyData(): Promise<MorphoVaultApy[]> {
     const data = await response.json();
     const vaults = data?.data?.vaults?.items || [];
 
+    // Morpho returns apy/netApy as decimals (0.05 = 5%). Convert to Percent
+    // at this source boundary; downstream code expects Percent throughout.
     const result = vaults.map((v: { address?: string; name: string; symbol: string; state: { totalAssetsUsd: number; apy: number; netApy: number } }) => ({
       address: (v.address || '').toLowerCase(),
       symbol: v.symbol,
       name: v.name,
       tvlUsd: v.state?.totalAssetsUsd || 0,
-      apy: (v.state?.apy || 0) * 100, // Convert to percentage
-      netApy: (v.state?.netApy || 0) * 100,
+      apy: decimalToPercent(v.state?.apy || 0),
+      netApy: decimalToPercent(v.state?.netApy || 0),
     }));
 
     // Cache the result

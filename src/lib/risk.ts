@@ -1,6 +1,8 @@
 // Risk Metrics Module
 // Fetches and aggregates risk data from Morpho, Euler, and other protocols
 
+import { decimalToPercent } from './fees';
+
 const MORPHO_GRAPHQL_API = 'https://blue-api.morpho.org/graphql';
 
 // Risk warning levels
@@ -77,8 +79,22 @@ export interface CuratorRiskMetrics {
   unrealizedBadDebtUsd: number;
   realizedBadDebtUsd: number;
   hasBadDebt: boolean;
-  // Market health
+  // Market health (decimal 0-1)
   avgUtilization: number;
+  /** Highest utilization across all markets the curator allocates to (decimal 0-1). */
+  maxUtilization: number;
+  /**
+   * TVL-weighted average liquidation LTV across the curator's markets (decimal 0-1).
+   * Sourced from real Morpho market data — NOT estimated from utilization.
+   * 0 means no markets / no data available.
+   */
+  avgLltv: number;
+  /** Sum of `liquidityUsd` across all markets the curator allocates to. */
+  availableLiquidityUsd: number;
+  /** Total supplied USD across all markets the curator allocates to. */
+  totalSupplyUsd: number;
+  /** Total borrowed USD across all markets the curator allocates to. */
+  totalBorrowUsd: number;
   highUtilizationMarkets: number; // Markets with >90% utilization
   // Risk warnings
   redWarningCount: number;
@@ -481,7 +497,16 @@ export async function getRiskMetrics(): Promise<{
 
     const totalSupply = data.markets.reduce((sum, m) => sum + m.supplyUsd, 0);
     const totalBorrow = data.markets.reduce((sum, m) => sum + m.borrowUsd, 0);
+    const totalLiquidity = data.markets.reduce((sum, m) => sum + m.liquidityUsd, 0);
     const avgUtilization = totalSupply > 0 ? totalBorrow / totalSupply : 0;
+    const maxUtilization = data.markets.length > 0
+      ? Math.max(...data.markets.map(m => m.utilization))
+      : 0;
+    // TVL-weighted average LLTV across the curator's markets (real on-chain data).
+    // Falls back to 0 (no markets) — consumer should treat 0 as "unknown" and use defaults.
+    const avgLltv = totalSupply > 0
+      ? data.markets.reduce((sum, m) => sum + m.lltv * m.supplyUsd, 0) / totalSupply
+      : 0;
     const highUtilizationMarkets = data.markets.filter(m => m.utilization > 0.9).length;
 
     const redWarnings = data.markets.flatMap(m => m.warnings.filter(w => w.level === 'RED'));
@@ -510,6 +535,11 @@ export async function getRiskMetrics(): Promise<{
       realizedBadDebtUsd: data.badDebtUsd,
       hasBadDebt: data.badDebtUsd > 0 || data.markets.some(m => m.hasBadDebt),
       avgUtilization,
+      maxUtilization,
+      avgLltv,
+      availableLiquidityUsd: totalLiquidity,
+      totalSupplyUsd: totalSupply,
+      totalBorrowUsd: totalBorrow,
       highUtilizationMarkets,
       redWarningCount: redWarnings.length,
       yellowWarningCount: yellowWarnings.length,
@@ -750,7 +780,7 @@ export async function getVaultRiskMetrics(): Promise<VaultRiskMetrics[]> {
         curator,
         chain: vault.chain?.id || 1,
         tvlUsd,
-        apy: (vault.state?.apy || 0) * 100,
+        apy: decimalToPercent(vault.state?.apy || 0),
         riskScore,
         riskLevel: getRiskLevel(riskScore),
         markets,

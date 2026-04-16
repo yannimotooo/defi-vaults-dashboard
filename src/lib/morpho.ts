@@ -2,6 +2,8 @@
 // API Documentation: https://docs.morpho.org/tools/offchain/api/
 // Supports both Vault V1 (legacy) and Vault V2 (current)
 
+import { decimalToPercent, percentToDecimal } from './fees';
+
 const MORPHO_GRAPHQL_ENDPOINT = 'https://api.morpho.org/graphql';
 const MORPHO_BLUE_API = 'https://blue-api.morpho.org/graphql';
 
@@ -316,16 +318,18 @@ export async function getCuratorFeeData(curatorSlug: string): Promise<CuratorFee
       const tvl = vault.state.totalAssetsUsd || 0;
       const weight = totalTvl > 0 ? tvl / totalTvl : 0;
 
-      // Performance fee from Morpho is stored as decimal (0.1 = 10%)
-      const performanceFee = (vault.state.fee || 0) * 100;
-      // Management fee (V2 only) — annual fee on TVL, stored as decimal (0.01 = 1%)
-      const managementFee = (vault.managementFee || 0) * 100;
-      const grossApy = (vault.state.apy || 0) * 100;
-      const netApy = (vault.state.netApy || 0) * 100;
+      // All Morpho fee/APY fields arrive as decimals (0.1 = 10%).
+      // Convert to percentages here at the source boundary; downstream code
+      // expects Percent values throughout. See src/lib/fees.ts.
+      const performanceFee = decimalToPercent(vault.state.fee || 0);
+      const managementFee = decimalToPercent(vault.managementFee || 0);
+      const grossApy = decimalToPercent(vault.state.apy || 0);
+      const netApy = decimalToPercent(vault.state.netApy || 0);
 
-      // Fee revenue: performance fee on yield + management fee on TVL
-      const perfFeeRevenue = tvl * (grossApy / 100) * (performanceFee / 100);
-      const mgmtFeeRevenue = tvl * (managementFee / 100);
+      // Fee revenue: performance fee on yield + management fee on TVL.
+      // Convert back to decimal for the multiplications.
+      const perfFeeRevenue = tvl * percentToDecimal(grossApy) * percentToDecimal(performanceFee);
+      const mgmtFeeRevenue = tvl * percentToDecimal(managementFee);
       const estimatedFeeRevenue = perfFeeRevenue + mgmtFeeRevenue;
 
       weightedPerformanceFee += performanceFee * weight;
@@ -425,13 +429,15 @@ export async function getAllCuratorsFeeData(): Promise<CuratorFeeData[]> {
         const tvl = vault.state.totalAssetsUsd || 0;
         const weight = totalTvl > 0 ? tvl / totalTvl : 0;
 
-        const performanceFee = (vault.state.fee || 0) * 100;
-        const managementFee = (vault.managementFee || 0) * 100;
-        const grossApy = (vault.state.apy || 0) * 100;
-        const netApy = (vault.state.netApy || 0) * 100;
+        // See note in getMorphoCuratorFeeData — Morpho returns decimals, we
+        // store/return Percent. Convert at the source boundary.
+        const performanceFee = decimalToPercent(vault.state.fee || 0);
+        const managementFee = decimalToPercent(vault.managementFee || 0);
+        const grossApy = decimalToPercent(vault.state.apy || 0);
+        const netApy = decimalToPercent(vault.state.netApy || 0);
         // Fee revenue: performance fee on yield + management fee on TVL
-        const perfFeeRevenue = tvl * (grossApy / 100) * (performanceFee / 100);
-        const mgmtFeeRevenue = tvl * (managementFee / 100);
+        const perfFeeRevenue = tvl * percentToDecimal(grossApy) * percentToDecimal(performanceFee);
+        const mgmtFeeRevenue = tvl * percentToDecimal(managementFee);
         const estimatedFeeRevenue = perfFeeRevenue + mgmtFeeRevenue;
 
         weightedPerformanceFee += performanceFee * weight;
@@ -553,7 +559,7 @@ export async function getMorphoCuratorsTvl(): Promise<MorphoCuratorTvl[]> {
       const curators = vault.state?.curators || [];
       const curatorName = curators[0]?.name || 'Unknown';
       const tvl = vault.state?.totalAssetsUsd || 0;
-      const apy = (vault.state?.apy || 0) * 100; // Convert to percentage
+      const apy = decimalToPercent(vault.state?.apy || 0); // Morpho returns decimal; we store Percent
 
       // Skip very small vaults or unknown curators
       if (curatorName === 'Unknown' || tvl < 10000) continue;
@@ -674,7 +680,7 @@ export async function getMorphoVaultsWithCurators(): Promise<MorphoVaultWithCura
         symbol: vault.symbol,
         curator: curatorName,
         tvlUsd: tvl,
-        apy: (vault.state?.apy || 0) * 100,
+        apy: decimalToPercent(vault.state?.apy || 0),
       });
     }
 

@@ -70,6 +70,12 @@ export interface Curator {
   liquidityHealthRating?: CreditRating;
   curatorQualityRating?: CreditRating;
   investmentGrade?: boolean;
+  /**
+   * True when one or more rating-input fields (avgLltv, maxUtilization,
+   * availableLiquidityUsd) fell back to defaults because per-curator market
+   * data was unavailable. UI should render an "estimated" badge in this case.
+   */
+  ratingEstimated?: boolean;
 }
 
 export interface Vault {
@@ -119,6 +125,12 @@ export interface DataValidation {
   duneDataAvailable?: boolean;
   crossReferencedCount?: number;
   highConfidenceCount?: number;
+  /**
+   * True when Kamino TVL came from a cached snapshot served because the live
+   * Solana RPC fetch failed or timed out. UI should surface a "stale data"
+   * indicator so users know Solana figures may be out of date.
+   */
+  kaminoDataStale?: boolean;
 }
 
 export interface CuratorApiResponse {

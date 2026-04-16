@@ -124,7 +124,9 @@ export interface HistoricalTvlPoint {
   tvl: number;
 }
 
-// Get historical TVL for a protocol/curator
+// Get historical TVL for a protocol/curator.
+// Returns [] on any failure but always logs the underlying cause so callers
+// can distinguish "API down" from "no data for this slug" via server logs.
 export async function getProtocolHistoricalTvl(slug: string): Promise<HistoricalTvlPoint[]> {
   try {
     const response = await fetch(`${DEFILLAMA_API_BASE}/protocol/${slug}`, {
@@ -132,6 +134,7 @@ export async function getProtocolHistoricalTvl(slug: string): Promise<Historical
     });
 
     if (!response.ok) {
+      console.warn(`[DeFiLlama] historical TVL HTTP ${response.status} for slug=${slug}`);
       return [];
     }
 
@@ -146,7 +149,11 @@ export async function getProtocolHistoricalTvl(slug: string): Promise<Historical
     }
 
     return [];
-  } catch {
+  } catch (error) {
+    console.warn(
+      `[DeFiLlama] historical TVL fetch failed for slug=${slug}:`,
+      error instanceof Error ? error.message : error,
+    );
     return [];
   }
 }
@@ -321,7 +328,9 @@ export interface VaultPool {
   rewardTokens: string[] | null;
 }
 
-// Get all yield pools (vaults)
+// Get all yield pools (vaults).
+// Returns [] on any failure but logs the cause — empty result is otherwise
+// indistinguishable from "no pools" in downstream code.
 export async function getYieldPools(): Promise<VaultPool[]> {
   try {
     const response = await fetch(`${YIELDS_API_BASE}/pools`, {
@@ -329,12 +338,17 @@ export async function getYieldPools(): Promise<VaultPool[]> {
     });
 
     if (!response.ok) {
+      console.warn(`[DeFiLlama] yields/pools HTTP ${response.status}`);
       return [];
     }
 
     const data = await response.json();
     return data.data || [];
-  } catch {
+  } catch (error) {
+    console.warn(
+      `[DeFiLlama] yields/pools fetch failed:`,
+      error instanceof Error ? error.message : error,
+    );
     return [];
   }
 }

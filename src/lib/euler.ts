@@ -224,8 +224,15 @@ function getCuratorName(vault: EulerVault): string {
   return 'Euler DAO'; // Default to Euler DAO for ungoverned vaults
 }
 
-// Parse performance fee from subgraph
-// Euler V2 subgraph returns fees in WAD format (1e18 = 100%)
+/**
+ * Parse a performance fee value from the Euler V2 subgraph.
+ *
+ * The subgraph occasionally returns fees in inconsistent formats across
+ * versions: WAD (1e18 = 100%), basis points (1000 = 10%), percentage (10 = 10%),
+ * or decimal (0.1 = 10%). This helper detects the format heuristically and
+ * always returns a Percent value (0-100). See src/lib/fees.ts for the
+ * canonical Percent / Decimal conventions.
+ */
 function parsePerformanceFee(fee: string): number {
   const feeNum = parseFloat(fee);
   if (isNaN(feeNum)) return 0;

@@ -8,22 +8,38 @@ import { assessCapitalSafety, assessLiquidityHealth, assessCuratorQuality, score
 import { getKaminoCuratorsTvl, type KaminoCuratorTvlData } from '@/lib/kamino-onchain';
 import { DataSourceTracker } from '@/lib/data-source-tracker';
 import { CURATOR_FEE_OVERRIDES } from '@/lib/curator-fee-overrides';
+import { decimalToPercent, assertReasonablePercent } from '@/lib/fees';
 import type { Curator } from '@/types';
 
-// Simple in-memory cache for Kamino data (expensive Solana RPC call)
-let kaminoCache: { data: KaminoCuratorTvlData[]; timestamp: number } | null = null;
+// In-memory cache for Kamino data (expensive Solana RPC call).
+// We track `stale: true` separately so consumers can surface a "stale" badge
+// when we serve cached data after a fetch failure or timeout.
+let kaminoCache: { data: KaminoCuratorTvlData[]; timestamp: number; stale: boolean } | null = null;
 let kaminoPendingRequest: Promise<KaminoCuratorTvlData[]> | null = null;
 const KAMINO_CACHE_TTL = 20 * 60 * 1000; // 20 minutes (Solana RPC is expensive)
+const KAMINO_RPC_TIMEOUT_MS = 15_000; // 15s — public mainnet RPC can be slow but anything beyond this is broken
 
-// Fetch Kamino curator data with actual on-chain TVL (cached + deduped)
+/**
+ * Fetch Kamino curator data with actual on-chain TVL.
+ *
+ * Caching layers:
+ *   1. Fresh cache (< KAMINO_CACHE_TTL): returned immediately.
+ *   2. In-flight dedup: concurrent requests share a single promise.
+ *   3. Stale-on-error: if the RPC fetch fails or times out, we serve the last
+ *      known data with `kaminoCache.stale = true` so callers can warn the UI.
+ *
+ * Production note: the public mainnet RPC (`api.mainnet-beta.solana.com`) is
+ * heavily rate-limited (~300 req/day). Set `SOLANA_RPC_URL` to a paid endpoint
+ * (Helius / QuickNode / Triton) for reliable production behavior.
+ */
 async function getKaminoCuratorData(): Promise<KaminoCuratorTvlData[]> {
-  // Return cached data if valid
+  // Return cached data if still within TTL
   if (kaminoCache && Date.now() - kaminoCache.timestamp < KAMINO_CACHE_TTL) {
-    console.log('[Kamino] Using cached data');
+    console.log(`[Kamino] Using cached data (stale=${kaminoCache.stale})`);
     return kaminoCache.data;
   }
 
-  // Deduplicate concurrent requests — return existing in-flight promise
+  // Deduplicate concurrent requests — share the in-flight promise
   if (kaminoPendingRequest) {
     console.log('[Kamino] Deduplicating concurrent request');
     return kaminoPendingRequest;
@@ -32,9 +48,25 @@ async function getKaminoCuratorData(): Promise<KaminoCuratorTvlData[]> {
   kaminoPendingRequest = (async () => {
     try {
       const rpcUrl = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
-      const curators = await getKaminoCuratorsTvl(rpcUrl);
+      if (!process.env.SOLANA_RPC_URL && process.env.NODE_ENV === 'production') {
+        console.warn(
+          '[Kamino] SOLANA_RPC_URL not set — using public mainnet endpoint. ' +
+          'This is heavily rate-limited and unreliable in production. ' +
+          'Configure a paid RPC (Helius/QuickNode/Triton) ASAP.',
+        );
+      }
+
+      // Race the RPC fetch against a hard timeout — without this, a hung
+      // Solana RPC can pin the entire /api/curators request until Vercel's
+      // 60s/300s function timeout fires (504 to the user).
+      const curators = await Promise.race([
+        getKaminoCuratorsTvl(rpcUrl),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error(`Kamino RPC timeout after ${KAMINO_RPC_TIMEOUT_MS}ms`)), KAMINO_RPC_TIMEOUT_MS),
+        ),
+      ]);
       console.log(`[Kamino] Fetched ${curators.length} curators with on-chain TVL`);
-      kaminoCache = { data: curators, timestamp: Date.now() };
+      kaminoCache = { data: curators, timestamp: Date.now(), stale: false };
       return curators;
     } finally {
       kaminoPendingRequest = null;
@@ -44,14 +76,21 @@ async function getKaminoCuratorData(): Promise<KaminoCuratorTvlData[]> {
   try {
     return await kaminoPendingRequest;
   } catch (error) {
-    console.error('[Kamino] Error fetching curator data:', error);
-    // Return stale cache if available
+    console.error('[Kamino] Fetch failed:', error instanceof Error ? error.message : error);
+    // Stale-on-error: serve the last good data, marked stale so the UI can
+    // warn users that Kamino TVL may not reflect current chain state.
     if (kaminoCache) {
-      console.log('[Kamino] Returning stale cache due to error');
+      console.warn(`[Kamino] Serving stale cache (age=${Math.round((Date.now() - kaminoCache.timestamp) / 1000)}s)`);
+      kaminoCache.stale = true;
       return kaminoCache.data;
     }
     return [];
   }
+}
+
+/** Whether the most recent Kamino data we served was cached after a failure. */
+function isKaminoDataStale(): boolean {
+  return kaminoCache?.stale ?? false;
 }
 
 export const revalidate = 300; // 5 minutes
@@ -262,8 +301,10 @@ export async function GET() {
       const key = normalizeFeeKey(ed.curatorName);
       const existing = feeDataMap.get(key);
 
-      // Clamp Euler fee to 0-100 range (WAD format can produce absurd values if not parsed correctly)
-      const clampedEulerFee = Math.min(Math.max(ed.avgPerformanceFee || 0, 0), 100);
+      // Euler fee comes in as a Percent value (parsePerformanceFee in src/lib/euler.ts
+      // handles WAD/BPS/decimal/percent variants and returns 0-100). Guard against
+      // any future regression with a reasonable-range assertion.
+      const clampedEulerFee = assertReasonablePercent(ed.avgPerformanceFee, `Euler fee for ${ed.curatorName}`, { max: 100 });
 
       if (existing) {
         // Merge: take the higher performance fee (curators typically set same fee across protocols)
@@ -337,10 +378,12 @@ export async function GET() {
           ([key]) => key.toLowerCase() === p.name.toLowerCase()
             || key.toLowerCase() === formatCuratorName(p.name).toLowerCase()
         )?.[1];
+        // CURATOR_FEE_OVERRIDES stores fees as decimals (0.01 = 1%) per the file's
+        // header comment. Convert to Percent at this consumption boundary.
         const overriddenMgmtFee = (feeData?.avgManagementFee && feeData.avgManagementFee > 0)
           ? feeData.avgManagementFee
-          : feeOverride?.managementFee
-            ? feeOverride.managementFee * 100 // decimal → percentage
+          : feeOverride?.managementFee != null
+            ? decimalToPercent(feeOverride.managementFee)
             : feeData?.avgManagementFee;
 
         // Look up Morpho on-chain TVL (try multiple name formats)
@@ -548,26 +591,60 @@ export async function GET() {
     }
 
     // Compute curator-level credit ratings (three-pillar system)
+    //
+    // LLTV / liquidity inputs:
+    //   When real per-curator market data is available from `risk.ts` (it builds
+    //   each curator's market list from Morpho's vault-allocation data), we use
+    //   the TVL-weighted average LLTV and aggregated liquidity directly.
+    //   When unavailable, we fall back to conservative defaults and tag the
+    //   curator's `dataConfidence` as no-better-than 'medium' so the UI can
+    //   surface "estimated rating" messaging.
+    //
+    // Default fallbacks (used only when riskMap has no data for the curator):
+    //   - avgLltv: 0.86  (typical Morpho stablecoin market)
+    //   - maxUtilization: 0.85, avgUtilization: 0.75
+    //   - availableLiquidityUsd: 20% of TVL
+    const DEFAULT_AVG_LLTV = 0.86;
+    const DEFAULT_MAX_UTIL = 0.85;
+    const DEFAULT_AVG_UTIL = 0.75;
+    const DEFAULT_LIQUIDITY_PCT = 0.20;
+
     for (const curator of curators) {
+      // Re-look up the curator's risk metrics — this is where real avgLltv lives.
+      const riskMetrics = riskMap.get(normalizeName(curator.name))
+        || riskMap.get(normalizeName(formatCuratorName(curator.name)))
+        || (CURATOR_NAME_VARIANTS[curator.slug]
+            ? CURATOR_NAME_VARIANTS[curator.slug].map(v => riskMap.get(normalizeName(v))).find(Boolean)
+            : undefined);
+
+      const hasRealMarketData = !!(riskMetrics && riskMetrics.marketsCount > 0 && riskMetrics.totalSupplyUsd > 0);
+
+      const avgLltv = hasRealMarketData ? riskMetrics.avgLltv : DEFAULT_AVG_LLTV;
+      const maxUtilization = hasRealMarketData ? riskMetrics.maxUtilization : DEFAULT_MAX_UTIL;
+      const avgUtilization = hasRealMarketData
+        ? riskMetrics.avgUtilization
+        : (curator.avgUtilization ?? DEFAULT_AVG_UTIL);
+      const availableLiquidityUsd = hasRealMarketData
+        ? riskMetrics.availableLiquidityUsd
+        : (curator.totalTvl || 0) * DEFAULT_LIQUIDITY_PCT;
+
       // Pillar 1: Capital Safety
       const capitalSafety = assessCapitalSafety({
         hasBadDebt: curator.hasBadDebt || false,
         badDebtUsd: 0, // Not available at curator level
         tvlUsd: curator.totalTvl || 0,
         hasOracleWarning: (curator.redWarningCount || 0) > 0,
-        avgLltv: curator.avgUtilization ? Math.min(curator.avgUtilization + 0.15, 0.96) : 0.86, // Estimate LLTV from utilization
+        avgLltv,
         markets: [], // Market-level data not available at curator aggregate level
       });
 
       // Pillar 2: Liquidity Health
       const liquidityHealth = assessLiquidityHealth({
         tvlUsd: curator.totalTvl || 0,
-        availableLiquidityUsd: curator.avgUtilization
-          ? curator.totalTvl * (1 - curator.avgUtilization)
-          : curator.totalTvl * 0.2, // Default 20% available if unknown
-        maxUtilization: curator.avgUtilization || 0.8,
-        avgUtilization: curator.avgUtilization || 0.75,
-        avgLltv: curator.avgUtilization ? Math.min(curator.avgUtilization + 0.15, 0.96) : 0.86,
+        availableLiquidityUsd,
+        maxUtilization,
+        avgUtilization,
+        avgLltv,
         markets: [], // Market-level data not available at curator aggregate level
       });
 
@@ -579,12 +656,18 @@ export async function GET() {
         ageMonths: 12, // Assume established curators (conservative default)
         totalTvlManaged: curator.totalTvl || 0,
         exoticAssetPct: 0.2, // Conservative default — detailed data not available
-        avgLltv: curator.avgUtilization ? Math.min(curator.avgUtilization + 0.15, 0.96) : 0.86,
+        avgLltv,
         vaultCount: curator.vaultCount || 1,
         avgMarketsPerVault: 3, // Default estimate
         chainCount: curator.chains?.length || 1,
         performanceFee: (curator.avgPerformanceFee || 0) / 100, // Convert percentage to decimal
       });
+
+      // Downgrade confidence when rating uses fallback data — UI can show "estimated"
+      if (!hasRealMarketData && curator.dataConfidence === 'high') {
+        curator.dataConfidence = 'medium';
+      }
+      curator.ratingEstimated = !hasRealMarketData;
 
       curator.capitalSafetyRating = capitalSafety.rating;
       curator.liquidityHealthRating = liquidityHealth.rating;
@@ -631,6 +714,7 @@ export async function GET() {
       morphoFeeDataAvailable: morphoFeeData.length > 0,
       eulerFeeDataAvailable: eulerFeeData.length > 0,
       kaminoDataAvailable: kaminoCuratorData.length > 0,
+      kaminoDataStale: isKaminoDataStale(),
       eulerTvlDataAvailable: eulerCuratorTvl.length > 0,
       riskDataAvailable: riskData !== null,
       // Quality metrics
