@@ -9,6 +9,7 @@ import { getKaminoCuratorsTvl, type KaminoCuratorTvlData } from '@/lib/kamino-on
 import { DataSourceTracker } from '@/lib/data-source-tracker';
 import { CURATOR_FEE_OVERRIDES } from '@/lib/curator-fee-overrides';
 import { decimalToPercent, assertReasonablePercent } from '@/lib/fees';
+import { getCuratorPlatforms } from '@/lib/curator-platforms';
 import type { Curator } from '@/types';
 
 // In-memory cache for Kamino data (expensive Solana RPC call).
@@ -621,6 +622,16 @@ export async function GET() {
         };
       })
       .sort((a, b) => b.totalTvl - a.totalTvl);
+
+    // Attach hand-curated platform relationships (e.g. "Coinbase Earn",
+    // "Kraken Earn") from src/lib/curator-platforms.ts. Skip when the curator
+    // has no known consumer platforms — UI just won't render badges.
+    for (const curator of curators) {
+      const platforms = getCuratorPlatforms(curator.slug);
+      if (platforms.length > 0) {
+        curator.platforms = platforms.map(p => ({ name: p.platform, source: p.source }));
+      }
+    }
 
     // Compute strategy tags for each curator
     for (const curator of curators) {

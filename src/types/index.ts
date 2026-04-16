@@ -79,6 +79,13 @@ export interface Curator {
   avgUtilization?: number;
   // Strategy tags (computed server-side)
   strategies?: string[];
+  /**
+   * Institutional platforms / earn products that consume this curator's vaults
+   * (e.g. "Coinbase Earn" for Steakhouse, "Kraken Earn" for Veda/Gauntlet/Sentora).
+   * Hand-curated in src/lib/curator-platforms.ts. Empty/undefined when no
+   * known relationships.
+   */
+  platforms?: Array<{ name: string; source: string }>;
   // New three-pillar credit rating
   creditRating?: CreditRating;  // Composite credit rating (AAA-C)
   capitalSafetyRating?: CreditRating;

@@ -33,8 +33,8 @@ interface RatingSummary {
   curatorsWithBadDebt: number;
   avgUtilization: number;
   // Best and worst
-  bestRatedCurators: { name: string; rating: CreditRating }[];
-  worstRatedCurators: { name: string; rating: CreditRating }[];
+  bestRatedCurators: { name: string; rating: CreditRating; estimated?: boolean }[];
+  worstRatedCurators: { name: string; rating: CreditRating; estimated?: boolean }[];
   // Overall protocol health
   protocolRating: CreditRating;
   curatorsWithRatings: number;
@@ -49,7 +49,7 @@ function calculateRatingSummary(curators: Curator[]): RatingSummary {
   let investmentGradeCount = 0;
   let speculativeCount = 0;
   let notRatedCount = 0;
-  const ratedCurators: { name: string; rating: CreditRating; tvl: number }[] = [];
+  const ratedCurators: { name: string; rating: CreditRating; tvl: number; estimated?: boolean }[] = [];
 
   for (const curator of curators) {
     if (curator.creditRating) {
@@ -58,6 +58,7 @@ function calculateRatingSummary(curators: Curator[]): RatingSummary {
         name: curator.name,
         rating: curator.creditRating,
         tvl: curator.totalTvl,
+        estimated: curator.ratingEstimated,
       });
 
       if (curator.investmentGrade) {
@@ -80,12 +81,14 @@ function calculateRatingSummary(curators: Curator[]): RatingSummary {
     return b.tvl - a.tvl; // If same rating, sort by TVL
   });
 
-  const bestRatedCurators = ratedCurators.slice(0, 3).map(c => ({ name: c.name, rating: c.rating }));
+  const bestRatedCurators = ratedCurators
+    .slice(0, 3)
+    .map(c => ({ name: c.name, rating: c.rating, estimated: c.estimated }));
   const worstRatedCurators = ratedCurators
     .filter(c => c.rating !== 'NR')
     .slice(-3)
     .reverse()
-    .map(c => ({ name: c.name, rating: c.rating }));
+    .map(c => ({ name: c.name, rating: c.rating, estimated: c.estimated }));
 
   // Calculate overall protocol rating based on TVL-weighted average
   let weightedScore = 0;
@@ -351,7 +354,7 @@ export function RiskSummaryCard({ curators, hideWhenEmpty }: RiskSummaryCardProp
                   {summary.bestRatedCurators.map(c => (
                     <div key={c.name} className="flex items-center justify-between">
                       <span className="text-[11px] text-gray-700 truncate max-w-[120px]">{c.name}</span>
-                      <RatingBadge rating={c.rating} size="sm" />
+                      <RatingBadge rating={c.rating} size="sm" estimated={c.estimated} />
                     </div>
                   ))}
                 </div>
@@ -366,7 +369,7 @@ export function RiskSummaryCard({ curators, hideWhenEmpty }: RiskSummaryCardProp
                   {summary.worstRatedCurators.map(c => (
                     <div key={c.name} className="flex items-center justify-between">
                       <span className="text-[11px] text-gray-700 truncate max-w-[120px]">{c.name}</span>
-                      <RatingBadge rating={c.rating} size="sm" />
+                      <RatingBadge rating={c.rating} size="sm" estimated={c.estimated} />
                     </div>
                   ))}
                 </div>

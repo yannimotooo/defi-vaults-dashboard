@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import {
   type CreditRating,
@@ -34,6 +35,12 @@ interface RatingBadgeProps {
   size?: 'sm' | 'md' | 'lg';
   showLabel?: boolean;
   showIG?: boolean; // Show Investment Grade indicator
+  /**
+   * When true, shows a small "Est." chip indicating that the rating was
+   * computed with one or more fallback inputs (no real per-curator market
+   * data available). Click links to /methodology for the explainer.
+   */
+  estimated?: boolean;
   className?: string;
 }
 
@@ -42,6 +49,7 @@ export function RatingBadge({
   size = 'md',
   showLabel = false,
   showIG = false,
+  estimated = false,
   className,
 }: RatingBadgeProps) {
   const colors = RATING_COLORS[rating];
@@ -81,6 +89,15 @@ export function RatingBadge({
         >
           {ig ? 'Investment Grade' : 'Speculative'}
         </span>
+      )}
+      {estimated && (
+        <Link
+          href="/methodology"
+          title="Computed with fallback inputs — click for methodology"
+          className="text-[9px] px-1 py-0.5 rounded font-medium bg-amber-500/10 text-amber-700 border border-amber-500/20 hover:bg-amber-500/20 transition-colors"
+        >
+          Est.
+        </Link>
       )}
     </div>
   );
