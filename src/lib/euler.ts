@@ -15,7 +15,7 @@ const EVM_TOKEN_DECIMALS: Record<string, number> = {
   '0xaf88d065e77c8cc2239327c5edb3a432268e5831': 6, // USDC Arbitrum
   '0x0b2c639c533813f4aa9d7837caf62653d097ff85': 6, // USDC Optimism
   '0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e': 6, // USDC Avalanche
-  '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d': 6, // USDC BSC (18 on BSC actually)
+  '0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d': 18, // USDC BSC (Binance-Peg USDC is 18 decimals)
   '0xddafbb505ad214d7b80b1f830fccc89b60fb7a83': 6, // USDC Gnosis
   // --- USDT (6 decimals) ---
   '0xdac17f958d2ee523a2206206994597c13d831ec7': 6, // USDT Ethereum

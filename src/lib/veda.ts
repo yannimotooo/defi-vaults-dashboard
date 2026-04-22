@@ -292,11 +292,15 @@ export async function getVedaCuratorFeeData(): Promise<VedaCuratorFeeData[]> {
     };
   });
 
-  // Add Concrete if we got data
+  // Concrete passes the VEDA_POWERED_PROJECTS filter in getAllVedaPoweredVaults,
+  // so it's already aggregated from DeFiLlama. When the direct Concrete API
+  // succeeds it's authoritative, so drop the DeFiLlama-sourced entry to avoid
+  // double-counting.
   if (concreteData) {
-    results.push(concreteData);
+    const deduped = results.filter(r => r.curatorName !== 'Concrete');
+    deduped.push(concreteData);
+    return deduped.sort((a, b) => b.totalTvl - a.totalTvl);
   }
 
-  // Sort by TVL
   return results.sort((a, b) => b.totalTvl - a.totalTvl);
 }
