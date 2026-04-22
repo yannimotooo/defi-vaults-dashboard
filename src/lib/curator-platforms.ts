@@ -66,31 +66,6 @@ export const CURATOR_PLATFORMS: Record<string, PlatformRelationship[]> = {
     },
   ],
 
-  // Sky / MakerDAO ecosystem allocators
-  'grove-finance': [
-    {
-      platform: 'Sky (MakerDAO)',
-      source: 'Sky Allocator framework — Grove is a Sky allocator',
-      lastVerified: '2026-04-16',
-    },
-  ],
-  'spark-liquidity-layer': [
-    {
-      platform: 'Sky (MakerDAO)',
-      source: 'Spark Protocol is part of the Sky/MakerDAO ecosystem',
-      lastVerified: '2026-04-16',
-    },
-  ],
-
-  // ether.fi-liquid is the ether.fi platform's own vault product
-  'ether.fi-liquid': [
-    {
-      platform: 'ether.fi',
-      source: 'First-party product of the ether.fi protocol',
-      lastVerified: '2026-04-16',
-    },
-  ],
-
   // Mellow runs vaults for a number of Symbiotic / EigenLayer restaking partners
   'mellow-core': [
     {

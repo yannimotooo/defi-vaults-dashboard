@@ -21,19 +21,23 @@ export function RealVsFarmedChart({ vaults, curators, hideWhenEmpty }: RealVsFar
   const router = useRouter();
 
   const { chartData, overallOrganicPct } = useMemo(() => {
-    // Group vaults by curator
-    const curatorVaults = new Map<string, VaultData[]>();
-    for (const vault of vaults) {
-      if (!vault.curator || vault.isRawMarket || vault.curator === 'Unknown') continue;
-      const key = vault.curator;
-      if (!curatorVaults.has(key)) curatorVaults.set(key, []);
-      curatorVaults.get(key)!.push(vault);
-    }
-
-    // Build slug lookup from curators array
+    // Build a set of known curator names so we can filter out bogus
+    // attributions like "EVK Vault" (technical vault names from poolMeta).
+    const knownCuratorNames = new Set(curators.map(c => c.name));
     const slugLookup = new Map<string, string>();
     for (const c of curators) {
       slugLookup.set(c.name, c.slug);
+    }
+
+    // Group vaults by curator — only if the curator is actually known
+    const curatorVaults = new Map<string, VaultData[]>();
+    for (const vault of vaults) {
+      if (!vault.curator || vault.isRawMarket || vault.curator === 'Unknown') continue;
+      // Skip vaults whose "curator" is actually a technical name, not a real curator
+      if (!knownCuratorNames.has(vault.curator)) continue;
+      const key = vault.curator;
+      if (!curatorVaults.has(key)) curatorVaults.set(key, []);
+      curatorVaults.get(key)!.push(vault);
     }
 
     const results: {

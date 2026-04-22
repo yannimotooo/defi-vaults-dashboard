@@ -44,6 +44,10 @@ export function FeeComparisonTable({ curators }: FeeComparisonTableProps) {
 
         return { name: c.name, slug: c.slug, perfFee, mgmtFee, grossApy, netApy, feeBurden, revenue, tvl: c.totalTvl };
       })
+      // Only show curators with actual fee data. Many curators charge fees
+      // off-chain or via V1 mechanisms not captured by on-chain reads — showing
+      // them as "0%" is misleading (implies free, when really data is missing).
+      .filter(r => r.perfFee > 0 || r.mgmtFee > 0)
       .sort((a, b) => {
         const mul = sortDir === 'asc' ? 1 : -1;
         if (sortKey === 'name') return mul * a.name.localeCompare(b.name);
@@ -78,7 +82,11 @@ export function FeeComparisonTable({ curators }: FeeComparisonTableProps) {
       <CardHeader>
         <div>
           <p className="text-[11px] uppercase tracking-widest text-gray-500 font-medium mb-1">Fee Economics</p>
-          <CardTitle>Fee Comparison</CardTitle>
+          <CardTitle>Curator Fees</CardTitle>
+          <p className="text-[11px] text-gray-400 mt-0.5">
+            Showing {rows.length} of {curators.length} curators with on-chain or published fee data.
+            Others may charge fees off-chain.
+          </p>
         </div>
       </CardHeader>
       <CardContent className="p-0">

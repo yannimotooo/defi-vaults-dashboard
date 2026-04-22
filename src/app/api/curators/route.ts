@@ -123,27 +123,9 @@ const CURATOR_METADATA: Record<string, { protocols: string[] }> = {
   '9summits': { protocols: ['Morpho'] },
   'rockawayx': { protocols: ['Morpho', 'Solana'] },
 
-  // Onchain Capital Allocator (new in Phase 2 — 2026-04-16)
+  // Self-curating platforms (DeFiLlama categorizes as OCA, not Risk Curators)
   'veda': { protocols: ['BoringVault', 'Morpho', 'Aave'] },
   'mellow-core': { protocols: ['EigenLayer', 'Symbiotic', 'Morpho'] },
-  'mellow-restaking': { protocols: ['EigenLayer'] },
-  'grove-finance': { protocols: ['Sky', 'Morpho'] },
-  'spark-liquidity-layer': { protocols: ['Spark', 'Morpho', 'Aave'] },
-  'concrete': { protocols: ['Concrete', 'Morpho'] },
-  'ether.fi-liquid': { protocols: ['EtherFi', 'EigenLayer'] },
-  'upshift': { protocols: ['Upshift'] },
-  'lagoon': { protocols: ['Lagoon'] },
-  'aera-v3': { protocols: ['Aera'] },
-  'aera-v2': { protocols: ['Aera'] },
-  'felix-vaults': { protocols: ['Felix', 'Hyperliquid'] },
-  'gain': { protocols: ['Gain'] },
-  'solv-strategies': { protocols: ['Solv', 'BTCFi'] },
-  'lombard-vaults': { protocols: ['Lombard', 'BTCFi'] },
-  'plasma-saving-vaults': { protocols: ['Plasma'] },
-  'makina': { protocols: ['Makina'] },
-  'moonwell-vaults': { protocols: ['Moonwell'] },
-  'ultrayield-vaults': { protocols: ['UltraYield'] },
-  'yieldnest': { protocols: ['YieldNest', 'EigenLayer'] },
 };
 
 // Calculate real metrics from vault data (using pre-fetched pools to avoid N+1 queries)
@@ -480,17 +462,24 @@ export async function GET() {
         const hasOnChainCoverage = onChainSum > 10_000
           && (defillamaTvl === 0 || onChainSum >= defillamaTvl * 0.1);
 
-        // Pick the dominant source for the singular `tvlSource` field
-        // (kept for backwards compat with existing UI consumers).
+        // Pick the HIGHER of on-chain sum vs DeFiLlama.
+        //
+        // Why max, not sum: on-chain sources (Morpho, Kamino, Euler) each
+        // cover their own protocol, while DeFiLlama aggregates across ALL
+        // protocols the curator operates on. The on-chain sum may be LESS
+        // than DeFiLlama when the curator also operates on protocols we
+        // don't have on-chain coverage for (e.g. Sentora on EtherFi/Aave).
+        // Using max ensures we never under-report a curator's TVL.
         let tvlSource: 'morpho' | 'kamino' | 'euler' | 'defillama';
         let totalTvl: number;
-        if (hasOnChainCoverage) {
+        if (hasOnChainCoverage && onChainSum >= defillamaTvl) {
+          // On-chain data is more complete — use it
           totalTvl = onChainSum;
-          // Whichever on-chain source contributes the most labels the row.
           if (morphoTvl >= kaminoTvl && morphoTvl >= eulerTvl) tvlSource = 'morpho';
           else if (kaminoTvl >= eulerTvl) tvlSource = 'kamino';
           else tvlSource = 'euler';
         } else {
+          // DeFiLlama captures more protocols than our on-chain sources — use it
           totalTvl = defillamaTvl;
           tvlSource = 'defillama';
         }
@@ -527,7 +516,10 @@ export async function GET() {
         const vaultCountEstimated = !hasRealVaultCount;
 
         // APY Priority: 1) Fee data grossApy (from Morpho), 2) Morpho on-chain, 3) DefiLlama, 4) 0
-        const avgApy = feeData?.avgGrossApy || feeData?.avgNetApy || morphoData?.avgApy || realMetrics?.avgApy || 0;
+        // APY sanity cap: token-price-driven "yields" (KHYPE 34000%, Clearstar
+        // 13000%) should not inflate curator-level averages or blow out chart axes.
+        const rawApy = feeData?.avgGrossApy || feeData?.avgNetApy || morphoData?.avgApy || realMetrics?.avgApy || 0;
+        const avgApy = Math.min(rawApy, 500);
 
         // Build protocols list - include Kamino/Euler if curator has those vaults
         let protocols = realMetrics?.protocols?.length

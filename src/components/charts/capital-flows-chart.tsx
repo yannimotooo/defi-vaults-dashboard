@@ -145,7 +145,7 @@ export function CapitalFlowsChart({ curators, hideWhenEmpty }: CapitalFlowsChart
                 dataKey="name"
                 stroke="#6B7280"
                 fontSize={11}
-                width={100}
+                width={130}
                 tickLine={false}
                 axisLine={false}
               />

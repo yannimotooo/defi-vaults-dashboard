@@ -36,28 +36,13 @@ export const CURATOR_NAME_VARIANTS: Record<string, string[]> = {
   'apostro': ['Apostro'],
   'rockawayx': ['RockawayX', 'Rockaway'],
 
-  // === Onchain Capital Allocator category (added 2026-04-16) ===
-  // These were missing from prior coverage. Combined ~$9B+ of TVL.
+  // === Self-curating platforms (DeFiLlama: Onchain Capital Allocator) ===
+  // These platforms also self-curate some of their own vaults, so they belong
+  // in the curator list. Other OCA entities (Grove, Spark, Concrete, ether.fi,
+  // Aera, Lagoon, etc.) are pure allocators/platforms — they should go in a
+  // separate Allocators tab (future feature), not mixed with curators.
   'veda': ['Veda', 'Veda Labs', 'BoringVault', 'Boring Vault'],
   'mellow-core': ['Mellow', 'Mellow Core', 'Mellow Finance'],
-  'mellow-restaking': ['Mellow Restaking'],
-  'grove-finance': ['Grove', 'Grove Finance'],
-  'spark-liquidity-layer': ['Spark Liquidity Layer', 'Spark Liquidity', 'SLL'],
-  'concrete': ['Concrete'],
-  'ether.fi-liquid': ['ether.fi Liquid', 'EtherFi Liquid', 'EtherFi'],
-  'upshift': ['Upshift'],
-  'lagoon': ['Lagoon'],
-  'aera-v3': ['Aera', 'Aera v3'],
-  'aera-v2': ['Aera v2'],
-  'felix-vaults': ['Felix Vaults', 'Felix'],
-  'gain': ['Gain'],
-  'solv-strategies': ['Solv Strategies', 'Solv'],
-  'lombard-vaults': ['Lombard Vaults', 'Lombard'],
-  'plasma-saving-vaults': ['Plasma Saving Vaults', 'Plasma Savings'],
-  'makina': ['Makina'],
-  'moonwell-vaults': ['Moonwell Vaults', 'Moonwell'],
-  'ultrayield-vaults': ['UltraYield Vaults'],
-  'yieldnest': ['YieldNest'],
 };
 
 // Slug → canonical display name (first variant)

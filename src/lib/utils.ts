@@ -65,16 +65,28 @@ export function getChangeColor(value: number): string {
   return 'text-gray-500';
 }
 
-// Shorten curator names for chart labels
+// Shorten curator names for chart labels (Y-axis, bar labels, table cells).
+// Expanded post-Phase-2 to cover all known curators with long names.
+// Threshold raised to 18 chars — matched to the wider Y-axis in capital-flows-chart.
 export function formatCuratorShortName(name: string): string {
   const shortNames: Record<string, string> = {
     'Steakhouse Financial': 'Steakhouse',
     'UltraYield by Edge': 'UltraYield',
+    'UltraYield Curator': 'UltraYield',
     'Varlamore Capital': 'Varlamore',
-    'Block Analitica': 'Block Anal.',
+    'Block Analitica': 'Block Analitica',
+    'Spark Liquidity Layer': 'Spark Liquidity',
+    'Mellow Core': 'Mellow',
+    'Mellow Finance': 'Mellow',
+    'Telos Consilium': 'Telos',
+    'Tulipa Capital': 'Tulipa',
+    'ether.fi Liquid': 'ether.fi',
+    'B.Protocol Curator': 'B.Protocol',
+    'B.Protocol': 'B.Protocol',
+    'Veda Labs': 'Veda',
   };
   if (shortNames[name]) return shortNames[name];
-  if (name.length > 14) return name.slice(0, 12) + '...';
+  if (name.length > 18) return name.slice(0, 16) + '…';
   return name;
 }
 

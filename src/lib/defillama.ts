@@ -60,8 +60,22 @@ export const VAULT_PROTOCOL_SLUGS = [
   'enzyme-finance',
 ];
 
-// Risk curator slugs - fallback list for when DeFiLlama category matching
-// misses an entity (kept conservative; the category filter does the heavy lifting).
+// Risk curator slugs — fallback list for when DeFiLlama category matching
+// misses an entity. Also serves as the INCLUSION list for self-curating
+// platforms that DeFiLlama categorizes as "Onchain Capital Allocator"
+// instead of "Risk Curators" (Veda, Mellow).
+//
+// IMPORTANT: The `Onchain Capital Allocator` category was REMOVED from
+// CURATOR_CATEGORIES after user feedback that vault platforms ≠ risk
+// curators. OCA entities like Grove ($3.3B), Spark Liquidity Layer ($2B),
+// Concrete ($1B) are protocols/allocators, not curators. They belong in a
+// separate Allocators view (future feature), not mixed into the curator
+// leaderboard. See the Phase 2 → revert discussion in the plan log.
+//
+// Veda and Mellow ARE included here because they self-curate some vaults.
+// Their TVL may still include third-party-curated vaults (e.g., Sentora on
+// Veda) — this is a known imprecision we accept until deeper vault-level
+// curator attribution is available.
 export const RISK_CURATOR_SLUGS = [
   'steakhouse-financial',
   'gauntlet',
@@ -81,28 +95,26 @@ export const RISK_CURATOR_SLUGS = [
   'telos-consilium',
   '9summits',
   'alphaping',
+  'rockawayx',
+  // Self-curating platforms (DeFiLlama categorizes these as OCA, not Risk Curators)
+  'veda',
+  'mellow-core',
 ];
 
 /**
  * DeFiLlama protocol categories that represent curator-managed vaults.
  *
- * - `Risk Curators` — the canonical category (Steakhouse, Gauntlet, MEV, RE7, etc.)
- * - `Onchain Capital Allocator` — newer category covering platforms like
- *   Veda ($1.18B), Mellow Core ($310M), Grove ($3.3B), Spark Liquidity Layer ($2B),
- *   Concrete ($1.05B), Aera, Lagoon, Upshift, ether.fi-liquid, felix-vaults.
- *   Combined with Risk Curators this captures ~$16B of curator-managed vault TVL.
- *
- * Add a new category here when DeFiLlama introduces another curator-style
- * grouping. Don't add `Yield Aggregator` (too broad; 200+ entries, mostly
- * legacy yield farms unrelated to the curator model).
+ * Only `Risk Curators` is included. The `Onchain Capital Allocator` category
+ * was previously included (Phase 2) but removed because it conflates vault
+ * platforms (Grove, Spark, Concrete) with actual risk curators (Steakhouse,
+ * Gauntlet). Platforms that self-curate (Veda, Mellow) are added to
+ * RISK_CURATOR_SLUGS instead, so they get included via the fallback path.
  */
-export const CURATOR_CATEGORIES = ['Risk Curators', 'Onchain Capital Allocator'] as const;
+export const CURATOR_CATEGORIES = ['Risk Curators'] as const;
 
 /**
  * Minimum TVL (USD) for a protocol to surface in the curator list.
- * The OCA category has a long tail of micro entries (<$1M) that are mostly
- * inactive or experimental. $10M filters these out while keeping every
- * meaningfully active curator.
+ * Filters out micro/inactive entries.
  */
 export const MIN_CURATOR_TVL_USD = 10_000_000;
 
