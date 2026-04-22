@@ -27,9 +27,30 @@ export const revalidate = 3600;
 
 const VALID_WINDOWS: ReadonlySet<FlowWindow> = new Set<FlowWindow>([7, 30, 90]);
 
-// Every curator slug we know about — both Risk Curators and Onchain Capital
-// Allocator entries. Drives the fan-out fetch.
-const ALL_CURATOR_SLUGS = Object.keys(CURATOR_NAME_VARIANTS);
+// Include BOTH curators and top allocator platforms in the flow analysis.
+// Why: capital often flows FROM curators TO allocator platforms (or vice versa).
+// If we only tracked curators, the Sankey would show big outflows with no
+// matching inflows — because the gainers are allocators in a different tab.
+// Including both gives the Sankey the full picture.
+const ALLOCATOR_SLUGS = [
+  'grove-finance', 'spark-liquidity-layer', 'concrete',
+  'ether.fi-liquid', 'upshift', 'lagoon', 'aera-v3',
+  'ember-protocol', 'felix-vaults',
+] as const;
+const ALL_SLUGS = [...Object.keys(CURATOR_NAME_VARIANTS), ...ALLOCATOR_SLUGS];
+
+// Display names for allocator slugs (not in CURATOR_NAME_VARIANTS)
+const ALLOCATOR_NAMES: Record<string, string> = {
+  'grove-finance': 'Grove Finance',
+  'spark-liquidity-layer': 'Spark Liquidity',
+  'concrete': 'Concrete',
+  'ether.fi-liquid': 'ether.fi Liquid',
+  'upshift': 'Upshift',
+  'lagoon': 'Lagoon',
+  'aera-v3': 'Aera',
+  'ember-protocol': 'Ember Protocol',
+  'felix-vaults': 'Felix Vaults',
+};
 
 export async function GET(request: NextRequest) {
   try {
@@ -42,11 +63,11 @@ export async function GET(request: NextRequest) {
     // already caches via Next.js fetch cache and logs failures; an empty
     // history just becomes a curator with no flow data (filtered out below).
     const histories: CuratorHistory[] = await Promise.all(
-      ALL_CURATOR_SLUGS.map(async (slug) => {
+      ALL_SLUGS.map(async (slug) => {
         const data = await getProtocolHistoricalTvl(slug);
         return {
           slug,
-          name: CURATOR_SLUG_TO_NAME[slug] || slug,
+          name: CURATOR_SLUG_TO_NAME[slug] || ALLOCATOR_NAMES[slug] || slug,
           history: data.map(p => ({ date: p.date, tvl: p.tvl })),
         };
       }),

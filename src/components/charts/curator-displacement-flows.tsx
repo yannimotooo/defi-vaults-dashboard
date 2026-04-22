@@ -4,7 +4,6 @@ import { useState } from 'react';
 import useSWR from 'swr';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { EmptyStateCard } from '@/components/ui/empty-state-card';
-import { FlowDiagram } from './flow-diagram';
 import { formatFlow, formatCuratorShortName } from '@/lib/utils';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 
@@ -63,9 +62,9 @@ export function CuratorDisplacementFlows() {
   const top = curators.slice(0, 12);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* LEFT: Per-curator flow leaderboard (2/3 width) */}
-      <Card className="lg:col-span-2">
+    <div>
+      {/* Per-curator flow leaderboard */}
+      <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
           <div>
             <CardTitle className="text-[15px] font-semibold">Curator Net Flows</CardTitle>
@@ -162,13 +161,8 @@ export function CuratorDisplacementFlows() {
         </CardContent>
       </Card>
 
-      {/* RIGHT: Visual flow diagram showing displacement arrows */}
-      <FlowDiagram
-        pairs={pairs}
-        isLoading={isLoading && !data}
-        error={!!error}
-        windowDays={window}
-      />
+      {/* Displacement pairs removed — now shown via protocol-level Sankey
+          in the FlowsTab parent component */}
     </div>
   );
 }
