@@ -127,7 +127,9 @@ export function computeYieldFlowCorrelation(
   }
 
   return curators
-    .filter(c => c.avgApy > 0 && c.totalTvl > 100_000)
+    // Filter out curators with extreme APY values (likely token-price-driven,
+    // not real yield) since they blow out the scatter chart axes.
+    .filter(c => c.avgApy > 0 && c.avgApy <= 500 && c.totalTvl > 100_000)
     .map(c => {
       const totalVaultTvl = curatorVaultTvl.get(c.name) || 0;
       const stableTvl = curatorStablecoinPct.get(c.name) || 0;

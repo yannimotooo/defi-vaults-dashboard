@@ -4,8 +4,9 @@ import { useState } from 'react';
 import useSWR from 'swr';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { EmptyStateCard } from '@/components/ui/empty-state-card';
+import { FlowDiagram } from './flow-diagram';
 import { formatFlow, formatCuratorShortName } from '@/lib/utils';
-import { ArrowRight, TrendingUp, TrendingDown, Info } from 'lucide-react';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 
 type Window = 7 | 30 | 90;
 
@@ -161,58 +162,13 @@ export function CuratorDisplacementFlows() {
         </CardContent>
       </Card>
 
-      {/* RIGHT: Correlated displacement candidates */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-[15px] font-semibold">Displacement Candidates</CardTitle>
-          <p className="text-[11px] text-gray-500 mt-0.5 flex items-start gap-1">
-            <Info className="h-3 w-3 mt-0.5 shrink-0 text-gray-400" />
-            <span>
-              Heuristic only — paired by magnitude correlation. Not a proof of capital
-              migration; verify with on-chain data before acting.
-            </span>
-          </p>
-        </CardHeader>
-        <CardContent>
-          {error || isLoading || pairs.length === 0 ? (
-            <EmptyStateCard
-              message={
-                error
-                  ? 'Failed to load.'
-                  : isLoading
-                    ? 'Computing pairs...'
-                    : `No correlated swaps in last ${window}d.`
-              }
-            />
-          ) : (
-            <ul className="space-y-3">
-              {pairs.slice(0, 6).map((pair, i) => (
-                <li
-                  key={`${pair.fromCurator}-${pair.toCurator}-${i}`}
-                  className="border border-gray-100 rounded-lg p-3 bg-gray-50/50 hover:bg-white hover:border-gray-200 transition-colors"
-                >
-                  <div className="flex items-center gap-2 text-[12px] font-medium text-gray-900">
-                    <span className="text-red-600">{formatCuratorShortName(pair.fromCurator)}</span>
-                    <ArrowRight className="h-3 w-3 text-gray-400" />
-                    <span className="text-emerald-600">
-                      {formatCuratorShortName(pair.toCurator)}
-                    </span>
-                  </div>
-                  <div
-                    className="text-[13px] font-semibold text-gray-900 mt-1"
-                    style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}
-                  >
-                    ~{formatFlow(pair.estimatedFlowUsd)}
-                  </div>
-                  <div className="text-[10px] text-gray-500 mt-1 leading-snug">
-                    {pair.rationale}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+      {/* RIGHT: Visual flow diagram showing displacement arrows */}
+      <FlowDiagram
+        pairs={pairs}
+        isLoading={isLoading && !data}
+        error={!!error}
+        windowDays={window}
+      />
     </div>
   );
 }

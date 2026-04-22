@@ -17,8 +17,9 @@ const ProtocolsTab = lazy(() => import('@/components/tabs/ProtocolsTab').then(m 
 const VaultsTab = lazy(() => import('@/components/tabs/VaultsTab').then(m => ({ default: m.VaultsTab })));
 const LiquidationsTab = lazy(() => import('@/components/tabs/LiquidationsTab').then(m => ({ default: m.LiquidationsTab })));
 const FlowsTab = lazy(() => import('@/components/tabs/FlowsTab').then(m => ({ default: m.FlowsTab })));
+const AllocatorsTab = lazy(() => import('@/components/tabs/AllocatorsTab').then(m => ({ default: m.AllocatorsTab })));
 import type { MarketOverview, Curator, DataValidation, HistoricalCuratorData, VaultData, LiquidationData, Tab } from '@/types';
-import { RefreshCw, LayoutDashboard, Users, Layers, Vault, Zap, TrendingUp } from 'lucide-react';
+import { RefreshCw, LayoutDashboard, Users, Layers, Vault, Zap, TrendingUp, Building2 } from 'lucide-react';
 
 const fetcher = (url: string) => fetch(url).then(res => {
   if (!res.ok) throw new Error(`Failed to fetch ${url}`);
@@ -26,7 +27,7 @@ const fetcher = (url: string) => fetch(url).then(res => {
 });
 
 const VALID_TABS: ReadonlySet<Tab> = new Set<Tab>([
-  'overview', 'curators', 'protocols', 'vaults', 'flows', 'liquidations',
+  'overview', 'curators', 'protocols', 'vaults', 'flows', 'liquidations', 'allocators',
 ]);
 
 /**
@@ -69,7 +70,7 @@ function Dashboard() {
   // Home jumps to first, End to last. Activated tab also moves focus.
   // The tab array order MUST match the visual order rendered in the tablist.
   const TAB_ORDER: readonly Tab[] = useMemo(
-    () => ['overview', 'curators', 'protocols', 'vaults', 'flows', 'liquidations'] as const,
+    () => ['overview', 'curators', 'protocols', 'vaults', 'flows', 'liquidations', 'allocators'] as const,
     [],
   );
   const handleTablistKeyDown = useCallback(
@@ -241,6 +242,7 @@ function Dashboard() {
               <TabButton tab="vaults" active={activeTab === 'vaults'} onClick={() => setActiveTab('vaults')} icon={<Vault className="h-3.5 w-3.5" />} label="Vaults" />
               <TabButton tab="flows" active={activeTab === 'flows'} onClick={() => setActiveTab('flows')} icon={<TrendingUp className="h-3.5 w-3.5" />} label="Flows" />
               <TabButton tab="liquidations" active={activeTab === 'liquidations'} onClick={() => setActiveTab('liquidations')} icon={<Zap className="h-3.5 w-3.5" />} label="Liquidations" />
+              <TabButton tab="allocators" active={activeTab === 'allocators'} onClick={() => setActiveTab('allocators')} icon={<Building2 className="h-3.5 w-3.5" />} label="Allocators" />
             </div>
           </div>
         </div>
@@ -259,6 +261,7 @@ function Dashboard() {
           <MobileTabButton tab="vaults" active={activeTab === 'vaults'} onClick={() => setActiveTab('vaults')} icon={<Vault className="h-5 w-5" />} label="Vaults" />
           <MobileTabButton tab="flows" active={activeTab === 'flows'} onClick={() => setActiveTab('flows')} icon={<TrendingUp className="h-5 w-5" />} label="Flows" />
           <MobileTabButton tab="liquidations" active={activeTab === 'liquidations'} onClick={() => setActiveTab('liquidations')} icon={<Zap className="h-5 w-5" />} label="Liquidations" />
+          <MobileTabButton tab="allocators" active={activeTab === 'allocators'} onClick={() => setActiveTab('allocators')} icon={<Building2 className="h-5 w-5" />} label="Allocators" />
         </div>
       </nav>
 
@@ -302,6 +305,10 @@ function Dashboard() {
 
             {activeTab === 'liquidations' && (
               <LiquidationsTab liquidationData={liquidationData} />
+            )}
+
+            {activeTab === 'allocators' && (
+              <AllocatorsTab />
             )}
           </Suspense>
         </div>

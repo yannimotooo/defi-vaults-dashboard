@@ -264,7 +264,7 @@ export interface LiquidationData {
 }
 
 // Tab type for navigation
-export type Tab = 'overview' | 'curators' | 'protocols' | 'vaults' | 'liquidations' | 'flows';
+export type Tab = 'overview' | 'curators' | 'protocols' | 'vaults' | 'liquidations' | 'flows' | 'allocators';
 
 // Flow analysis types (derived from existing data, no new API calls)
 export interface FlowDataPoint {
