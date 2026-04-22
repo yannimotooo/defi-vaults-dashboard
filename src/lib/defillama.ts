@@ -26,17 +26,6 @@ export interface DefiLlamaChain {
   tvl: number;
 }
 
-export interface DefiLlamaYield {
-  pool: string;
-  chain: string;
-  project: string;
-  symbol: string;
-  tvlUsd: number;
-  apy: number;
-  apyBase: number;
-  apyReward: number;
-}
-
 // Vault protocols with curator model (our focus)
 export const VAULT_PROTOCOL_SLUGS = [
   // EVM - Curator-based vault protocols
@@ -261,19 +250,6 @@ export function filterHistoricalByPeriod(
   return data.filter(point => point.date >= cutoff);
 }
 
-// Get yields data
-export async function getYields(): Promise<{ data: DefiLlamaYield[] }> {
-  const response = await fetch(`${YIELDS_API_BASE}/pools`, {
-    next: { revalidate: 300 },
-  });
-
-  if (!response.ok) {
-    throw new Error(`DeFiLlama Yields API error: ${response.status}`);
-  }
-
-  return response.json();
-}
-
 // Filter for vault protocols
 export function filterVaultProtocols(protocols: DefiLlamaProtocol[]): DefiLlamaProtocol[] {
   return protocols.filter(p =>
@@ -383,19 +359,46 @@ export interface VaultPool {
   rewardTokens: string[] | null;
 }
 
-// Get all yield pools (vaults).
-// Returns [] on any failure but logs the cause — empty result is otherwise
-// indistinguishable from "no pools" in downstream code.
+// In-process cache for /pools. The endpoint returns ~16MB, which exceeds
+// Next.js data cache's 2MB ceiling — without this, every cold request
+// re-downloads the full payload. We also dedup concurrent callers via the
+// pending promise so one request doesn't trigger N parallel upstream fetches.
+const POOLS_CACHE_TTL_MS = 5 * 60 * 1000;
+let poolsCache: { data: VaultPool[]; fetchedAt: number } | null = null;
+let poolsPendingFetch: Promise<VaultPool[]> | null = null;
+
+// Get all yield pools (vaults). Cached in-process for POOLS_CACHE_TTL_MS.
+// Serves stale data on transient upstream failure if a prior cache entry exists.
 export async function getYieldPools(): Promise<VaultPool[]> {
+  const now = Date.now();
+  if (poolsCache && now - poolsCache.fetchedAt < POOLS_CACHE_TTL_MS) {
+    return poolsCache.data;
+  }
+  if (poolsPendingFetch) {
+    return poolsPendingFetch;
+  }
+  poolsPendingFetch = fetchYieldPoolsFresh();
   try {
+    const data = await poolsPendingFetch;
+    poolsCache = { data, fetchedAt: now };
+    return data;
+  } finally {
+    poolsPendingFetch = null;
+  }
+}
+
+async function fetchYieldPoolsFresh(): Promise<VaultPool[]> {
+  try {
+    // cache: 'no-store' so Next.js doesn't attempt to cache 16MB and log
+    // a failure every request. The in-process cache above handles reuse.
     const response = await fetchWithTimeout(`${YIELDS_API_BASE}/pools`, {
-      next: { revalidate: 300 },
+      cache: 'no-store',
       timeoutMs: DEFILLAMA_TIMEOUT_MS,
     });
 
     if (!response.ok) {
       console.warn(`[DeFiLlama] yields/pools HTTP ${response.status}`);
-      return [];
+      return poolsCache?.data ?? [];
     }
 
     const data = await response.json();
@@ -405,8 +408,19 @@ export async function getYieldPools(): Promise<VaultPool[]> {
       `[DeFiLlama] yields/pools fetch failed:`,
       error instanceof Error ? error.message : error,
     );
-    return [];
+    return poolsCache?.data ?? [];
   }
+}
+
+// Helper: pools filtered to matching projects (case-insensitive substring).
+// Uses the shared pools cache so callers don't re-download 16MB per fetch.
+export async function getPoolsByProjects(projects: string[]): Promise<VaultPool[]> {
+  const needles = projects.map(p => p.toLowerCase());
+  const all = await getYieldPools();
+  return all.filter(pool => {
+    const project = (pool.project || '').toLowerCase();
+    return needles.some(p => project.includes(p));
+  });
 }
 
 // Curator configuration: defines what to search for in DeFiLlama pools

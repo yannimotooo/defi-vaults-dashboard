@@ -624,18 +624,28 @@ export interface MorphoVaultWithCurator {
   apy: number;
 }
 
-// In-memory cache for vault-curator mappings
+// In-memory cache for vault-curator mappings. pendingFetch dedups
+// concurrent callers on a warm lambda.
 let vaultCuratorCache: { data: MorphoVaultWithCurator[]; timestamp: number } | null = null;
+let vaultCuratorPending: Promise<MorphoVaultWithCurator[]> | null = null;
 const VAULT_CURATOR_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 // Fetch all Morpho vaults with their curators
 // This is used to attribute vaults to curators in the dashboard
 export async function getMorphoVaultsWithCurators(): Promise<MorphoVaultWithCurator[]> {
-  // Return cached data if valid
   if (vaultCuratorCache && Date.now() - vaultCuratorCache.timestamp < VAULT_CURATOR_CACHE_TTL) {
     return vaultCuratorCache.data;
   }
+  if (vaultCuratorPending) return vaultCuratorPending;
+  vaultCuratorPending = fetchVaultsWithCuratorsFresh();
+  try {
+    return await vaultCuratorPending;
+  } finally {
+    vaultCuratorPending = null;
+  }
+}
 
+async function fetchVaultsWithCuratorsFresh(): Promise<MorphoVaultWithCurator[]> {
   const query = `
     query GetVaultCurators {
       vaults(first: 500, orderBy: TotalAssets, orderDirection: Desc) {
@@ -692,7 +702,6 @@ export async function getMorphoVaultsWithCurators(): Promise<MorphoVaultWithCura
 
     console.log(`[Morpho Vaults] Fetched ${result.length} vaults with curators`);
 
-    // Cache the result
     vaultCuratorCache = { data: result, timestamp: Date.now() };
     return result;
   } catch (error) {

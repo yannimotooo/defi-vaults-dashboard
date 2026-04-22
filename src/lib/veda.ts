@@ -1,6 +1,8 @@
 // Veda BoringVault Protocol Integration
 // Fetches vault data from DefiLlama for Veda and Veda-powered protocols
 
+import { getPoolsByProjects, type VaultPool } from './defillama';
+
 export interface VedaVault {
   id: string;
   name: string;
@@ -44,90 +46,30 @@ const PROJECT_DISPLAY_NAMES: Record<string, string> = {
   'plasma-veda': 'Plasma',
 };
 
-// Fetch Veda vaults from DefiLlama
-export async function getVedaVaults(): Promise<VedaVault[]> {
-  try {
-    const response = await fetch('https://yields.llama.fi/pools', {
-      next: { revalidate: 300 }, // Cache for 5 minutes
-    });
-
-    if (!response.ok) {
-      throw new Error(`DefiLlama API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const allPools = data.data || [];
-
-    // Filter for Veda and Veda-powered projects
-    const vedaVaults: VedaVault[] = allPools
-      .filter((pool: Record<string, unknown>) => {
-        const project = (pool.project as string || '').toLowerCase();
-        return VEDA_POWERED_PROJECTS.some(p => project.includes(p.toLowerCase()));
-      })
-      .map((pool: Record<string, unknown>) => ({
-        id: pool.pool as string,
-        name: `${PROJECT_DISPLAY_NAMES[pool.project as string] || pool.project} ${pool.symbol}`,
-        symbol: pool.symbol as string,
-        chain: pool.chain as string,
-        tvlUsd: pool.tvlUsd as number || 0,
-        apy: pool.apy as number || 0,
-        apyBase: pool.apyBase as number || 0,
-        apyReward: pool.apyReward as number | null,
-        stablecoin: pool.stablecoin as boolean || false,
-        exposure: pool.exposure as string || 'single',
-        project: pool.project as string,
-        underlyingTokens: pool.underlyingTokens as string[] || [],
-      }));
-
-    return vedaVaults;
-  } catch (error) {
-    console.error('Error fetching Veda vaults:', error);
-    return [];
-  }
+function poolToVedaVault(pool: VaultPool): VedaVault {
+  return {
+    id: pool.pool,
+    name: `${PROJECT_DISPLAY_NAMES[pool.project] || pool.project} ${pool.symbol}`,
+    symbol: pool.symbol,
+    chain: pool.chain,
+    tvlUsd: pool.tvlUsd || 0,
+    apy: pool.apy || 0,
+    apyBase: pool.apyBase ?? 0,
+    apyReward: pool.apyReward,
+    stablecoin: pool.stablecoin || false,
+    exposure: pool.exposure || 'single',
+    project: pool.project,
+    underlyingTokens: pool.underlyingTokens ?? [],
+  };
 }
 
-// Get all Veda-powered vaults including ether.fi Liquid
+// Get all Veda-powered vaults (Veda, ether.fi Liquid, Concrete, Lombard, Plasma).
+// Uses the shared /pools cache in defillama.ts so this doesn't re-download the
+// 16MB response each call.
 export async function getAllVedaPoweredVaults(): Promise<VedaVault[]> {
   try {
-    const response = await fetch('https://yields.llama.fi/pools', {
-      next: { revalidate: 300 },
-    });
-
-    if (!response.ok) {
-      throw new Error(`DefiLlama API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const allPools = data.data || [];
-
-    // Include direct Veda vaults and known Veda-powered protocols
-    const vedaPoweredProjects = [
-      'veda',
-      'ether.fi-liquid', // Uses BoringVault
-      'concrete',
-    ];
-
-    const vaults: VedaVault[] = allPools
-      .filter((pool: Record<string, unknown>) => {
-        const project = (pool.project as string || '').toLowerCase();
-        return vedaPoweredProjects.some(p => project.includes(p.toLowerCase()));
-      })
-      .map((pool: Record<string, unknown>) => ({
-        id: pool.pool as string,
-        name: `${PROJECT_DISPLAY_NAMES[pool.project as string] || pool.project} ${pool.symbol}`,
-        symbol: pool.symbol as string,
-        chain: pool.chain as string,
-        tvlUsd: pool.tvlUsd as number || 0,
-        apy: pool.apy as number || 0,
-        apyBase: pool.apyBase as number || 0,
-        apyReward: pool.apyReward as number | null,
-        stablecoin: pool.stablecoin as boolean || false,
-        exposure: pool.exposure as string || 'single',
-        project: pool.project as string,
-        underlyingTokens: pool.underlyingTokens as string[] || [],
-      }));
-
-    return vaults;
+    const pools = await getPoolsByProjects(VEDA_POWERED_PROJECTS);
+    return pools.map(poolToVedaVault);
   } catch (error) {
     console.error('Error fetching Veda-powered vaults:', error);
     return [];

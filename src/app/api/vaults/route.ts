@@ -40,8 +40,11 @@ interface MorphoVaultApy {
   netApy: number;
 }
 
-// In-memory cache for Morpho APY data
+// In-memory cache for Morpho APY data. pendingFetch dedups concurrent
+// callers on a warm lambda so one request to this route doesn't trigger
+// multiple upstream Morpho GraphQL fetches.
 let morphoApyCache: { data: MorphoVaultApy[]; timestamp: number } | null = null;
+let morphoApyPending: Promise<MorphoVaultApy[]> | null = null;
 const MORPHO_APY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 // Infer curator from symbol prefix
@@ -71,16 +74,22 @@ function isRawLendingMarket(vault: { symbol: string; apy: number | null }): bool
   return rawAssetSymbols.includes(lowerSymbol) && (vault.apy === 0 || vault.apy === null);
 }
 
-// Fetch APY data directly from Morpho GraphQL API (cached)
+// Fetch APY data directly from Morpho GraphQL API (cached + deduped)
 async function getMorphoVaultApyData(): Promise<MorphoVaultApy[]> {
-  // Return cached data if valid
   if (morphoApyCache && Date.now() - morphoApyCache.timestamp < MORPHO_APY_CACHE_TTL) {
-    console.log('[Morpho APY] Using cached data');
     return morphoApyCache.data;
   }
+  if (morphoApyPending) return morphoApyPending;
+  morphoApyPending = fetchMorphoVaultApyFresh();
+  try {
+    return await morphoApyPending;
+  } finally {
+    morphoApyPending = null;
+  }
+}
 
+async function fetchMorphoVaultApyFresh(): Promise<MorphoVaultApy[]> {
   const MORPHO_BLUE_API = 'https://blue-api.morpho.org/graphql';
-
   const query = `
     query GetVaultApys {
       vaults(first: 500, orderBy: TotalAssets, orderDirection: Desc) {
@@ -108,7 +117,7 @@ async function getMorphoVaultApyData(): Promise<MorphoVaultApy[]> {
 
     if (!response.ok) {
       console.error('[Morpho APY] API error:', response.status);
-      return [];
+      return morphoApyCache?.data ?? [];
     }
 
     const data = await response.json();
@@ -125,17 +134,11 @@ async function getMorphoVaultApyData(): Promise<MorphoVaultApy[]> {
       netApy: decimalToPercent(v.state?.netApy || 0),
     }));
 
-    // Cache the result
     morphoApyCache = { data: result, timestamp: Date.now() };
     return result;
   } catch (error) {
     console.error('[Morpho APY] Error fetching:', error);
-    // Return stale cache if available
-    if (morphoApyCache) {
-      console.log('[Morpho APY] Returning stale cache due to error');
-      return morphoApyCache.data;
-    }
-    return [];
+    return morphoApyCache?.data ?? [];
   }
 }
 

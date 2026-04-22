@@ -233,7 +233,7 @@ function getCuratorName(vault: EulerVault): string {
  * always returns a Percent value (0-100). See src/lib/fees.ts for the
  * canonical Percent / Decimal conventions.
  */
-function parsePerformanceFee(fee: string): number {
+export function parsePerformanceFee(fee: string): number {
   const feeNum = parseFloat(fee);
   if (isNaN(feeNum)) return 0;
 
