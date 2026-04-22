@@ -142,12 +142,42 @@ function getCuratorRealMetrics(slug: string, allPools: VaultPool[]): {
 
     const totalTvl = vaults.reduce((sum, v) => sum + v.tvlUsd, 0);
 
-    // Calculate TVL-weighted average APY
+    // Calculate TVL-weighted average APY, excluding statistical outliers.
+    //
+    // Why not a simple cap: capping at X% hides real data. Instead, we detect
+    // outliers and exclude them from the weighted average. A vault at 297,995%
+    // APY is either a data artifact or a tiny incentive-driven pool that
+    // shouldn't represent the curator's yield profile.
+    //
+    // Method: compute the TVL-weighted median first, then exclude vaults
+    // where APY > 10× median from the average. The outlier vaults are still
+    // shown individually in the vault table — just not in the curator average.
+    const vaultApys = vaults.map(v => ({ apy: v.apy || 0, tvl: v.tvlUsd })).filter(v => v.tvl > 0);
+    const sortedByApy = [...vaultApys].sort((a, b) => a.apy - b.apy);
+
+    // TVL-weighted median: find the APY where cumulative TVL weight ≥ 50%
+    let cumulativeWeight = 0;
+    let medianApy = sortedByApy.length > 0 ? sortedByApy[0].apy : 0;
+    for (const v of sortedByApy) {
+      cumulativeWeight += v.tvl / totalTvl;
+      if (cumulativeWeight >= 0.5) { medianApy = v.apy; break; }
+    }
+
+    // Exclude APY outliers: > 10× median OR > 200% absolute (whichever is lower)
+    const outlierThreshold = Math.min(Math.max(medianApy * 10, 50), 200);
     let weightedApy = 0;
+    let includedTvl = 0;
     vaults.forEach(v => {
+      const apy = v.apy || 0;
+      if (apy > outlierThreshold) return; // skip outlier
       const weight = totalTvl > 0 ? v.tvlUsd / totalTvl : 0;
-      weightedApy += (v.apy || 0) * weight;
+      weightedApy += apy * weight;
+      includedTvl += v.tvlUsd;
     });
+    // Re-normalize if we excluded outliers (so weights still sum to ~1)
+    if (includedTvl > 0 && includedTvl < totalTvl) {
+      weightedApy = weightedApy * (totalTvl / includedTvl);
+    }
 
     // Extract unique protocols and chains
     const protocols = [...new Set(vaults.map(v => formatProtocolName(v.project)))];
@@ -516,10 +546,11 @@ export async function GET() {
         const vaultCountEstimated = !hasRealVaultCount;
 
         // APY Priority: 1) Fee data grossApy (from Morpho), 2) Morpho on-chain, 3) DefiLlama, 4) 0
-        // APY sanity cap: token-price-driven "yields" (KHYPE 34000%, Clearstar
-        // 13000%) should not inflate curator-level averages or blow out chart axes.
-        const rawApy = feeData?.avgGrossApy || feeData?.avgNetApy || morphoData?.avgApy || realMetrics?.avgApy || 0;
-        const avgApy = Math.min(rawApy, 500);
+        // APY Priority: 1) Fee data grossApy (from Morpho), 2) Morpho on-chain, 3) DefiLlama, 4) 0
+        // The Morpho fee data and getCuratorRealMetrics paths already use
+        // outlier-excluded weighted averages (see the median-based exclusion
+        // above and in morpho.ts), so no additional capping needed here.
+        const avgApy = feeData?.avgGrossApy || feeData?.avgNetApy || morphoData?.avgApy || realMetrics?.avgApy || 0;
 
         // Build protocols list - include Kamino/Euler if curator has those vaults
         let protocols = realMetrics?.protocols?.length

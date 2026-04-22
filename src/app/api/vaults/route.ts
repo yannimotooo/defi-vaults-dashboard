@@ -271,14 +271,12 @@ export async function GET(request: NextRequest) {
         ? null  // Raw markets have no curator
         : curatorFromMap || riskData?.curator || curatorFromSymbol || vault.poolMeta || null;
 
-      // APY sanity cap: anything above 500% is almost certainly token-price
-      // appreciation being mislabeled as "yield" (e.g. KHYPE at 34000%,
-      // Clearstar at 13000%). Cap at 500% for display; the vault is still
-      // shown but with a capped APY so it doesn't blow out chart axes.
-      const MAX_DISPLAY_APY = 500;
-      const cappedApy = Math.min(finalApy, MAX_DISPLAY_APY);
-      const cappedApyBase = Math.min(finalApyBase, MAX_DISPLAY_APY);
-      const cappedApyReward = Math.min(vault.apyReward || 0, MAX_DISPLAY_APY);
+      // Pass through the actual APY values. Outlier handling is done at the
+      // display layer: curator-level averages use median-based outlier
+      // exclusion (see curators/route.ts), and chart components filter out
+      // entries with APY > 500% from scatter plots (see flow-analysis.ts).
+      // Individual vaults with extreme APY (e.g. KHYPE, Clearstar) are still
+      // shown in the vault table with their real values for transparency.
 
       return {
         id: vault.pool,
@@ -287,9 +285,9 @@ export async function GET(request: NextRequest) {
         project: vault.project,
         symbol: vault.symbol,
         tvl: vault.tvlUsd,
-        apy: cappedApy,
-        apyBase: cappedApyBase,
-        apyReward: cappedApyReward,
+        apy: finalApy,
+        apyBase: finalApyBase,
+        apyReward: vault.apyReward || 0,
         apySource, // Track where APY came from
         apyChange7d: vault.apyPct7D || 0,
         stablecoin: vault.stablecoin,
