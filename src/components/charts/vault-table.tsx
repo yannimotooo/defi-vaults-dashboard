@@ -2,7 +2,7 @@
 
 import { useState, Fragment } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { CompactRating, PillarDetailCard } from '@/components/ui/credit-rating';
+import { CompactRating } from '@/components/ui/credit-rating';
 import { ApyWithQuality } from '@/components/ui/apy-quality-badge';
 import { formatTvl, cn } from '@/lib/utils';
 import { getChainColor, getProtocolColor } from '@/lib/colors';
@@ -14,15 +14,12 @@ import {
   ChevronRight,
   AlertTriangle,
   Shield,
-  Droplets,
   Users,
-  CheckCircle,
   Coins,
   TrendingUp,
   Lock,
   Activity,
   Layers,
-  ExternalLink,
 } from 'lucide-react';
 import type { VaultCreditRating } from '@/lib/risk-rating';
 
@@ -76,6 +73,38 @@ interface VaultTableProps {
 
 type SortKey = 'tvl' | 'apy' | 'apyBase' | 'apyReward' | 'chain' | 'name' | 'rating';
 type SortOrder = 'asc' | 'desc';
+
+function SortButton({
+  columnKey,
+  label,
+  sortKey,
+  sortOrder,
+  onSort,
+}: {
+  columnKey: SortKey;
+  label: string;
+  sortKey: SortKey;
+  sortOrder: SortOrder;
+  onSort: (key: SortKey) => void;
+}) {
+  return (
+    <button
+      onClick={() => onSort(columnKey)}
+      className="flex items-center gap-1 hover:text-gray-700 transition-colors"
+    >
+      {label}
+      {sortKey === columnKey ? (
+        sortOrder === 'desc' ? (
+          <ChevronDown className="h-3 w-3" />
+        ) : (
+          <ChevronUp className="h-3 w-3" />
+        )
+      ) : (
+        <ArrowUpDown className="h-3 w-3 opacity-30" />
+      )}
+    </button>
+  );
+}
 
 export function VaultTable({
   vaults,
@@ -133,24 +162,6 @@ export function VaultTable({
   const displayedVaults = showAll ? sortedVaults : sortedVaults.slice(0, maxDisplay);
   const hasMore = sortedVaults.length > maxDisplay;
 
-  const SortButton = ({ columnKey, label }: { columnKey: SortKey; label: string }) => (
-    <button
-      onClick={() => handleSort(columnKey)}
-      className="flex items-center gap-1 hover:text-gray-700 transition-colors"
-    >
-      {label}
-      {sortKey === columnKey ? (
-        sortOrder === 'desc' ? (
-          <ChevronDown className="h-3 w-3" />
-        ) : (
-          <ChevronUp className="h-3 w-3" />
-        )
-      ) : (
-        <ArrowUpDown className="h-3 w-3 opacity-30" />
-      )}
-    </button>
-  );
-
   if (vaults.length === 0) {
     return (
       <Card>
@@ -165,9 +176,6 @@ export function VaultTable({
       </Card>
     );
   }
-
-  // Check if any vaults have credit ratings
-  const hasCreditRatings = vaults.some(v => v.creditRating);
 
   return (
     <Card>
@@ -196,10 +204,10 @@ export function VaultTable({
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50">
                 <th className="px-3 sm:px-5 py-3 text-left text-[10px] sm:text-[11px] font-medium text-gray-500 uppercase tracking-wider">
-                  <SortButton columnKey="name" label="Vault" />
+                  <SortButton columnKey="name" label="Vault" sortKey={sortKey} sortOrder={sortOrder} onSort={handleSort} />
                 </th>
                 <th className="hidden sm:table-cell px-3 sm:px-5 py-3 text-left text-[10px] sm:text-[11px] font-medium text-gray-500 uppercase tracking-wider">
-                  <SortButton columnKey="chain" label="Chain" />
+                  <SortButton columnKey="chain" label="Chain" sortKey={sortKey} sortOrder={sortOrder} onSort={handleSort} />
                 </th>
                 {showProject && (
                   <th className="hidden lg:table-cell px-3 sm:px-5 py-3 text-left text-[10px] sm:text-[11px] font-medium text-gray-500 uppercase tracking-wider">
@@ -213,15 +221,15 @@ export function VaultTable({
                 )}
                 <th className="px-3 sm:px-5 py-3 text-right text-[10px] sm:text-[11px] font-medium text-gray-500 uppercase tracking-wider">
                   <div className="flex justify-end">
-                    <SortButton columnKey="tvl" label="TVL" />
+                    <SortButton columnKey="tvl" label="TVL" sortKey={sortKey} sortOrder={sortOrder} onSort={handleSort} />
                   </div>
                 </th>
                 <th className="px-3 sm:px-5 py-3 text-center text-[10px] sm:text-[11px] font-medium text-gray-500 uppercase tracking-wider">
-                  <SortButton columnKey="rating" label="Rating" />
+                  <SortButton columnKey="rating" label="Rating" sortKey={sortKey} sortOrder={sortOrder} onSort={handleSort} />
                 </th>
                 <th className="px-3 sm:px-5 py-3 text-right text-[10px] sm:text-[11px] font-medium text-gray-500 uppercase tracking-wider">
                   <div className="flex justify-end">
-                    <SortButton columnKey="apy" label="APY" />
+                    <SortButton columnKey="apy" label="APY" sortKey={sortKey} sortOrder={sortOrder} onSort={handleSort} />
                   </div>
                 </th>
                 <th className="hidden md:table-cell px-3 sm:px-5 py-3 text-right text-[10px] sm:text-[11px] font-medium text-gray-500 uppercase tracking-wider">
@@ -232,7 +240,6 @@ export function VaultTable({
             <tbody>
               {displayedVaults.map((vault, index) => {
                 const hasRating = vault.creditRating;
-                const hasRiskData = vault.markets || vault.maxUtilization !== undefined;
                 const canExpand = true; // Always allow expansion to show basic info
 
                 // Calculate stress buffer for display
@@ -650,56 +657,5 @@ export function VaultTable({
         )}
       </CardContent>
     </Card>
-  );
-}
-
-// Helper component for pillar summary in expanded view
-function PillarSummaryCard({
-  pillar,
-  rating,
-}: {
-  pillar: 'capital' | 'liquidity' | 'curator';
-  rating: VaultCreditRating['capitalSafety'];
-}) {
-  const config = {
-    capital: { icon: Shield, label: 'Capital Safety', desc: 'Risk of loss' },
-    liquidity: { icon: Droplets, label: 'Liquidity', desc: 'Withdrawal ability' },
-    curator: { icon: Users, label: 'Curator', desc: 'Management quality' },
-  };
-
-  const { icon: Icon, label, desc } = config[pillar];
-
-  const ratingColors: Record<string, string> = {
-    'AAA': 'text-emerald-600',
-    'AA': 'text-emerald-600',
-    'A': 'text-green-600',
-    'BBB': 'text-yellow-600',
-    'BB': 'text-amber-600',
-    'B': 'text-orange-600',
-    'CCC': 'text-red-600',
-    'CC': 'text-red-600',
-    'C': 'text-red-700',
-    'NR': 'text-gray-500',
-  };
-
-  return (
-    <div className="p-3 rounded-lg bg-gray-100 border border-gray-200">
-      <div className="flex items-center gap-2 mb-1">
-        <Icon className="h-4 w-4 text-gray-500" />
-        <span className="text-[11px] text-gray-500">{label}</span>
-      </div>
-      <div className="flex items-baseline gap-2">
-        <span className={cn('font-mono text-[18px] font-semibold', ratingColors[rating.rating])}>
-          {rating.rating}
-        </span>
-        <span className="text-[10px] text-gray-400">{desc}</span>
-      </div>
-      {/* Top factor */}
-      {rating.factors.length > 0 && (
-        <p className="text-[10px] text-gray-500 mt-1 truncate">
-          {rating.factors[0].name}: {rating.factors[0].assessment.toLowerCase()}
-        </p>
-      )}
-    </div>
   );
 }

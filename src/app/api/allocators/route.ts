@@ -15,6 +15,7 @@ import { NextResponse } from 'next/server';
 import { fetchWithTimeout } from '@/lib/http';
 
 export const revalidate = 300; // 5 minutes
+export const dynamic = 'force-dynamic';
 
 const DEFILLAMA_API = 'https://api.llama.fi';
 const MIN_TVL = 10_000_000; // $10M floor

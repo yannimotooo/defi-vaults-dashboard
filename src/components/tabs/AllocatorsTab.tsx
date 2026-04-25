@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
 import { EmptyStateCard } from '@/components/ui/empty-state-card';
 import { formatTvl, formatFlow } from '@/lib/utils';
-import { TrendingUp, TrendingDown, Layers, Globe } from 'lucide-react';
+import { TrendingUp, TrendingDown, Layers } from 'lucide-react';
 
 interface Allocator {
   slug: string;
@@ -38,7 +38,7 @@ export function AllocatorsTab() {
     { refreshInterval: 5 * 60 * 1000, revalidateOnFocus: false },
   );
 
-  const allocators = data?.allocators ?? [];
+  const allocators = useMemo(() => data?.allocators ?? [], [data?.allocators]);
 
   // Aggregate chain distribution across all allocators
   const chainBreakdown = useMemo(() => {

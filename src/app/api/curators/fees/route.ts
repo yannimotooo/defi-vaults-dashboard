@@ -3,13 +3,13 @@ import { getCuratorFeeData, getAllCuratorsFeeData, type CuratorFeeData } from '@
 import { getEulerCuratorFeeData, getEulerCuratorFeeDataByName, type EulerCuratorFeeData } from '@/lib/euler';
 import {
   getKaminoCuratorFeeEstimate,
-  getAllKaminoCuratorFeeEstimates,
   type KaminoCuratorOnChainData,
 } from '@/lib/kamino';
-import { getVedaCuratorFeeData, type VedaCuratorFeeData } from '@/lib/veda';
+import { getVedaCuratorFeeData } from '@/lib/veda';
 import { DataSourceTracker } from '@/lib/data-source-tracker';
 
 export const revalidate = 300; // 5 minutes
+export const dynamic = 'force-dynamic';
 
 const DISCLAIMER = `Fee data sources:
 • Morpho (V1 + V2): On-chain data via GraphQL API

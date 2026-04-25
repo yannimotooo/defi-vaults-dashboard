@@ -10,44 +10,37 @@ interface DataFreshnessBadgeProps {
   className?: string;
 }
 
+type FreshnessStatus = 'fresh' | 'stale' | 'old';
+
+function getFreshness(timestamp: string): { timeAgo: string; status: FreshnessStatus } {
+  const now = Date.now();
+  const updated = new Date(timestamp).getTime();
+  const diffMs = now - updated;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+
+  if (diffMins < 1) return { timeAgo: 'just now', status: 'fresh' };
+  if (diffMins < 60) return { timeAgo: `${diffMins}m ago`, status: diffMins < 5 ? 'fresh' : 'stale' };
+  if (diffHours < 24) return { timeAgo: `${diffHours}h ago`, status: 'old' };
+  return { timeAgo: `${Math.floor(diffHours / 24)}d ago`, status: 'old' };
+}
+
 export function DataFreshnessBadge({ timestamp, sources, className }: DataFreshnessBadgeProps) {
-  const [timeAgo, setTimeAgo] = useState<string>('updating...');
-  const [status, setStatus] = useState<'fresh' | 'stale' | 'old'>('fresh');
-  const [mounted, setMounted] = useState(false);
+  const [freshness, setFreshness] = useState<{ timeAgo: string; status: FreshnessStatus } | null>(null);
 
   useEffect(() => {
-    setMounted(true);
-
-    const updateTime = () => {
-      const now = Date.now();
-      const updated = new Date(timestamp).getTime();
-      const diffMs = now - updated;
-      const diffMins = Math.floor(diffMs / 60000);
-      const diffHours = Math.floor(diffMs / 3600000);
-
-      if (diffMins < 1) {
-        setTimeAgo('just now');
-        setStatus('fresh');
-      } else if (diffMins < 60) {
-        setTimeAgo(`${diffMins}m ago`);
-        setStatus(diffMins < 5 ? 'fresh' : 'stale');
-      } else if (diffHours < 24) {
-        setTimeAgo(`${diffHours}h ago`);
-        setStatus('old');
-      } else {
-        setTimeAgo(`${Math.floor(diffHours / 24)}d ago`);
-        setStatus('old');
-      }
-    };
-
-    updateTime();
+    const updateTime = () => setFreshness(getFreshness(timestamp));
+    const initial = setTimeout(updateTime, 0);
     const interval = setInterval(updateTime, 30000); // Update every 30 seconds
 
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(initial);
+      clearInterval(interval);
+    };
   }, [timestamp]);
 
   // Prevent hydration mismatch
-  if (!mounted) {
+  if (!freshness) {
     return (
       <div className={cn('flex items-center gap-3 text-[11px]', className)}>
         <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-gray-100">
@@ -79,7 +72,7 @@ export function DataFreshnessBadge({ timestamp, sources, className }: DataFreshn
     },
   };
 
-  const config = statusConfig[status];
+  const config = statusConfig[freshness.status];
   const Icon = config.icon;
 
   // Parse sources string to show as badges
@@ -96,7 +89,7 @@ export function DataFreshnessBadge({ timestamp, sources, className }: DataFreshn
         <Icon className={cn('h-3 w-3', config.color)} />
         <span className={config.color}>{config.label}</span>
         <span className="text-gray-500">·</span>
-        <span className="text-gray-500">{timeAgo}</span>
+        <span className="text-gray-500">{freshness.timeAgo}</span>
       </div>
 
       {/* Source badges - hidden on smaller screens to prevent wrapping */}
@@ -123,13 +116,11 @@ export function DataFreshnessBadge({ timestamp, sources, className }: DataFreshn
 
 // Compact version for tight spaces
 export function DataFreshnessIndicator({ timestamp }: { timestamp: string }) {
-  const [status, setStatus] = useState<'fresh' | 'stale' | 'old'>('fresh');
+  const [status, setStatus] = useState<FreshnessStatus | null>(null);
 
   useEffect(() => {
-    const diffMins = Math.floor((Date.now() - new Date(timestamp).getTime()) / 60000);
-    if (diffMins < 5) setStatus('fresh');
-    else if (diffMins < 60) setStatus('stale');
-    else setStatus('old');
+    const id = setTimeout(() => setStatus(getFreshness(timestamp).status), 0);
+    return () => clearTimeout(id);
   }, [timestamp]);
 
   const colors = {
@@ -140,7 +131,7 @@ export function DataFreshnessIndicator({ timestamp }: { timestamp: string }) {
 
   return (
     <div
-      className={cn('w-2 h-2 rounded-full', colors[status])}
+      className={cn('w-2 h-2 rounded-full', colors[status ?? 'old'])}
       title={`Data updated: ${new Date(timestamp).toLocaleTimeString()}`}
     />
   );

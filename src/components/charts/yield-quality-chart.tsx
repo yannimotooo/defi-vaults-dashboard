@@ -2,10 +2,6 @@
 
 import { useMemo } from 'react';
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
   Tooltip,
   ResponsiveContainer,
   Cell,
@@ -32,7 +28,6 @@ interface YieldQualityChartProps {
 export function YieldQualityChart({
   vaults,
   title = 'Yield Quality Breakdown',
-  curatorName,
 }: YieldQualityChartProps) {
   const analysis = useMemo(() => {
     if (vaults.length === 0) {
@@ -322,7 +317,6 @@ export function YieldQualityChart({
 // Compact version for dashboard overview
 export function YieldQualitySummary({
   vaults,
-  curatorName,
 }: {
   vaults: VaultYieldData[];
   curatorName?: string;

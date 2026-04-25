@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getProtocolHistoricalTvl, RISK_CURATOR_SLUGS } from '@/lib/defillama';
+import { getProtocolHistoricalTvl } from '@/lib/defillama';
 import { TOP_CURATOR_SLUGS, CURATOR_SLUG_TO_NAME as CURATOR_NAMES, CURATOR_NAME_VARIANTS } from '@/lib/curator-names';
 
 export const revalidate = 600; // 10 minutes

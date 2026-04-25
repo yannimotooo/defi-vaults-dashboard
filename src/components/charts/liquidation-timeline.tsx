@@ -34,6 +34,68 @@ const PROTOCOL_COLORS: Record<string, string> = {
   Kamino: '#13C4A3',
 };
 
+function CustomTooltip({ active, payload, label }: {
+  active?: boolean;
+  payload?: Array<{
+    name: string;
+    value: number;
+    color: string;
+    payload?: { count?: number; badDebt?: number };
+  }>;
+  label?: string;
+}) {
+  if (!active || !payload) return null;
+
+  const total = payload.reduce((sum, entry) => sum + (entry.value || 0), 0);
+  const dayData = payload[0]?.payload;
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-lg">
+      <div className="text-gray-500 text-sm mb-2">{label}</div>
+      <div className="space-y-1">
+        {payload.filter(p => p.value > 0).map((entry, i) => (
+          <div key={i} className="flex items-center justify-between gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div
+                className="w-2 h-2 rounded-full"
+                style={{ backgroundColor: entry.color }}
+              />
+              <span className="text-gray-700">{entry.name}</span>
+            </div>
+            <span className="font-mono text-gray-800">
+              {formatTvl(entry.value)}
+            </span>
+          </div>
+        ))}
+        <div className="border-t border-gray-200 pt-1 mt-1">
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500">Total</span>
+            <span className="font-mono text-gray-800 font-medium">
+              {formatTvl(total)}
+            </span>
+          </div>
+          {dayData && (
+            <>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Liquidations</span>
+                <span className="text-gray-500">{dayData.count}</span>
+              </div>
+              {(dayData.badDebt ?? 0) > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Bad Debt</span>
+                  <span className="text-red-600 font-mono">
+                    {formatTvl(dayData.badDebt ?? 0)}
+                  </span>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function LiquidationTimeline({
   data,
   showByProtocol = true,
@@ -72,63 +134,6 @@ export function LiquidationTimeline({
   const dailyAvg = data.reduce((sum, d) => sum + d.volume, 0) / data.length;
   // "Elevated" threshold: 2x the average (flags unusual activity)
   const elevatedThreshold = dailyAvg * 2;
-
-  const CustomTooltip = ({ active, payload, label }: {
-    active?: boolean;
-    payload?: Array<{ name: string; value: number; color: string }>;
-    label?: string;
-  }) => {
-    if (!active || !payload) return null;
-
-    const total = payload.reduce((sum, entry) => sum + (entry.value || 0), 0);
-    const dayData = data.find(d => formatDate(d.date) === label);
-
-    return (
-      <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-lg">
-        <div className="text-gray-500 text-sm mb-2">{label}</div>
-        <div className="space-y-1">
-          {payload.filter(p => p.value > 0).map((entry, i) => (
-            <div key={i} className="flex items-center justify-between gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <div
-                  className="w-2 h-2 rounded-full"
-                  style={{ backgroundColor: entry.color }}
-                />
-                <span className="text-gray-700">{entry.name}</span>
-              </div>
-              <span className="font-mono text-gray-800">
-                {formatTvl(entry.value)}
-              </span>
-            </div>
-          ))}
-          <div className="border-t border-gray-200 pt-1 mt-1">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Total</span>
-              <span className="font-mono text-gray-800 font-medium">
-                {formatTvl(total)}
-              </span>
-            </div>
-            {dayData && (
-              <>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Liquidations</span>
-                  <span className="text-gray-500">{dayData.count}</span>
-                </div>
-                {dayData.badDebt > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Bad Debt</span>
-                    <span className="text-red-600 font-mono">
-                      {formatTvl(dayData.badDebt)}
-                    </span>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   return (
     <div className="h-[300px]">

@@ -172,6 +172,8 @@ export async function GET(request: NextRequest) {
 
     // Create risk lookup by vault name (normalized)
     const normalizeName = (s: string) => s.toLowerCase().replace(/[\s\-_]/g, '');
+    const isSpecificVaultKey = (key: string) =>
+      key.length >= 5 && !['usdc', 'usdt', 'dai', 'eth', 'weth', 'btc', 'wbtc', 'sol'].includes(key);
     const riskMap = new Map<string, VaultWithCreditRating>();
     // Pre-build comprehensive index to avoid O(n²) fallback matching
     const riskByNameSubstr = new Map<string, VaultWithCreditRating>();
@@ -217,11 +219,15 @@ export async function GET(request: NextRequest) {
       // O(1) lookup: try exact keys, then check substring index
       let riskData = riskMap.get(normalizedSymbol) || riskMap.get(normalizedMeta);
       if (!riskData) {
-        // Check if any risk entry's name/symbol contains the vault symbol or vice versa
-        for (const [key, val] of riskByNameSubstr) {
-          if (key.includes(normalizedSymbol) || normalizedSymbol.includes(key)) {
-            riskData = val;
-            break;
+        // Only allow fuzzy symbol matching for specific vault-token symbols.
+        // Generic assets like USDC/WETH appear across many vaults and can
+        // attach risk data to the wrong row.
+        if (isSpecificVaultKey(normalizedSymbol)) {
+          for (const [key, val] of riskByNameSubstr) {
+            if (isSpecificVaultKey(key) && (key.includes(normalizedSymbol) || normalizedSymbol.includes(key))) {
+              riskData = val;
+              break;
+            }
           }
         }
       }
@@ -239,10 +245,12 @@ export async function GET(request: NextRequest) {
           || morphoApyMap.get(normalizeName(vault.poolMeta || ''));
         if (!morphoApy) {
           const vaultSymNorm = normalizeName(vault.symbol);
-          for (const [key, val] of morphoByNameSubstr) {
-            if (key.includes(vaultSymNorm) || vaultSymNorm.includes(key)) {
-              morphoApy = val;
-              break;
+          if (isSpecificVaultKey(vaultSymNorm)) {
+            for (const [key, val] of morphoByNameSubstr) {
+              if (isSpecificVaultKey(key) && (key.includes(vaultSymNorm) || vaultSymNorm.includes(key))) {
+                morphoApy = val;
+                break;
+              }
             }
           }
         }

@@ -428,7 +428,7 @@ export async function getRiskMetrics(): Promise<{
     fetchMorphoVaultCurators(),
   ]);
 
-  const { marketToCurator, curatorVaults } = vaultData;
+  const { marketToCurator } = vaultData;
 
   const now = Math.floor(Date.now() / 1000);
   const oneDayAgo = now - 86400;

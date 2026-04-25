@@ -347,7 +347,7 @@ export async function fetchKaminoVaultsDirectly(
           ],
         });
         console.log(`[Kamino Direct] Found ${accounts.length} accounts with discriminator filter`);
-      } catch (filterErr) {
+      } catch {
         console.log('[Kamino Direct] Filtered query failed, trying without filter...');
         // Try without filter
         accounts = await connection.getProgramAccounts(KAMINO_VAULT_PROGRAM_ID, {
@@ -510,7 +510,7 @@ export function identifyKaminoCurator(vault: KaminoVaultOnChain): string {
 }
 
 // Get vault name from known mapping or generate from token
-export function getKnownVaultName(address: string, tokenMint: string): string | null {
+export function getKnownVaultName(address: string): string | null {
   if (KNOWN_VAULT_TO_CURATOR[address]) {
     return KNOWN_VAULT_TO_CURATOR[address].name;
   }

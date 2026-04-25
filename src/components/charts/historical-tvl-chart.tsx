@@ -40,7 +40,9 @@ export function HistoricalTvlChart({
   const filteredData = useMemo(() => {
     if (period === 'all' || data.length === 0) return data;
 
-    const now = Date.now() / 1000;
+    // Anchor relative periods to the freshest data point to keep render pure
+    // and avoid client/server drift.
+    const now = data[data.length - 1]?.date ?? 0;
     const periodSeconds: Record<Period, number> = {
       '7d': 7 * 24 * 60 * 60,
       '30d': 30 * 24 * 60 * 60,

@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { formatTvl } from '@/lib/utils';
 import { ProtocolIcon, ChainIcon } from '@/components/ui/protocol-icon';
 
@@ -31,9 +32,10 @@ export function LiquidationTable({
   showProtocol = true,
 }: LiquidationTableProps) {
   const displayEvents = events.slice(0, maxItems);
+  const [nowSeconds] = useState(() => Math.floor(Date.now() / 1000));
 
   const formatTimeAgo = (timestamp: number) => {
-    const seconds = Math.floor(Date.now() / 1000 - timestamp);
+    const seconds = Math.max(0, nowSeconds - timestamp);
     if (seconds < 60) return `${seconds}s ago`;
     if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
     if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
@@ -169,17 +171,6 @@ interface ProtocolLiquidationSummaryProps {
 }
 
 export function ProtocolLiquidationSummary({ summaries }: ProtocolLiquidationSummaryProps) {
-  const getProtocolColor = (protocol: string) => {
-    const colors: Record<string, string> = {
-      Morpho: 'bg-blue-500',
-      Aave: 'bg-purple-500',
-      Euler: 'bg-red-500',
-      Spark: 'bg-orange-500',
-      Kamino: 'bg-teal-500',
-    };
-    return colors[protocol] || 'bg-gray-500';
-  };
-
   if (summaries.length === 0) {
     return (
       <div className="text-center text-gray-500 py-4">

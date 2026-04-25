@@ -46,8 +46,9 @@ export function CuratorComparisonChart({
   const chartData = useMemo(() => {
     if (curators.length === 0) return [];
 
-    // Get period cutoff
-    const now = Date.now() / 1000;
+    // Anchor relative periods to the freshest data point to keep render pure
+    // and avoid client/server drift.
+    const now = Math.max(...curators.flatMap(curator => curator.data.map(point => point.date)));
     const periodSeconds: Record<Period, number> = {
       '7d': 7 * 24 * 60 * 60,
       '30d': 30 * 24 * 60 * 60,

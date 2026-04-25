@@ -24,6 +24,7 @@ import {
 import { CURATOR_SLUG_TO_NAME, CURATOR_NAME_VARIANTS } from '@/lib/curator-names';
 
 export const revalidate = 3600;
+export const dynamic = 'force-dynamic';
 
 const VALID_WINDOWS: ReadonlySet<FlowWindow> = new Set<FlowWindow>([7, 30, 90]);
 

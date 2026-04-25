@@ -60,7 +60,7 @@ interface KaminoOnChainData {
   vaultCount: number;
 }
 
-export function CuratorEconomics({ curatorSlug, curatorName, curatorColor = '#6366F1' }: CuratorEconomicsProps) {
+export function CuratorEconomics({ curatorSlug, curatorColor = '#6366F1' }: CuratorEconomicsProps) {
   const [feeData, setFeeData] = useState<CuratorFeeData | null>(null);
   const [kaminoEstimate, setKaminoEstimate] = useState<KaminoEstimate | null>(null);
   const [kaminoOnChain, setKaminoOnChain] = useState<KaminoOnChainData | null>(null);

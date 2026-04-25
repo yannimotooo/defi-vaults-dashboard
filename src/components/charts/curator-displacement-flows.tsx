@@ -58,7 +58,6 @@ export function CuratorDisplacementFlows() {
   );
 
   const curators = data?.curators ?? [];
-  const pairs = data?.correlatedPairs ?? [];
   const top = curators.slice(0, 12);
 
   return (

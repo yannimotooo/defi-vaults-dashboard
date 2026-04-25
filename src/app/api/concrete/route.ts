@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server';
 import { fetchConcreteVaults, getConcreteData, aggregateByChain } from '@/lib/concrete';
 
 export const revalidate = 600; // 10 minutes
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {

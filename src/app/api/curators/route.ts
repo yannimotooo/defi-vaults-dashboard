@@ -95,6 +95,7 @@ function isKaminoDataStale(): boolean {
 }
 
 export const revalidate = 300; // 5 minutes
+export const dynamic = 'force-dynamic';
 
 // Fallback curator metadata - only used when vault data is unavailable.
 // Last verified 2026-04-16. Includes both Risk Curators and Onchain Capital
@@ -472,9 +473,14 @@ export async function GET() {
         // ---------------------------------------------------------------
         // Each on-chain source is authoritative for its own protocol's TVL:
         //   - morphoTvl: queried directly from Morpho GraphQL
-        //   - kaminoTvl: read directly from Solana on-chain accounts
         //   - eulerTvl:  queried from per-chain Euler subgraphs
         // Therefore SUMMING them is correct — they cover disjoint protocols.
+        //
+        // Kamino note:
+        // getKaminoCuratorsTvl currently exposes the vault's idle token balance
+        // (`tokenAvailable`), not the full invested AUM across reserves. That
+        // value is useful for fee/vault discovery but materially undercounts
+        // TVL, so it must not participate in authoritative curator totals.
         // DeFiLlama is a fallback aggregator; we use it only when on-chain
         // sources sum to ~zero (i.e. we don't have on-chain coverage of this
         // curator's vaults yet).
@@ -483,7 +489,8 @@ export async function GET() {
         // response so discrepancies are debuggable from the client.
         const defillamaTvl = p.tvl ?? 0;
         const morphoTvl = morphoData?.totalTvl ?? 0;
-        const kaminoTvl = kaminoData?.totalTvlUsd ?? 0;
+        const kaminoIdleTvl = kaminoData?.totalTvlUsd ?? 0;
+        const kaminoTvl = 0;
         const eulerTvl = eulerData?.totalTvlUsd ?? 0;
         const onChainSum = morphoTvl + kaminoTvl + eulerTvl;
 
@@ -518,7 +525,7 @@ export async function GET() {
         // Surfaces in the API response for debugging cross-source discrepancies.
         const tvlSources: Array<{ source: 'morpho' | 'kamino' | 'euler' | 'defillama'; tvl: number; authoritative: boolean }> = [];
         if (morphoTvl > 0) tvlSources.push({ source: 'morpho', tvl: morphoTvl, authoritative: true });
-        if (kaminoTvl > 0) tvlSources.push({ source: 'kamino', tvl: kaminoTvl, authoritative: true });
+        if (kaminoIdleTvl > 0) tvlSources.push({ source: 'kamino', tvl: kaminoIdleTvl, authoritative: false });
         if (eulerTvl > 0) tvlSources.push({ source: 'euler', tvl: eulerTvl, authoritative: true });
         if (defillamaTvl > 0) tvlSources.push({ source: 'defillama', tvl: defillamaTvl, authoritative: false });
 
@@ -553,7 +560,7 @@ export async function GET() {
         const avgApy = feeData?.avgGrossApy || feeData?.avgNetApy || morphoData?.avgApy || realMetrics?.avgApy || 0;
 
         // Build protocols list - include Kamino/Euler if curator has those vaults
-        let protocols = realMetrics?.protocols?.length
+        const protocols = realMetrics?.protocols?.length
           ? [...realMetrics.protocols]
           : [...metadata.protocols];
         if (kaminoData && !protocols.includes('Kamino')) {
@@ -564,7 +571,7 @@ export async function GET() {
         }
 
         // Build chains list - include Solana if curator has Kamino vaults, add Euler chains
-        let chains = realMetrics?.chains?.length
+        const chains = realMetrics?.chains?.length
           ? [...realMetrics.chains]
           : (defillamaChains.length > 0 ? [...defillamaChains] : ['Ethereum']);
         if (kaminoData && !chains.includes('Solana')) {
@@ -618,7 +625,7 @@ export async function GET() {
           morphoTvl: morphoTvl > 0 ? morphoTvl : undefined,
           defillamaTvl,
           // Kamino (Solana) data - now with actual on-chain TVL
-          kaminoTvl: kaminoTvl > 0 ? kaminoTvl : undefined,
+          kaminoTvl: kaminoIdleTvl > 0 ? kaminoIdleTvl : undefined,
           kaminoVaultCount: kaminoVaultCount > 0 ? kaminoVaultCount : undefined,
           // Euler data
           eulerTvl: eulerTvl > 0 ? eulerTvl : undefined,

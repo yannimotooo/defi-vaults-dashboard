@@ -62,10 +62,10 @@ export interface EulerVault {
   name: string;
   symbol: string;
   asset: string;
-  curator: string | null;
-  owner: string;
-  feeReceiver: string | null;
-  performanceFee: string; // Stored as basis points or percentage
+  curator?: string | null;
+  owner?: string;
+  feeReceiver?: string | null;
+  performanceFee?: string; // Stored as basis points or percentage
   totalAssets: string;
   totalAllocated: string;
   chain: string;
@@ -109,6 +109,28 @@ const EULER_EARN_VAULTS_QUERY = `
   }
 `;
 
+// Some Euler subgraphs lag the latest schema and do not expose curator/fee
+// fields. Use this narrower query as a TVL-preserving fallback instead of
+// dropping the whole network on GraphQL validation errors.
+const EULER_EARN_VAULTS_BASIC_QUERY = `
+  query EulerEarnVaultsBasic($first: Int!, $skip: Int!) {
+    eulerEarnVaults(
+      first: $first
+      skip: $skip
+      orderBy: totalAssets
+      orderDirection: desc
+    ) {
+      id
+      name
+      symbol
+      asset
+      owner
+      totalAssets
+      totalAllocated
+    }
+  }
+`;
+
 // Fetch Euler Earn vaults from a specific network
 async function fetchEulerEarnVaults(network: string): Promise<EulerVault[]> {
   const endpoint = EULER_SUBGRAPH_ENDPOINTS[network];
@@ -121,28 +143,50 @@ async function fetchEulerEarnVaults(network: string): Promise<EulerVault[]> {
     let hasMore = true;
 
     while (hasMore) {
-      const response = await fetch(endpoint, {
+      const runQuery = async (query: string) => fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          query: EULER_EARN_VAULTS_QUERY,
+          query,
           variables: { first: pageSize, skip },
         }),
         next: { revalidate: 300 },
       });
+
+      let response = await runQuery(EULER_EARN_VAULTS_QUERY);
 
       if (!response.ok) {
         console.error(`Euler subgraph error (${network}):`, response.status);
         break;
       }
 
-      const data = await response.json();
+      let data = await response.json();
 
       if (data.errors) {
-        console.error(`Euler GraphQL errors (${network}):`, data.errors);
-        break;
+        const missingOptionalField = data.errors.some((error: { message?: string }) =>
+          ['creator', 'curator', 'feeReceiver', 'performanceFee'].some(field =>
+            error.message?.includes(`field \`${field}\``) || error.message?.includes(`field "${field}"`),
+          ),
+        );
+
+        if (!missingOptionalField) {
+          console.error(`Euler GraphQL errors (${network}):`, data.errors);
+          break;
+        }
+
+        console.warn(`[Euler] ${network} subgraph missing fee/curator fields; using basic TVL query`);
+        response = await runQuery(EULER_EARN_VAULTS_BASIC_QUERY);
+        if (!response.ok) {
+          console.error(`Euler fallback subgraph error (${network}):`, response.status);
+          break;
+        }
+        data = await response.json();
+        if (data.errors) {
+          console.error(`Euler fallback GraphQL errors (${network}):`, data.errors);
+          break;
+        }
       }
 
       const vaults = data.data?.eulerEarnVaults || [];
@@ -150,6 +194,9 @@ async function fetchEulerEarnVaults(network: string): Promise<EulerVault[]> {
       // Add chain info to each vault
       const vaultsWithChain = vaults.map((v: Omit<EulerVault, 'chain'>) => ({
         ...v,
+        curator: v.curator ?? null,
+        feeReceiver: v.feeReceiver ?? null,
+        performanceFee: v.performanceFee ?? '0',
         chain: formatChainName(network),
       }));
 
@@ -233,8 +280,8 @@ function getCuratorName(vault: EulerVault): string {
  * always returns a Percent value (0-100). See src/lib/fees.ts for the
  * canonical Percent / Decimal conventions.
  */
-export function parsePerformanceFee(fee: string): number {
-  const feeNum = parseFloat(fee);
+export function parsePerformanceFee(fee: string | null | undefined): number {
+  const feeNum = parseFloat(fee ?? '0');
   if (isNaN(feeNum)) return 0;
 
   // WAD format: 1e18 = 100% — Euler V2 subgraph uses this

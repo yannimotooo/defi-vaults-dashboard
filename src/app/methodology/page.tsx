@@ -117,28 +117,28 @@ export default function MethodologyPage() {
         <section className="bg-amber-50 border border-amber-200 rounded-lg p-4">
           <h2 className="text-[14px] font-semibold text-amber-900 flex items-center gap-2 mb-2">
             <Info className="h-4 w-4" />
-            What does the "Est." badge mean?
+            What does the &quot;Est.&quot; badge mean?
           </h2>
           <div className="text-[13px] text-amber-800 leading-relaxed space-y-2">
             <p>
-              When a curator's rating is shown with an <strong>Est.</strong> chip, it means we
-              didn't have direct on-chain data for one or more rating inputs and used
+              When a curator&apos;s rating is shown with an <strong>Est.</strong> chip, it means we
+              didn&apos;t have direct on-chain data for one or more rating inputs and used
               conservative defaults instead. Specifically, the affected inputs are:
             </p>
             <ul className="list-disc pl-5 space-y-1">
-              <li><span className="font-mono text-[12px]">avgLltv</span> — TVL-weighted average liquidation LTV across the curator's markets</li>
+              <li><span className="font-mono text-[12px]">avgLltv</span> — TVL-weighted average liquidation LTV across the curator&apos;s markets</li>
               <li><span className="font-mono text-[12px]">maxUtilization</span> — peak utilization across markets</li>
               <li><span className="font-mono text-[12px]">availableLiquidityUsd</span> — sum of immediately withdrawable liquidity</li>
             </ul>
             <p>
               These defaults (LLTV 0.86, max utilization 0.85, liquidity = 20% of TVL) are chosen
-              to be slightly conservative — i.e. they don't artificially boost a rating. But a
+              to be slightly conservative — i.e. they don&apos;t artificially boost a rating. But a
               real on-chain measurement might move the rating up or down. We surface the badge
               so you know to weight estimated ratings appropriately.
             </p>
             <p>
               The dashboard has real LLTV data for ~10–12 curators today (those whose vaults
-              are mapped to Morpho markets via the protocol's vault-allocation API). Coverage
+              are mapped to Morpho markets via the protocol&apos;s vault-allocation API). Coverage
               for Euler / Kamino / Veda / Mellow markets is in progress.
             </p>
           </div>
@@ -150,7 +150,7 @@ export default function MethodologyPage() {
           <div className="space-y-2 text-[13px] text-gray-600 leading-relaxed">
             <p>
               <strong>Not investment advice.</strong> Ratings are mechanical scores from public on-chain
-              data. They don't account for off-chain factors like team quality, regulatory exposure,
+              data. They don&apos;t account for off-chain factors like team quality, regulatory exposure,
               or counterparty risk in centralized integrations.
             </p>
             <p>

@@ -8,7 +8,6 @@ import {
   TrendingDown,
   Shield,
   Droplets,
-  Users,
   CheckCircle,
   Info,
 } from 'lucide-react';

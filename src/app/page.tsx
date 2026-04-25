@@ -111,7 +111,7 @@ function Dashboard() {
     fetcher, swrOpts
   );
 
-  const allCurators = curatorResponse?.curators ?? [];
+  const allCurators = useMemo(() => curatorResponse?.curators ?? [], [curatorResponse?.curators]);
   const curatorValidation = curatorResponse?.validation ?? null;
   const historicalData = historicalResponse?.curators ?? [];
   const topVaults = vaultsResponse?.vaults ?? [];

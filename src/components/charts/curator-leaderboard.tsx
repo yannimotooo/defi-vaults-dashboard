@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { DataConfidenceBadge } from '@/components/ui/data-source-badge';
 import { RiskBadge } from '@/components/ui/risk-badge';
 import { formatTvl, formatFlow, cn } from '@/lib/utils';
-import { CURATOR_COLORS, FALLBACK_CURATOR_COLORS, getProtocolColor } from '@/lib/colors';
+import { CURATOR_COLORS, FALLBACK_CURATOR_COLORS } from '@/lib/colors';
 import { ChainIcon, ProtocolIcon } from '@/components/ui/protocol-icon';
 import type { Curator } from '@/types';
 import { StrategyTags } from '@/components/ui/strategy-tag';

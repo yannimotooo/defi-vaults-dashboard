@@ -102,10 +102,6 @@ const BLUECHIP_ASSETS = [
   'USDS', 'sUSDS', 'PYUSD', 'USDM', 'USDe', 'sUSDe'
 ];
 
-const STABLECOIN_ASSETS = [
-  'USDC', 'USDT', 'DAI', 'FRAX', 'USDS', 'sUSDS', 'PYUSD', 'USDM', 'USDe', 'sUSDe', 'LUSD', 'crvUSD'
-];
-
 export interface CapitalSafetyInput {
   hasBadDebt: boolean;
   badDebtUsd: number;
@@ -770,7 +766,7 @@ export function calculateVaultCreditRating(input: CompositeRatingInput): VaultCr
   const keyStrengths = extractKeyStrengths(capitalSafety, liquidityHealth, curatorQuality);
 
   // Generate rationale
-  const ratingRationale = generateRationale(compositeRating, capitalSafety, liquidityHealth, curatorQuality);
+  const ratingRationale = generateRationale(compositeRating);
 
   return {
     compositeRating,
@@ -834,14 +830,7 @@ function extractKeyStrengths(
   return strengths.slice(0, 3); // Top 3 strengths
 }
 
-function generateRationale(
-  rating: CreditRating,
-  capital: PillarRating,
-  liquidity: PillarRating,
-  curator: PillarRating
-): string {
-  const isIG = isInvestmentGrade(rating);
-
+function generateRationale(rating: CreditRating): string {
   if (rating === 'AAA') {
     return 'Exceptional credit quality with minimal risk of capital loss. Strong across all assessment pillars.';
   }
