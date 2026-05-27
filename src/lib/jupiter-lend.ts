@@ -20,6 +20,18 @@ export const BITWISE_JUPITER_ETHENA_CURATOR_NAME = 'Bitwise Onchain';
  */
 export const JUPITER_ETHENA_REPORTED_MARKET_TVL_USD = 530_000_000;
 
+export interface JupiterEthenaReportedMarketSnapshot {
+  tvlUsd: number;
+  source: string;
+  asOf: string;
+}
+
+export const DEFAULT_JUPITER_ETHENA_REPORTED_MARKET_SNAPSHOT: JupiterEthenaReportedMarketSnapshot = {
+  tvlUsd: JUPITER_ETHENA_REPORTED_MARKET_TVL_USD,
+  source: 'Blockworks, 2026-05-18',
+  asOf: '2026-05-18',
+};
+
 export interface JupiterLendEarnToken {
   id: number;
   address: string;
@@ -57,6 +69,7 @@ export interface JupiterEthenaEarnMarket {
   liveEarnTvlUsd: number;
   reportedMarketTvlUsd: number;
   totalTvlUsd: number;
+  totalTvlSource: 'jupiter-earn-live' | 'reported-market-snapshot';
   avgSupplyApy: number;
   avgTotalApy: number;
   updatedAt?: string;
@@ -87,9 +100,26 @@ function weightedAverage<T extends { tvlUsd: number }>(
   return tokens.reduce((sum, token) => sum + value(token) * (token.tvlUsd / totalTvl), 0);
 }
 
+function parsePositiveEnvNumber(value: string | undefined): number | undefined {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+export function getConfiguredJupiterEthenaMarketSnapshot(): JupiterEthenaReportedMarketSnapshot {
+  return {
+    tvlUsd: parsePositiveEnvNumber(process.env.JUPITER_ETHENA_MARKET_TVL_USD)
+      ?? DEFAULT_JUPITER_ETHENA_REPORTED_MARKET_SNAPSHOT.tvlUsd,
+    source: process.env.JUPITER_ETHENA_MARKET_TVL_SOURCE?.trim()
+      || DEFAULT_JUPITER_ETHENA_REPORTED_MARKET_SNAPSHOT.source,
+    asOf: process.env.JUPITER_ETHENA_MARKET_TVL_AS_OF?.trim()
+      || DEFAULT_JUPITER_ETHENA_REPORTED_MARKET_SNAPSHOT.asOf,
+  };
+}
+
 export function parseJupiterEthenaEarnMarket(
   raw: unknown,
   sourceUrl = `${JUPITER_LEND_API_BASE}/earn/tokens?market=ethena`,
+  reportedMarketSnapshot: JupiterEthenaReportedMarketSnapshot = DEFAULT_JUPITER_ETHENA_REPORTED_MARKET_SNAPSHOT,
 ): JupiterEthenaEarnMarket | null {
   if (!Array.isArray(raw) || raw.length === 0) return null;
 
@@ -105,6 +135,9 @@ export function parseJupiterEthenaEarnMarket(
   const liveEarnTvlUsd = earnTokens.reduce((sum, token) => sum + token.tvlUsd, 0);
   const avgSupplyApy = weightedAverage(earnTokens, token => token.supplyApy);
   const avgTotalApy = weightedAverage(earnTokens, token => token.totalApy);
+  const totalTvlSource = liveEarnTvlUsd >= reportedMarketSnapshot.tvlUsd
+    ? 'jupiter-earn-live'
+    : 'reported-market-snapshot';
 
   return {
     market: 'ethena',
@@ -112,14 +145,15 @@ export function parseJupiterEthenaEarnMarket(
     curatorSlug: BITWISE_JUPITER_ETHENA_CURATOR_SLUG,
     earnTokens,
     liveEarnTvlUsd,
-    reportedMarketTvlUsd: JUPITER_ETHENA_REPORTED_MARKET_TVL_USD,
-    totalTvlUsd: Math.max(liveEarnTvlUsd, JUPITER_ETHENA_REPORTED_MARKET_TVL_USD),
+    reportedMarketTvlUsd: reportedMarketSnapshot.tvlUsd,
+    totalTvlUsd: Math.max(liveEarnTvlUsd, reportedMarketSnapshot.tvlUsd),
+    totalTvlSource,
     avgSupplyApy,
     avgTotalApy,
     updatedAt: earnTokens.find(token => token.asset?.updatedAt)?.asset.updatedAt,
     sourceUrl,
-    reportedMarketTvlSource: 'Blockworks, 2026-05-18',
-    reportedMarketTvlAsOf: '2026-05-18',
+    reportedMarketTvlSource: reportedMarketSnapshot.source,
+    reportedMarketTvlAsOf: reportedMarketSnapshot.asOf,
   };
 }
 
@@ -136,5 +170,5 @@ export async function getJupiterEthenaEarnMarket(): Promise<JupiterEthenaEarnMar
   }
 
   const raw = await response.json();
-  return parseJupiterEthenaEarnMarket(raw, sourceUrl);
+  return parseJupiterEthenaEarnMarket(raw, sourceUrl, getConfiguredJupiterEthenaMarketSnapshot());
 }
