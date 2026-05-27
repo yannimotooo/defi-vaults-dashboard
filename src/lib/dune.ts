@@ -21,6 +21,10 @@ export const DUNE_QUERIES = {
   KAMINO_LIQUIDATIONS: 5255801,
 };
 
+export function isDuneConfigured(): boolean {
+  return Boolean(process.env.DUNE_API_KEY);
+}
+
 interface DuneQueryResult {
   execution_id: string;
   state: string;
@@ -123,6 +127,10 @@ export async function getLatestDuneResults(queryId: number): Promise<DuneQueryRe
 
 // Fetch Morpho curator data from Dune
 export async function getMorphoCuratorData(): Promise<DuneCuratorData[]> {
+  if (!isDuneConfigured()) {
+    return [];
+  }
+
   try {
     const result = await getLatestDuneResults(DUNE_QUERIES.MORPHO_CURATOR_VOLUME);
 
@@ -144,6 +152,10 @@ export async function getMorphoCuratorData(): Promise<DuneCuratorData[]> {
 
 // Fetch all vaults TVL data from Dune
 export async function getAllVaultsTvl(): Promise<DuneVaultData[]> {
+  if (!isDuneConfigured()) {
+    return [];
+  }
+
   try {
     const result = await getLatestDuneResults(DUNE_QUERIES.ALL_VAULTS_TVL);
 

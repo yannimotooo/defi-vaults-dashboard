@@ -61,6 +61,8 @@ export interface JupiterEthenaEarnMarket {
   avgTotalApy: number;
   updatedAt?: string;
   sourceUrl: string;
+  reportedMarketTvlSource: string;
+  reportedMarketTvlAsOf: string;
 }
 
 function bpsToPercent(value: string | number | null | undefined): number {
@@ -85,22 +87,14 @@ function weightedAverage<T extends { tvlUsd: number }>(
   return tokens.reduce((sum, token) => sum + value(token) * (token.tvlUsd / totalTvl), 0);
 }
 
-export async function getJupiterEthenaEarnMarket(): Promise<JupiterEthenaEarnMarket | null> {
-  const sourceUrl = `${JUPITER_LEND_API_BASE}/earn/tokens?market=ethena`;
-  const response = await fetchWithTimeout(sourceUrl, {
-    next: { revalidate: 300 },
-    timeoutMs: JUPITER_LEND_TIMEOUT_MS,
-    headers: { Accept: 'application/json' },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Jupiter Lend Ethena API error: ${response.status}`);
-  }
-
-  const raw = await response.json();
+export function parseJupiterEthenaEarnMarket(
+  raw: unknown,
+  sourceUrl = `${JUPITER_LEND_API_BASE}/earn/tokens?market=ethena`,
+): JupiterEthenaEarnMarket | null {
   if (!Array.isArray(raw) || raw.length === 0) return null;
 
-  const earnTokens = raw.map((token: JupiterLendEarnToken) => ({
+  const tokens = raw as JupiterLendEarnToken[];
+  const earnTokens = tokens.map((token) => ({
     ...token,
     tvlUsd: tokenAmountUsd(token),
     supplyApy: bpsToPercent(token.supplyRate),
@@ -124,5 +118,23 @@ export async function getJupiterEthenaEarnMarket(): Promise<JupiterEthenaEarnMar
     avgTotalApy,
     updatedAt: earnTokens.find(token => token.asset?.updatedAt)?.asset.updatedAt,
     sourceUrl,
+    reportedMarketTvlSource: 'Blockworks, 2026-05-18',
+    reportedMarketTvlAsOf: '2026-05-18',
   };
+}
+
+export async function getJupiterEthenaEarnMarket(): Promise<JupiterEthenaEarnMarket | null> {
+  const sourceUrl = `${JUPITER_LEND_API_BASE}/earn/tokens?market=ethena`;
+  const response = await fetchWithTimeout(sourceUrl, {
+    next: { revalidate: 300 },
+    timeoutMs: JUPITER_LEND_TIMEOUT_MS,
+    headers: { Accept: 'application/json' },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Jupiter Lend Ethena API error: ${response.status}`);
+  }
+
+  const raw = await response.json();
+  return parseJupiterEthenaEarnMarket(raw, sourceUrl);
 }

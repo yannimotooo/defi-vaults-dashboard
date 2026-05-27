@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getProtocolHistoricalTvl } from '@/lib/defillama';
 import { TOP_CURATOR_SLUGS, CURATOR_SLUG_TO_NAME as CURATOR_NAMES, CURATOR_NAME_VARIANTS } from '@/lib/curator-names';
+import {
+  BITWISE_JUPITER_ETHENA_CURATOR_NAME,
+  BITWISE_JUPITER_ETHENA_CURATOR_SLUG,
+  getJupiterEthenaEarnMarket,
+} from '@/lib/jupiter-lend';
 
 export const revalidate = 600; // 10 minutes
 
@@ -14,6 +19,22 @@ export async function GET(request: Request) {
   try {
     // If specific slug requested, return just that curator's history
     if (slug) {
+      if (slug === BITWISE_JUPITER_ETHENA_CURATOR_SLUG) {
+        const market = await getJupiterEthenaEarnMarket();
+        return NextResponse.json({
+          slug,
+          name: BITWISE_JUPITER_ETHENA_CURATOR_NAME,
+          data: market
+            ? [{
+                date: Math.floor(
+                  market.updatedAt ? new Date(market.updatedAt).getTime() / 1000 : Date.now() / 1000,
+                ),
+                tvl: market.totalTvlUsd,
+              }]
+            : [],
+        });
+      }
+
       const data = await getProtocolHistoricalTvl(slug);
       return NextResponse.json({
         slug,
@@ -25,6 +46,22 @@ export async function GET(request: Request) {
     // Otherwise return all curators' historical data
     const results = await Promise.all(
       ALL_CURATOR_SLUGS.map(async (curatorSlug) => {
+        if (curatorSlug === BITWISE_JUPITER_ETHENA_CURATOR_SLUG) {
+          const market = await getJupiterEthenaEarnMarket();
+          return {
+            slug: curatorSlug,
+            name: BITWISE_JUPITER_ETHENA_CURATOR_NAME,
+            data: market
+              ? [{
+                  date: Math.floor(
+                    market.updatedAt ? new Date(market.updatedAt).getTime() / 1000 : Date.now() / 1000,
+                  ),
+                  tvl: market.totalTvlUsd,
+                }]
+              : [],
+          };
+        }
+
         const data = await getProtocolHistoricalTvl(curatorSlug);
         return {
           slug: curatorSlug,

@@ -6,6 +6,8 @@ import { fetchWithTimeout } from './http';
 const DEFILLAMA_API_BASE = 'https://api.llama.fi';
 const YIELDS_API_BASE = 'https://yields.llama.fi';
 const DEFILLAMA_TIMEOUT_MS = 12_000; // protocols/yields endpoints can be 5-10s under load
+const DEFILLAMA_PROTOCOLS_CACHE_TTL_MS = 5 * 60 * 1000;
+const DEFILLAMA_PROTOCOL_DETAIL_CACHE_TTL_MS = 10 * 60 * 1000;
 
 export interface DefiLlamaProtocol {
   id: string;
@@ -25,6 +27,13 @@ export interface DefiLlamaChain {
   name: string;
   tvl: number;
 }
+
+let protocolsCache: { data: DefiLlamaProtocol[]; fetchedAt: number } | null = null;
+let protocolsPendingFetch: Promise<DefiLlamaProtocol[]> | null = null;
+
+type ProtocolDetail = DefiLlamaProtocol & { tvl: Array<{ date: number; totalLiquidityUSD: number }> };
+const protocolDetailCache = new Map<string, { data: ProtocolDetail; fetchedAt: number }>();
+const protocolDetailPendingFetch = new Map<string, Promise<ProtocolDetail>>();
 
 // Vault protocols with curator model (our focus)
 export const VAULT_PROTOCOL_SLUGS = [
@@ -109,8 +118,27 @@ export const MIN_CURATOR_TVL_USD = 10_000_000;
 
 // Get TVL for all protocols
 export async function getAllProtocols(): Promise<DefiLlamaProtocol[]> {
+  const now = Date.now();
+  if (protocolsCache && now - protocolsCache.fetchedAt < DEFILLAMA_PROTOCOLS_CACHE_TTL_MS) {
+    return protocolsCache.data;
+  }
+  if (protocolsPendingFetch) {
+    return protocolsPendingFetch;
+  }
+
+  protocolsPendingFetch = fetchAllProtocolsFresh();
+  try {
+    const data = await protocolsPendingFetch;
+    protocolsCache = { data, fetchedAt: now };
+    return data;
+  } finally {
+    protocolsPendingFetch = null;
+  }
+}
+
+async function fetchAllProtocolsFresh(): Promise<DefiLlamaProtocol[]> {
   const response = await fetchWithTimeout(`${DEFILLAMA_API_BASE}/protocols`, {
-    next: { revalidate: 300 },
+    cache: 'no-store',
     timeoutMs: DEFILLAMA_TIMEOUT_MS,
   });
 
@@ -135,9 +163,32 @@ export async function getChainsTvl(): Promise<DefiLlamaChain[]> {
 }
 
 // Get protocol details with historical data
-export async function getProtocol(slug: string): Promise<DefiLlamaProtocol & { tvl: Array<{ date: number; totalLiquidityUSD: number }> }> {
-  const response = await fetch(`${DEFILLAMA_API_BASE}/protocol/${slug}`, {
-    next: { revalidate: 300 },
+export async function getProtocol(slug: string): Promise<ProtocolDetail> {
+  const now = Date.now();
+  const cached = protocolDetailCache.get(slug);
+  if (cached && now - cached.fetchedAt < DEFILLAMA_PROTOCOL_DETAIL_CACHE_TTL_MS) {
+    return cached.data;
+  }
+  const pending = protocolDetailPendingFetch.get(slug);
+  if (pending) {
+    return pending;
+  }
+
+  const fetchPromise = fetchProtocolFresh(slug);
+  protocolDetailPendingFetch.set(slug, fetchPromise);
+  try {
+    const data = await fetchPromise;
+    protocolDetailCache.set(slug, { data, fetchedAt: now });
+    return data;
+  } finally {
+    protocolDetailPendingFetch.delete(slug);
+  }
+}
+
+async function fetchProtocolFresh(slug: string): Promise<ProtocolDetail> {
+  const response = await fetchWithTimeout(`${DEFILLAMA_API_BASE}/protocol/${slug}`, {
+    cache: 'no-store',
+    timeoutMs: DEFILLAMA_TIMEOUT_MS,
   });
 
   if (!response.ok) {
@@ -158,17 +209,7 @@ export interface HistoricalTvlPoint {
 // can distinguish "API down" from "no data for this slug" via server logs.
 export async function getProtocolHistoricalTvl(slug: string): Promise<HistoricalTvlPoint[]> {
   try {
-    const response = await fetchWithTimeout(`${DEFILLAMA_API_BASE}/protocol/${slug}`, {
-      next: { revalidate: 300 },
-      timeoutMs: DEFILLAMA_TIMEOUT_MS,
-    });
-
-    if (!response.ok) {
-      console.warn(`[DeFiLlama] historical TVL HTTP ${response.status} for slug=${slug}`);
-      return [];
-    }
-
-    const data = await response.json();
+    const data = await getProtocol(slug);
 
     // DeFiLlama returns tvl as array of {date, totalLiquidityUSD}
     if (data.tvl && Array.isArray(data.tvl)) {

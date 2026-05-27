@@ -429,7 +429,7 @@ export async function GET(request: NextRequest) {
       count: transformedVaults.length,
       curator: curatorSlug || null,
       dataSource: [
-        'DeFiLlama',
+        vaults.length > 0 ? 'DeFiLlama' : null,
         morphoApyData.length > 0 ? `Morpho APY (${vaultsWithMorphoApy})` : null,
         jupiterEthenaData ? 'Jupiter Lend Ethena' : null,
         curatorMap.size > 0 ? `Curators (${vaultsWithCurator})` : null,
