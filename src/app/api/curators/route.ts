@@ -10,6 +10,11 @@ import { DataSourceTracker } from '@/lib/data-source-tracker';
 import { CURATOR_FEE_OVERRIDES } from '@/lib/curator-fee-overrides';
 import { decimalToPercent, assertReasonablePercent } from '@/lib/fees';
 import { getCuratorPlatforms } from '@/lib/curator-platforms';
+import {
+  BITWISE_JUPITER_ETHENA_CURATOR_NAME,
+  BITWISE_JUPITER_ETHENA_CURATOR_SLUG,
+  getJupiterEthenaEarnMarket,
+} from '@/lib/jupiter-lend';
 import type { Curator } from '@/types';
 
 // In-memory cache for Kamino data (expensive Solana RPC call).
@@ -123,6 +128,7 @@ const CURATOR_METADATA: Record<string, { protocols: string[] }> = {
   'alphaping': { protocols: ['Morpho'] },
   '9summits': { protocols: ['Morpho'] },
   'rockawayx': { protocols: ['Morpho', 'Solana'] },
+  'bitwise-onchain': { protocols: ['Jupiter Lend'] },
 
   // Self-curating platforms (DeFiLlama categorizes as OCA, not Risk Curators)
   'veda': { protocols: ['BoringVault', 'Morpho', 'Aave'] },
@@ -276,6 +282,7 @@ export async function GET() {
       eulerCuratorTvl,   // On-chain TVL (primary source for Euler)
       riskData,          // Risk metrics
       kaminoCuratorData, // Kamino Solana data with on-chain TVL
+      jupiterEthenaData, // Jupiter Lend Bitwise x Ethena market data
     ] = await Promise.all([
       tracker.track('DeFiLlama Protocols', getAllProtocols(), []),
       tracker.track('Dune Curator Data', getMorphoCuratorData(), []),
@@ -286,6 +293,7 @@ export async function GET() {
       tracker.track('Euler On-Chain TVL', getEulerCuratorsTvl(), []),
       tracker.track('Risk Metrics', getRiskMetrics(), null),
       tracker.track('Kamino On-Chain TVL', getKaminoCuratorData(), []),
+      tracker.track('Jupiter Lend Ethena', getJupiterEthenaEarnMarket(), null),
     ]);
 
     // Create Morpho TVL lookup map (normalized curator name -> data)
@@ -523,7 +531,7 @@ export async function GET() {
 
         // Per-source contribution array (only includes sources that contributed).
         // Surfaces in the API response for debugging cross-source discrepancies.
-        const tvlSources: Array<{ source: 'morpho' | 'kamino' | 'euler' | 'defillama'; tvl: number; authoritative: boolean }> = [];
+        const tvlSources: Array<{ source: 'morpho' | 'kamino' | 'euler' | 'jupiter-lend' | 'defillama' | 'manual'; tvl: number; authoritative: boolean }> = [];
         if (morphoTvl > 0) tvlSources.push({ source: 'morpho', tvl: morphoTvl, authoritative: true });
         if (kaminoIdleTvl > 0) tvlSources.push({ source: 'kamino', tvl: kaminoIdleTvl, authoritative: false });
         if (eulerTvl > 0) tvlSources.push({ source: 'euler', tvl: eulerTvl, authoritative: true });
@@ -653,6 +661,39 @@ export async function GET() {
       })
       .sort((a, b) => b.totalTvl - a.totalTvl);
 
+    if (jupiterEthenaData && !curators.some(c => c.slug === BITWISE_JUPITER_ETHENA_CURATOR_SLUG)) {
+      curators.push({
+        name: BITWISE_JUPITER_ETHENA_CURATOR_NAME,
+        slug: BITWISE_JUPITER_ETHENA_CURATOR_SLUG,
+        totalTvl: jupiterEthenaData.totalTvlUsd,
+        vaultCount: jupiterEthenaData.earnTokens.length,
+        chains: ['Solana'],
+        protocols: ['Jupiter Lend'],
+        avgApy: jupiterEthenaData.avgTotalApy,
+        netFlow7d: 0,
+        netFlow30d: 0,
+        tvlSource: 'jupiter-lend',
+        tvlSources: [
+          {
+            source: 'jupiter-lend',
+            tvl: jupiterEthenaData.liveEarnTvlUsd,
+            authoritative: true,
+          },
+          {
+            source: 'manual',
+            tvl: jupiterEthenaData.reportedMarketTvlUsd,
+            authoritative: false,
+          },
+        ],
+        defillamaTvl: undefined,
+        jupiterLendTvl: jupiterEthenaData.liveEarnTvlUsd,
+        jupiterLendVaultCount: jupiterEthenaData.earnTokens.length,
+        dataConfidence: 'medium',
+        grossApy: jupiterEthenaData.avgTotalApy,
+        netApy: jupiterEthenaData.avgTotalApy,
+      });
+    }
+
     // Attach hand-curated platform relationships (e.g. "Coinbase Earn",
     // "Kraken Earn") from src/lib/curator-platforms.ts. Skip when the curator
     // has no known consumer platforms — UI just won't render badges.
@@ -671,6 +712,9 @@ export async function GET() {
       if (curator.chains.length > 3) tags.push('Multi-Chain');
       if (curator.protocols.length > 2) tags.push('Multi-Protocol');
       if (curator.totalTvl > 500_000_000) tags.push('Large Cap');
+      if (curator.slug === BITWISE_JUPITER_ETHENA_CURATOR_SLUG) {
+        tags.push('Stablecoin Focus', 'Ethena Loop');
+      }
       // Check stablecoin focus from vault data
       const curatorVaults = allYieldPools.filter(
         v => v.project?.toLowerCase().includes(curator.slug) || v.project?.toLowerCase().includes(curator.name.toLowerCase())
@@ -780,12 +824,14 @@ export async function GET() {
     const morphoTvlCount = curators.filter(c => c.tvlSource === 'morpho').length;
     const kaminoTvlCount = curators.filter(c => c.tvlSource === 'kamino').length;
     const eulerTvlCount = curators.filter(c => c.tvlSource === 'euler').length;
+    const jupiterLendTvlCount = curators.filter(c => c.tvlSource === 'jupiter-lend').length;
     const kaminoCuratorCount = curators.filter(c => c.kaminoTvl).length;
     const eulerCuratorCount = curators.filter(c => c.eulerTvl).length;
 
     if (morphoTvlCount > 0) sources.push(`Morpho On-chain (${morphoTvlCount})`);
     if (kaminoTvlCount > 0) sources.push(`Kamino On-chain (${kaminoTvlCount})`);
     if (eulerTvlCount > 0) sources.push(`Euler On-chain (${eulerTvlCount})`);
+    if (jupiterLendTvlCount > 0) sources.push(`Jupiter Lend (${jupiterLendTvlCount})`);
     sources.push('DeFiLlama');
     if (duneCuratorData.length > 0) sources.push('Dune');
     if (morphoFeeData.length > 0) sources.push('Morpho Fees');
@@ -801,6 +847,7 @@ export async function GET() {
       morphoTvlCount,
       kaminoTvlCount,
       eulerTvlCount,
+      jupiterLendTvlCount,
       defillamaTvlCount: curators.filter(c => c.tvlSource === 'defillama').length,
       // Data availability
       duneDataAvailable: duneCuratorData.length > 0,
@@ -817,7 +864,10 @@ export async function GET() {
       curatorsWithRiskData: curators.filter(c => c.riskLevel !== undefined).length,
       curatorsWithKaminoData: kaminoCuratorCount,
       curatorsWithEulerData: eulerCuratorCount,
+      curatorsWithJupiterLendData: jupiterLendTvlCount,
     };
+
+    curators.sort((a, b) => b.totalTvl - a.totalTvl);
 
     return NextResponse.json({ curators, validation, _meta: { dataSources: tracker.getSummary() } });
   } catch (error) {

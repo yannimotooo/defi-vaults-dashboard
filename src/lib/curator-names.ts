@@ -35,6 +35,7 @@ export const CURATOR_NAME_VARIANTS: Record<string, string[]> = {
   'avantgarde': ['Avantgarde'],
   'apostro': ['Apostro'],
   'rockawayx': ['RockawayX', 'Rockaway'],
+  'bitwise-onchain': ['Bitwise Onchain', 'Bitwise', 'Bitwise Asset Management'],
 
   // === Self-curating platforms (DeFiLlama: Onchain Capital Allocator) ===
   // These platforms also self-curate some of their own vaults, so they belong

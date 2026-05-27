@@ -13,6 +13,7 @@ export const CURATOR_COLORS: Record<string, string> = {
   'Euler DAO': '#EF4444',            // Red
   'B.Protocol': '#8B5CF6',           // Violet
   'Summer.fi': '#F43F5E',            // Rose
+  'Bitwise Onchain': '#0F766E',      // Deep teal
 
   // Secondary curators
   'UltraYield': '#84CC16',           // Lime
@@ -87,6 +88,8 @@ export const PROTOCOL_COLORS: Record<string, string> = {
   'drift-protocol': '#9945FF',
   'Meteora': '#00D1FF',
   'meteora': '#00D1FF',
+  'Jupiter Lend': '#14F195',
+  'jupiter-lend': '#14F195',
 };
 
 // Helper functions

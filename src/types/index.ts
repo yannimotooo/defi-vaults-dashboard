@@ -34,7 +34,7 @@ export interface Curator {
   netFlow7d: number;
   netFlow30d: number;
   // TVL source tracking (authoritative on-chain sources when available)
-  tvlSource?: 'morpho' | 'kamino' | 'euler' | 'defillama';
+  tvlSource?: 'morpho' | 'kamino' | 'euler' | 'jupiter-lend' | 'defillama' | 'manual';
   /**
    * Per-source TVL contributions for this curator (Phase 2). The dominant
    * source is also reflected in `tvlSource`, but this array shows the full
@@ -46,7 +46,7 @@ export interface Curator {
    * DeFiLlama aggregate fallback.
    */
   tvlSources?: Array<{
-    source: 'morpho' | 'kamino' | 'euler' | 'defillama';
+    source: 'morpho' | 'kamino' | 'euler' | 'jupiter-lend' | 'defillama' | 'manual';
     tvl: number;
     authoritative: boolean;
   }>;
@@ -58,6 +58,9 @@ export interface Curator {
   // Euler data
   eulerTvl?: number;       // On-chain Euler TVL (authoritative)
   eulerVaultCount?: number;  // Number of Euler vaults managed
+  // Jupiter Lend data
+  jupiterLendTvl?: number;  // First-party Jupiter Lend market TVL / Earn-side TVL
+  jupiterLendVaultCount?: number;
   // Cross-reference validation
   dataConfidence?: 'high' | 'medium' | 'low';
   duneTvl?: number | null;

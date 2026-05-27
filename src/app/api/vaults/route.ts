@@ -5,6 +5,11 @@ import { getVaultRiskWithCreditRatings, type VaultWithCreditRating } from '@/lib
 import { getVaultToCuratorMap } from '@/lib/morpho';
 import { DataSourceTracker } from '@/lib/data-source-tracker';
 import { decimalToPercent } from '@/lib/fees';
+import {
+  BITWISE_JUPITER_ETHENA_CURATOR_NAME,
+  BITWISE_JUPITER_ETHENA_CURATOR_SLUG,
+  getJupiterEthenaEarnMarket,
+} from '@/lib/jupiter-lend';
 
 // Symbol prefix to curator mapping for DeFiLlama data
 // This catches vaults where the symbol encodes the curator name
@@ -148,13 +153,18 @@ export async function GET(request: NextRequest) {
     const curatorSlug = searchParams.get('curator');
     const limit = parseInt(searchParams.get('limit') || '50', 10);
     const includeRisk = searchParams.get('risk') !== 'false'; // Include risk by default
+    const isBitwiseJupiterEthena = curatorSlug === BITWISE_JUPITER_ETHENA_CURATOR_SLUG;
 
     // Fetch from all sources in parallel (tracked for visibility)
     const tracker = new DataSourceTracker();
-    const [vaults, duneVaults, vaultRiskData, morphoApyData, curatorMap] = await Promise.all([
+    const [vaults, duneVaults, vaultRiskData, morphoApyData, curatorMap, jupiterEthenaData] = await Promise.all([
       tracker.track(
         curatorSlug ? 'DeFiLlama Curator Vaults' : 'DeFiLlama Top Vaults',
-        curatorSlug ? getCuratorVaults(curatorSlug) : getTopVaults(limit),
+        isBitwiseJupiterEthena
+          ? Promise.resolve([])
+          : curatorSlug
+            ? getCuratorVaults(curatorSlug)
+            : getTopVaults(limit),
         [],
       ),
       tracker.track('Dune TVL', getAllVaultsTvl(), []),
@@ -163,6 +173,7 @@ export async function GET(request: NextRequest) {
         : Promise.resolve([]),
       tracker.track('Morpho APY', getMorphoVaultApyData(), []),
       tracker.track('Curator Map', getVaultToCuratorMap(), new Map<string, string>()),
+      tracker.track('Jupiter Lend Ethena', getJupiterEthenaEarnMarket(), null),
     ]);
 
     // Create lookup maps
@@ -365,6 +376,43 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    const includeJupiterEthena = jupiterEthenaData
+      && (!curatorSlug || curatorSlug === BITWISE_JUPITER_ETHENA_CURATOR_SLUG);
+
+    if (includeJupiterEthena) {
+      for (const token of jupiterEthenaData.earnTokens) {
+        transformedVaults.push({
+          id: token.address,
+          name: `${token.uiSymbol || token.symbol} (${BITWISE_JUPITER_ETHENA_CURATOR_NAME})`,
+          chain: 'Solana',
+          project: 'jupiter-lend',
+          symbol: token.uiSymbol || token.symbol,
+          tvl: token.tvlUsd,
+          apy: token.totalApy,
+          apyBase: token.supplyApy,
+          apyReward: token.rewardsApy,
+          apySource: 'jupiter-lend',
+          apyChange7d: 0,
+          stablecoin: true,
+          exposure: 'single',
+          poolMeta: 'Bitwise x Ethena Market',
+          curator: BITWISE_JUPITER_ETHENA_CURATOR_NAME,
+          isRawMarket: false,
+          duneTvl: null,
+          dataVerified: true,
+          riskScore: undefined,
+          riskLevel: undefined,
+          maxUtilization: undefined,
+          avgLltv: undefined,
+          hasBadDebt: undefined,
+          redWarningCount: undefined,
+          criticalWarnings: undefined,
+          markets: undefined,
+          creditRating: undefined,
+        });
+      }
+    }
+
     // Sort by TVL
     transformedVaults.sort((a, b) => b.tvl - a.tvl);
 
@@ -383,6 +431,7 @@ export async function GET(request: NextRequest) {
       dataSource: [
         'DeFiLlama',
         morphoApyData.length > 0 ? `Morpho APY (${vaultsWithMorphoApy})` : null,
+        jupiterEthenaData ? 'Jupiter Lend Ethena' : null,
         curatorMap.size > 0 ? `Curators (${vaultsWithCurator})` : null,
         vaultRiskData.length > 0 ? 'Morpho Risk' : null,
         duneVaults.length > 0 ? 'Dune' : null,

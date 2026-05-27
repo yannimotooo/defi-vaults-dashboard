@@ -30,7 +30,7 @@ export function DataSourceBadge({ source, verified = true, url }: DataSourceBadg
 // Data confidence indicator for cross-referenced data
 interface DataConfidenceBadgeProps {
   confidence: 'high' | 'medium' | 'low' | undefined;
-  tvlSource?: 'morpho' | 'defillama' | 'euler' | 'kamino';
+  tvlSource?: 'morpho' | 'defillama' | 'euler' | 'kamino' | 'jupiter-lend' | 'manual';
   duneTvl?: number | null;
   defillamaTvl?: number;
   morphoTvl?: number;
@@ -45,7 +45,7 @@ interface DataConfidenceBadgeProps {
    * which makes the data hierarchy concrete instead of abstract.
    */
   tvlSources?: Array<{
-    source: 'morpho' | 'kamino' | 'euler' | 'defillama';
+    source: 'morpho' | 'kamino' | 'euler' | 'jupiter-lend' | 'defillama' | 'manual';
     tvl: number;
     authoritative: boolean;
   }>;
@@ -71,8 +71,20 @@ export function DataConfidenceBadge({
   if (!confidence) return null;
 
   // On-chain sources get special treatment
-  const isOnChain = tvlSource === 'morpho' || tvlSource === 'euler' || tvlSource === 'kamino';
-  const hasOnChainData = (morphoTvl ?? 0) > 0;
+  const isAuthoritativeSource = tvlSource === 'morpho'
+    || tvlSource === 'euler'
+    || tvlSource === 'kamino'
+    || tvlSource === 'jupiter-lend';
+  const hasOnChainData = isAuthoritativeSource || (morphoTvl ?? 0) > 0;
+  const sourceLabel = tvlSource === 'morpho'
+    ? 'Morpho'
+    : tvlSource === 'euler'
+      ? 'Euler'
+      : tvlSource === 'kamino'
+        ? 'Kamino'
+        : tvlSource === 'jupiter-lend'
+          ? 'Jupiter Lend'
+          : 'source';
 
   // Determine the reason for low confidence
   const getLowConfidenceDetails = () => {
@@ -107,9 +119,9 @@ export function DataConfidenceBadge({
     high: {
       color: 'bg-emerald-500',
       textColor: 'text-emerald-600',
-      label: isOnChain ? 'On-chain' : 'Verified',
-      description: isOnChain
-        ? `Authoritative ${tvlSource === 'morpho' ? 'Morpho' : tvlSource === 'euler' ? 'Euler' : 'Kamino'} smart contract data`
+      label: isAuthoritativeSource ? 'Verified' : 'Verified',
+      description: isAuthoritativeSource
+        ? `Authoritative ${sourceLabel} data`
         : 'On-chain TVL verified with APY data available',
     },
     medium: {
@@ -159,7 +171,7 @@ export function DataConfidenceBadge({
                     key={s.source}
                     className="flex items-center justify-between gap-3 text-[11px]"
                   >
-                    <span className="text-gray-700 capitalize">{s.source}</span>
+                    <span className="text-gray-700 capitalize">{s.source.replace('-', ' ')}</span>
                     <span className="flex items-center gap-2">
                       <span
                         className="font-medium text-gray-900"
